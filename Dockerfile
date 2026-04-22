@@ -21,5 +21,8 @@ RUN pip install --no-cache-dir \
 # 暴露端口
 EXPOSE 8000
 
+# 设置Python路径
+ENV PYTHONPATH=/app/src
+
 # 启动命令
 CMD ["uvicorn", "src.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
