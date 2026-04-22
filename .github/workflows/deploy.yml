@@ -10,27 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Debug SSH Key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -c 100
-          echo "---"
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tail -c 50
-      
-      - name: Deploy to server
+      - name: Test SSH Connection
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: 34.102.18.91
           username: yishun
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command: |
-            echo "=== SSH Connection Test ==="
+            echo "SSH Connection Success"
             whoami
-            pwd
-            echo "=== Git Pull ==="
-            cd /home/yishun/yishun
-            git pull origin main
-            echo "=== Docker Build ==="
-            docker-compose down
-            docker-compose up -d --build
-            docker image prune -f
-            echo "=== Done ==="
+            ls -la /home/yishun/yishun
