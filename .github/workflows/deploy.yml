@@ -15,7 +15,6 @@ jobs:
         with:
           host: 34.102.18.91
           username: yishun
-          port: 22
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/yishun/yishun
