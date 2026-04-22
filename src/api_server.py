@@ -4,8 +4,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sys
-sys.path.append('/home/jinweijun999/app/src')
 from bazi import calc_bazi
 from fortune import generate_fortune_report
 
