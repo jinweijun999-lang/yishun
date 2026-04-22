@@ -1,4 +1,6 @@
 name: Deploy to Production
+# 注意: 部署已改用服务器cron定时任务
+# 服务器每分钟自动 git pull + docker-compose up -d --build
 
 on:
   push:
@@ -10,13 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Test SSH Connection
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: 34.102.18.91
-          username: yishun
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command: |
-            echo "SSH Connection Success"
-            whoami
-            ls -la /home/yishun/yishun
+      - name: Commit to trigger server pull
+        run: |
+          echo "代码已推送，服务器将在1分钟内自动拉取并部署"
+          echo "查看部署日志: ssh yishun@34.102.18.91 'tail -f /home/yishun/deploy.log'"
