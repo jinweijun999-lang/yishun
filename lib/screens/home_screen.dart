@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/analytics_service.dart';
+import '../models/user_model.dart';
+import '../utils/theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,384 +14,403 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _formKey = GlobalKey<FormState>();
-  
-  // 出生信息
-  int _birthYear = 1990;
-  int _birthMonth = 1;
-  int _birthDay = 1;
-  int _birthHour = 12;
-  double _longitude = 116.4; // 默认北京经度
-  String _name = '';
-  
-  // 结果
-  Map<String, dynamic>? _result;
-  bool _isLoading = false;
-  String? _error;
+  Map<String, dynamic>? _dailyFortune;
+  bool _isLoadingFortune = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDailyFortune();
+    _logScreenView();
+  }
+
+  void _logScreenView() {
+    context.read<AnalyticsService>().logScreenView(screenName: 'HomeScreen');
+  }
+
+  Future<void> _loadDailyFortune() async {
+    final authService = context.read<AuthService>();
+    final apiService = ApiService(authService);
+    
+    try {
+      final fortune = await apiService.getDailyFortune();
+      setState(() {
+        _dailyFortune = fortune;
+        _isLoadingFortune = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingFortune = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F0),
-      appBar: AppBar(
-        title: const Text('YiShun 玄学', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: const Color(0xFFFF6B35),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo区域
-              Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withAlpha(25),
-                  borderRadius: BorderRadius.circular(20),
+      backgroundColor: YiShunTheme.surfaceLight,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // App Bar
+            SliverAppBar(
+              floating: true,
+              backgroundColor: YiShunTheme.primaryColor,
+              title: Row(
+                children: [
+                  const Text('☯️', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'YiShun Fortune',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {},
                 ),
-                child: const Column(
+              ],
+            ),
+
+            // Content
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('☯️', style: TextStyle(fontSize: 60)),
-                    SizedBox(height: 10),
-                    Text('八字排盘 · 运势分析', 
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                    // Daily Fortune Card
+                    _buildDailyFortuneCard(),
+                    const SizedBox(height: 24),
+
+                    // Quick Actions
+                    const Text(
+                      'Features',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureGrid(),
+                    const SizedBox(height: 24),
+
+                    // Lucky Numbers
+                    _buildLuckyNumbersCard(),
+                    const SizedBox(height: 24),
+
+                    // Premium CTA
+                    _buildPremiumCTA(),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
-              
-              // 姓名输入
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: '姓名（选填）',
-                  prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (v) => _name = v,
-              ),
-              const SizedBox(height: 20),
-              
-              // 出生年月日
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('出生时间', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: _buildYearPicker()),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildMonthPicker()),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildDayPicker()),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildHourPicker(),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // 经度输入（真太阳时用）
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('出生地经度', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      const Text('用于计算真太阳时（北京默认116.4°）', 
-                          style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Slider(
-                              value: _longitude,
-                              min: 73,
-                              max: 135,
-                              divisions: 124,
-                              label: '${_longitude.toStringAsFixed(1)}°E',
-                              onChanged: (v) => setState(() => _longitude = v),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 80,
-                            child: Text('${_longitude.toStringAsFixed(1)}°', 
-                                textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-              
-              // 分析按钮
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _analyze,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B35),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 2,
-                  ),
-                  child: _isLoading 
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('开始分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              
-              // 错误信息
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(_error!, style: TextStyle(color: Colors.red.shade700))),
-                    ],
-                  ),
-                ),
-              ],
-              
-              // 结果展示
-              if (_result != null) ...[
-                const SizedBox(height: 30),
-                _buildResultCard(),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildYearPicker() {
-    return DropdownButtonFormField<int>(
-      initialValue: _birthYear,
-      decoration: InputDecoration(
-        labelText: '年',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      items: List.generate(100, (i) => DateTime.now().year - 50 + i)
-          .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthYear = v!),
-    );
-  }
-
-  Widget _buildMonthPicker() {
-    return DropdownButtonFormField<int>(
-      initialValue: _birthMonth,
-      decoration: InputDecoration(
-        labelText: '月',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      items: List.generate(12, (i) => i + 1)
-          .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthMonth = v!),
-    );
-  }
-
-  Widget _buildDayPicker() {
-    return DropdownButtonFormField<int>(
-      initialValue: _birthDay,
-      decoration: InputDecoration(
-        labelText: '日',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      items: List.generate(31, (i) => i + 1)
-          .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthDay = v!),
-    );
-  }
-
-  Widget _buildHourPicker() {
-    final hours = List.generate(24, (i) => i);
-    return DropdownButtonFormField<int>(
-      initialValue: _birthHour,
-      decoration: InputDecoration(
-        labelText: '出生时辰（小时）',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      items: hours.map((h) => DropdownMenuItem(
-        value: h, 
-        child: Text('$h 时'),
-      )).toList(),
-      onChanged: (v) => setState(() => _birthHour = v!),
-    );
-  }
-
-  Widget _buildResultCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('☯️', style: TextStyle(fontSize: 30)),
-                const SizedBox(width: 10),
-                Text(_name.isNotEmpty ? '$_name 的八字' : '八字分析结果',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ],
             ),
-            const Divider(height: 30),
-            
-            // 八字展示
-            const Text('🎯 八字', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildBaziColumn('年柱', _result!['year']),
-                _buildBaziColumn('月柱', _result!['month']),
-                _buildBaziColumn('日柱', _result!['day']),
-                _buildBaziColumn('时柱', _result!['hour']),
-              ],
-            ),
-            const Divider(height: 30),
-            
-            // 真太阳时
-            if (_result!['真太阳时'] != null) ...[
-              const Text('🌅 真太阳时', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(_result!['真太阳时']['真太阳时'],
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFFF6B35))),
-              const SizedBox(height: 16),
-            ],
-            
-            // 五行统计
-            if (_result!['五行统计'] != null) ...[
-              const Text('⚖️ 五行分布', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: (_result!['五行统计'] as Map<String, dynamic>).entries.map((e) {
-                  return Chip(
-                    label: Text('${e.key}: ${e.value}个'),
-                    backgroundColor: _getWuxingColor(e.key.toString()),
-                  );
-                }).toList(),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBaziColumn(String label, Map<String, dynamic> data) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 4),
-        Text('${data['gan']}${data['zhi']}', 
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(data['wuxing'], style: TextStyle(fontSize: 12, color: _getWuxingColor(data['wuxing']))),
-      ],
+  Widget _buildDailyFortuneCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [YiShunTheme.primaryColor, Color(0xFFFF8C5A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: YiShunTheme.primaryColor.withAlpha(76),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '☀️ 今日运势',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(51),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _dailyFortune?['god_of_day'] ?? '青龙',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_isLoadingFortune)
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            )
+          else
+            Text(
+              _dailyFortune?['summary'] ?? '今日运势较好，适合做重要决定',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildFortuneChip(
+                '🎨',
+                _dailyFortune?['lucky_color'] ?? '红色',
+              ),
+              const SizedBox(width: 8),
+              _buildFortuneChip(
+                '🔢',
+                '${_dailyFortune?['lucky_number'] ?? 8}',
+              ),
+              const SizedBox(width: 8),
+              _buildFortuneChip(
+                '🧭',
+                '${_dailyFortune?['lucky_direction'] ?? '东'}方',
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Color _getWuxingColor(String wuxing) {
-    switch (wuxing) {
-      case '木': return Colors.green;
-      case '火': return Colors.red;
-      case '土': return Colors.brown;
-      case '金': return Colors.amber;
-      case '水': return Colors.blue;
-      default: return Colors.grey;
-    }
+  Widget _buildFortuneChip(String emoji, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(51),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> _analyze() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _result = null;
-    });
+  Widget _buildFeatureGrid() {
+    final features = [
+      {'icon': '☯️', 'title': '八字排盘', 'desc': '四柱八字分析', 'color': Colors.blue, 'route': '/divination'},
+      {'icon': '⚖️', 'title': '五行分析', 'desc': '五行旺缺分析', 'color': Colors.green, 'route': '/divination'},
+      {'icon': '💑', 'title': '合盘配对', 'desc': '双人合盘分析', 'color': Colors.orange, 'route': '/compatibility'},
+      {'icon': '📜', 'title': '历史记录', 'desc': '查看历史', 'color': Colors.purple, 'route': '/history'},
+    ];
 
-    try {
-      final apiService = ApiService();
-      final result = await apiService.getBazi(
-        year: _birthYear,
-        month: _birthMonth,
-        day: _birthDay,
-        hour: _birthHour,
-        longitude: _longitude,
-      );
-      setState(() => _result = result);
-    } catch (e) {
-      // 如果API不可用，使用本地计算
-      setState(() {
-        _result = _calculateLocalBazi();
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.3,
+      ),
+      itemCount: features.length,
+      itemBuilder: (context, index) {
+        final feature = features[index];
+        return _buildFeatureCard(
+          feature['icon'] as String,
+          feature['title'] as String,
+          feature['desc'] as String,
+          feature['color'] as Color,
+          feature['route'] as String,
+        );
+      },
+    );
   }
 
-  Map<String, dynamic> _calculateLocalBazi() {
-    // 本地八字计算（简化版）
-    final tiangan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-    final dizhi = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-    final wuxing = {'甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土', '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'};
-    
-    int yearGan = (_birthYear - 4) % 10;
-    int yearZhi = (_birthYear - 4) % 12;
-    int monthZhi = (_birthMonth - 1) % 12;
-    
-    // 简化月干计算
-    int monthGan = (yearGan + _birthMonth + 1) % 10;
-    
-    // 简化日干计算
-    int dayGan = (_birthYear * 10 + _birthMonth * 30 + _birthDay) % 10;
-    int dayZhi = (_birthYear * 12 + _birthMonth * 30 + _birthDay) % 12;
-    
-    // 时干
-    int hourGan = (dayGan + (_birthHour + 1) ~/ 2) % 10;
-    int hourZhi = (_birthHour + 1) ~/ 2 % 12;
-    
-    return {
-      'year': {'gan': tiangan[yearGan], 'zhi': dizhi[yearZhi], 'wuxing': wuxing[tiangan[yearGan]]},
-      'month': {'gan': tiangan[monthGan], 'zhi': dizhi[monthZhi], 'wuxing': wuxing[tiangan[monthGan]]},
-      'day': {'gan': tiangan[dayGan], 'zhi': dizhi[dayZhi], 'wuxing': wuxing[tiangan[dayGan]]},
-      'hour': {'gan': tiangan[hourGan], 'zhi': dizhi[hourZhi], 'wuxing': wuxing[tiangan[hourGan]]},
-      '真太阳时': {'真太阳时': '${_birthHour}:00'},
-      '五行统计': {'木': 1, '火': 1, '土': 1, '金': 1, '水': 1},
-    };
+  Widget _buildFeatureCard(String emoji, String title, String desc, Color color, String route) {
+    return GestureDetector(
+      onTap: () {
+        if (route == '/divination') {
+          // Navigate to divination tab
+          DefaultTabController.of(context).animateTo(1);
+        } else {
+          Navigator.pushNamed(context, route);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(25),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(emoji, style: const TextStyle(fontSize: 24)),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              desc,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLuckyNumbersCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha(25),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '🔢 幸运数字',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(5, (i) {
+              final num = (_dailyFortune?['lucky_number'] ?? 8) + i;
+              return Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: YiShunTheme.primaryColor.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    '${num % 10}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: YiShunTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumCTA() {
+    final user = context.watch<UserModel>();
+    if (user.isPremium) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            YiShunTheme.secondaryColor,
+            YiShunTheme.secondaryColor.withAlpha(204),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Text('👑', style: TextStyle(fontSize: 40)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Unlock Premium',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$9.9/month - All features',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(179),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: YiShunTheme.accentColor,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Subscribe'),
+          ),
+        ],
+      ),
+    );
   }
 }
