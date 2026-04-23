@@ -31,8 +31,10 @@ jobs:
           path: |
             ~/.pub-cache
             ~/.gradle/caches
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
+            ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
             ${{ runner.os }}-flutter-
 
       - name: Install dependencies
@@ -126,10 +128,17 @@ jobs:
           path: |
             ~/.pub-cache
             ~/.gradle/caches
-          key: ${{ runner.os }}-flutter-android-${{ hashFiles('**/pubspec.lock') }}
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-flutter-android-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-android-${{ env.FLUTTER_VERSION }}-
+            ${{ runner.os }}-flutter-android-
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Clean Gradle cache
+        run: rm -rf ~/.gradle/caches/8.* ~/.gradle/wrapper/dists/gradle-8* || true
 
       - name: Build Android APK
         run: flutter build apk --debug
