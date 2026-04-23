@@ -27,15 +27,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final authService = context.read<AuthService>();
     final analytics = context.read<AnalyticsService>();
     final subscriptionService = SubscriptionService(authService, analytics);
-    
+
     await subscriptionService.checkSubscriptionStatus();
-    
+
     if (mounted && subscriptionService.isActive) {
-      // Already subscribed
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You already have an active subscription!'),
+          content: Text('您已是会员！'),
           backgroundColor: Colors.green,
         ),
       );
@@ -60,46 +59,43 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final authService = context.read<AuthService>();
       final analytics = context.read<AnalyticsService>();
       final subscriptionService = SubscriptionService(authService, analytics);
-      
-      // Initialize Stripe (use test key for now)
+
       await subscriptionService.initialize(
-        'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx',  // Replace with real key
+        'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx',
       );
 
-      // Create payment intent
       final clientSecret = await subscriptionService.createPaymentIntent(plan);
-      
+
       if (clientSecret == null) {
         setState(() {
-          _error = subscriptionService.error ?? 'Failed to create payment';
+          _error = subscriptionService.error ?? '创建支付失败';
           _isLoading = false;
         });
         return;
       }
 
-      // Process payment
       final success = await subscriptionService.processPayment(clientSecret);
-      
+
       if (success && mounted) {
         final user = context.read<UserModel>();
         user.setMemberStatus(MemberStatus.premium);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎉 Subscription activated! Welcome to Premium!'),
+            content: Text('🎉 订阅成功！欢迎成为会员！'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context);
       } else {
         setState(() {
-          _error = subscriptionService.error ?? 'Payment failed';
+          _error = subscriptionService.error ?? '支付失败';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Subscription error: $e';
+        _error = '订阅错误: $e';
         _isLoading = false;
       });
     }
@@ -108,135 +104,188 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
-      appBar: AppBar(
-        backgroundColor: YiShunTheme.primaryColor,
-        title: const Text('Upgrade to Premium'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    YiShunTheme.accentColor,
-                    YiShunTheme.accentColor.withAlpha(204),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                children: [
-                  Text('👑', style: TextStyle(fontSize: 70)),
-                  SizedBox(height: 16),
-                  Text(
-                    'YiShun Premium',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Unlock unlimited fortune analyses',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Features
-            _buildFeatureItem(Icons.all_inclusive, 'Unlimited Analyses', 'No daily limits'),
-            _buildFeatureItem(Icons.history, 'Full History', 'Access all your readings'),
-            _buildFeatureItem(Icons.insights, 'Advanced Insights', 'Deeper fortune analysis'),
-            _buildFeatureItem(Icons.adb, 'No Ads', 'Clean, uninterrupted experience'),
-
-            const SizedBox(height: 32),
-
-            // Pricing cards
-            _buildPricingCard(
-              title: 'Monthly',
-              price: '\$9.99',
-              period: '/month',
-              features: ['Unlimited access', 'Cancel anytime', 'Billed monthly'],
-              isPopular: false,
-              onSubscribe: _isLoading ? null : _subscribeMonthly,
-            ),
-            const SizedBox(height: 16),
-            _buildPricingCard(
-              title: 'Yearly',
-              price: '\$59.99',
-              period: '/year',
-              features: ['Unlimited access', 'Save 50%', 'Best value'],
-              isPopular: true,
-              onSubscribe: _isLoading ? null : _subscribeYearly,
-            ),
-
-            // Error message
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
+      backgroundColor: YiShunTheme.surfaceDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: YiShunTheme.primaryGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // App Bar
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade700),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: TextStyle(color: Colors.red.shade700),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text(
+                      '开通会员',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
 
-            // Loading indicator
-            if (_isLoading) ...[
-              const SizedBox(height: 16),
-              const Center(child: CircularProgressIndicator()),
-            ],
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withAlpha(25)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: YiShunTheme.brandInkBlue.withAlpha(128),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: YiShunTheme.brandAmber.withAlpha(51),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Text('👑', style: TextStyle(fontSize: 60)),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'YiShun 会员',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '解锁无限八字分析，深度命理解读',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withAlpha(179),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
+                      // Features
+                      _buildFeatureItem(Icons.all_inclusive, '无限分析', '无每日次数限制'),
+                      _buildFeatureItem(Icons.history, '完整历史', '查看所有命盘记录'),
+                      _buildFeatureItem(Icons.insights, '深度解读', '五行、十神、大运详解'),
+                      _buildFeatureItem(Icons.adb, '无广告', '纯净无干扰体验'),
 
-            // Restore purchases
-            TextButton(
-              onPressed: _isLoading ? null : _restorePurchases,
-              child: const Text('Restore Previous Purchases'),
-            ),
+                      const SizedBox(height: 24),
 
-            const SizedBox(height: 16),
+                      // Pricing cards
+                      _buildPricingCard(
+                        title: '月卡会员',
+                        price: '¥28',
+                        period: '/月',
+                        features: ['无限八字分析', '十神详解', '月3次合盘', '无广告'],
+                        isPopular: false,
+                        onSubscribe: _isLoading ? null : _subscribeMonthly,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPricingCard(
+                        title: '年卡会员',
+                        price: '¥68',
+                        period: '/年',
+                        features: ['月卡全部功能', '月10次合盘', '优先AI解读', '节省¥268'],
+                        isPopular: true,
+                        onSubscribe: _isLoading ? null : _subscribeYearly,
+                      ),
 
-            // Terms
-            Text(
-              'By subscribing, you agree to our Terms of Service and Privacy Policy. '
-              'Subscriptions auto-renew unless cancelled 24 hours before the period ends.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
+                      // Error message
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withAlpha(51),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.withAlpha(76)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Loading
+                      if (_isLoading) ...[
+                        const SizedBox(height: 16),
+                        const Center(
+                          child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Restore purchases
+                      TextButton(
+                        onPressed: _isLoading ? null : _restorePurchases,
+                        child: const Text(
+                          '恢复购买',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Terms
+                      Text(
+                        '订阅即表示同意《会员协议》。订阅自动续费，如需取消请在到期前24小时操作。',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withAlpha(102),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -244,16 +293,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildFeatureItem(IconData icon, String title, String subtitle) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: YiShunTheme.primaryColor.withAlpha(25),
+              color: YiShunTheme.brandAmber.withAlpha(25),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: YiShunTheme.primaryColor, size: 28),
+            child: Icon(icon, color: YiShunTheme.brandAmber, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -263,21 +312,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    color: Colors.white.withAlpha(153),
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.check_circle, color: Colors.green, size: 24),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check, color: Colors.white, size: 14),
+          ),
         ],
       ),
     );
@@ -293,19 +350,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withAlpha(13),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPopular ? YiShunTheme.accentColor : Colors.transparent,
-          width: 2,
+          color: isPopular ? YiShunTheme.brandAmber : Colors.white.withAlpha(25),
+          width: isPopular ? 2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -314,11 +364,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 6),
               decoration: const BoxDecoration(
-                color: YiShunTheme.accentColor,
+                color: YiShunTheme.brandAmber,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
               ),
               child: const Text(
-                'BEST VALUE',
+                '推荐',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black87,
@@ -334,8 +384,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -346,28 +397,28 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Text(
                       price,
                       style: const TextStyle(
-                        fontSize: 36,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: YiShunTheme.primaryColor,
+                        color: YiShunTheme.brandAmber,
                       ),
                     ),
                     Text(
                       period,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Colors.white.withAlpha(153),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 ...features.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.check, color: Colors.green, size: 18),
+                      const Icon(Icons.check, color: YiShunTheme.woodColor, size: 16),
                       const SizedBox(width: 8),
-                      Text(f, style: TextStyle(color: Colors.grey.shade700)),
+                      Text(f, style: TextStyle(color: Colors.white.withAlpha(179))),
                     ],
                   ),
                 )),
@@ -378,17 +429,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   child: ElevatedButton(
                     onPressed: onSubscribe,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isPopular 
-                          ? YiShunTheme.accentColor 
-                          : YiShunTheme.primaryColor,
+                      backgroundColor: isPopular
+                          ? YiShunTheme.brandAmber
+                          : YiShunTheme.brandCinnabar,
                       foregroundColor: isPopular ? Colors.black : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      'Subscribe',
-                      style: const TextStyle(
+                    child: const Text(
+                      '立即开通',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -405,31 +456,31 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<void> _restorePurchases() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final authService = context.read<AuthService>();
       final analytics = context.read<AnalyticsService>();
       final subscriptionService = SubscriptionService(authService, analytics);
-      
+
       final success = await subscriptionService.restorePurchases();
-      
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Purchases restored successfully!'),
+            content: Text('购买恢复成功！'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context);
       } else {
         setState(() {
-          _error = 'No previous purchases found';
+          _error = '未找到之前的购买记录';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Restore failed: $e';
+        _error = '恢复失败: $e';
         _isLoading = false;
       });
     }

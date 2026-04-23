@@ -15,45 +15,57 @@ class DivinationScreen extends StatefulWidget {
   State<DivinationScreen> createState() => _DivinationScreenState();
 }
 
-class _DivinationScreenState extends State<DivinationScreen> {
+class _DivinationScreenState extends State<DivinationScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  
+
   // Birth info
   int _birthYear = 1990;
   int _birthMonth = 1;
   int _birthDay = 1;
   int _birthHour = 12;
   double _longitude = 116.4;
-  
+  int _gender = 0; // 0=male, 1=female
+
   // State
   bool _isLoading = false;
   Map<String, dynamic>? _result;
   String? _error;
 
+  // Animation
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   @override
   void initState() {
     super.initState();
-    // Set default to current date context
     final now = DateTime.now();
     _birthYear = now.year - 25;
+
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseController.repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   Future<void> _analyze() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check free credits or premium
     final user = context.read<UserModel>();
-    
-    // First check if premium or has free credits
+
     if (!user.isPremium && !user.useFreeCredit()) {
-      // Show the upgrade/ad dialog
       _showUpgradeDialog();
       return;
     }
@@ -71,7 +83,7 @@ class _DivinationScreenState extends State<DivinationScreen> {
       final authService = context.read<AuthService>();
       final apiService = ApiService(authService);
       final analytics = context.read<AnalyticsService>();
-      
+
       final result = await apiService.getBazi(
         year: _birthYear,
         month: _birthMonth,
@@ -81,7 +93,6 @@ class _DivinationScreenState extends State<DivinationScreen> {
         name: _nameController.text.isNotEmpty ? _nameController.text : null,
       );
 
-      // Log analytics
       final user = context.read<UserModel>();
       await analytics.logBaziCalculation(
         year: _birthYear,
@@ -91,7 +102,6 @@ class _DivinationScreenState extends State<DivinationScreen> {
         isPremium: user.isPremium,
       );
 
-      // Save to history
       final historyService = HistoryService();
       await historyService.saveBaziToHistory(
         bazi: result,
@@ -105,7 +115,6 @@ class _DivinationScreenState extends State<DivinationScreen> {
         _isLoading = false;
       });
 
-      // Navigate to result screen
       if (mounted) {
         Navigator.pushNamed(context, '/result', arguments: _result);
       }
@@ -130,33 +139,26 @@ class _DivinationScreenState extends State<DivinationScreen> {
   }
 
   Future<void> _handleWatchAd() async {
-    Navigator.pop(context); // Close bottom sheet
-    
+    Navigator.pop(context);
+
     final adService = context.read<AdService>();
     final user = context.read<UserModel>();
     final analytics = context.read<AnalyticsService>();
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
-      // Check if ad is ready
       if (!adService.isRewardedAdReady) {
         await adService.preloadAd();
-        // Wait a bit for ad to load
         await Future.delayed(const Duration(seconds: 2));
       }
-      
+
       final success = await adService.showRewardedAd();
-      
+
       if (success) {
-        // Ad reward earned - grant access
         await analytics.logAdWatched(completed: true);
         await analytics.logPremiumUnlock(method: 'ad');
-        
-        // Use the free credit
         user.useFreeCredit();
-        
-        // Perform the analysis
         await _performAnalysis();
       } else {
         await analytics.logAdWatched(completed: false);
@@ -185,264 +187,416 @@ class _DivinationScreenState extends State<DivinationScreen> {
   }
 
   void _handleSubscribe() {
-    Navigator.pop(context); // Close bottom sheet
-    // Navigate to subscription screen
+    Navigator.pop(context);
     Navigator.pushNamed(context, '/subscription');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
-      appBar: AppBar(
-        backgroundColor: YiShunTheme.primaryColor,
-        title: const Text('四柱排盘', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
+      backgroundColor: YiShunTheme.surfaceDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: YiShunTheme.primaryGradient,
+        ),
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      YiShunTheme.primaryColor,
-                      YiShunTheme.primaryColor.withAlpha(204),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Column(
+              // Custom App Bar
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Text('☯️', style: TextStyle(fontSize: 50)),
-                    SizedBox(height: 8),
-                    Text(
-                      'Four Pillars Divination',
+                    const Text(
+                      '四柱排盘',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Enter your birth information',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '☯️ 完整八字',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
 
-              // Name input
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name (optional)',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Birth date card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.cake_outlined, color: YiShunTheme.primaryColor),
-                          SizedBox(width: 8),
-                          Text(
-                            'Birth Date',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: _buildYearPicker()),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildMonthPicker()),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildDayPicker()),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Birth hour card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.access_time, color: YiShunTheme.primaryColor),
-                          SizedBox(width: 8),
-                          Text(
-                            'Birth Hour',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildHourPicker(),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Longitude card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.location_on_outlined, color: YiShunTheme.primaryColor),
-                          SizedBox(width: 8),
-                          Text(
-                            'Longitude for True Solar Time',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Beijing default 116.4°E',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Slider(
-                              value: _longitude,
-                              min: 73,
-                              max: 135,
-                              divisions: 124,
-                              label: '${_longitude.toStringAsFixed(1)}°E',
-                              onChanged: (v) => setState(() => _longitude = v),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 70,
-                            child: Text(
-                              '${_longitude.toStringAsFixed(1)}°',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Free credits info
-              Consumer<UserModel>(
-                builder: (context, user, _) {
-                  if (user.isPremium) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: YiShunTheme.accentColor.withAlpha(25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Icon(Icons.info_outline, color: YiShunTheme.secondaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${user.freeUsesRemaining} free analyses remaining today',
-                          style: const TextStyle(color: YiShunTheme.secondaryColor),
+                        // Header with Yin Yang
+                        ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withAlpha(25)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: YiShunTheme.brandInkBlue.withAlpha(128),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(25),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: const Text('☯️', style: TextStyle(fontSize: 48)),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  '四柱八字排盘',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '输入出生信息，获取精准命盘分析',
+                                  style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        const SizedBox(height: 24),
+
+                        // Name input
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(25)),
+                          ),
+                          child: TextFormField(
+                            controller: _nameController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: '姓名（可选）',
+                              labelStyle: const TextStyle(color: Colors.white54),
+                              prefixIcon: const Icon(Icons.person_outline, color: Colors.white54),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: false,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Birth date card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.cake_outlined, color: YiShunTheme.brandAmber),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '出生日期',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(child: _buildYearPicker()),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _buildMonthPicker()),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _buildDayPicker()),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Birth hour card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.access_time, color: YiShunTheme.brandAmber),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '出生时辰',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '传统命理以时辰(2小时)为单位',
+                                style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 12),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildHourPicker(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Gender card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.wc, color: YiShunTheme.brandAmber),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '性别',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildGenderOption(0, '男', '乾'),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildGenderOption(1, '女', '坤'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Longitude card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.location_on_outlined, color: YiShunTheme.brandAmber),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '出生经度（真太阳时）',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '用于精确计算地方时，默认北京116.4°E',
+                                style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 12),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SliderTheme(
+                                      data: SliderThemeData(
+                                        activeTrackColor: YiShunTheme.brandAmber,
+                                        inactiveTrackColor: Colors.white.withAlpha(51),
+                                        thumbColor: YiShunTheme.brandAmber,
+                                        overlayColor: YiShunTheme.brandAmber.withAlpha(51),
+                                      ),
+                                      child: Slider(
+                                        value: _longitude,
+                                        min: 73,
+                                        max: 135,
+                                        divisions: 124,
+                                        onChanged: (v) => setState(() => _longitude = v),
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 70,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: YiShunTheme.brandAmber.withAlpha(51),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${_longitude.toStringAsFixed(1)}°E',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: YiShunTheme.brandAmber,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Free credits info
+                        Consumer<UserModel>(
+                          builder: (context, user, _) {
+                            if (user.isPremium) return const SizedBox.shrink();
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: YiShunTheme.brandAmber.withAlpha(25),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: YiShunTheme.brandAmber.withAlpha(51)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, color: YiShunTheme.brandAmber),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '今日剩余 ${user.freeUsesRemaining} 次免费分析',
+                                    style: const TextStyle(color: YiShunTheme.brandAmber),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Error
+                        if (_error != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withAlpha(51),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.withAlpha(76)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+
+                        // Analyze button
+                        SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _analyze,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: YiShunTheme.brandCinnabar,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 8,
+                              shadowColor: YiShunTheme.brandCinnabar.withAlpha(128),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('☯️', style: TextStyle(fontSize: 20)),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        '排出命盘',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
                       ],
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Error
-              if (_error != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: TextStyle(color: Colors.red.shade700),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-              const SizedBox(height: 16),
-
-              // Analyze button
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _analyze,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: YiShunTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.auto_awesome),
-                            SizedBox(width: 8),
-                            Text(
-                              'Start Analysis',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
               ),
-              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -450,49 +604,114 @@ class _DivinationScreenState extends State<DivinationScreen> {
     );
   }
 
+  Widget _buildGenderOption(int value, String label, String gua) {
+    final isSelected = _gender == value;
+    return GestureDetector(
+      onTap: () => setState(() => _gender = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? YiShunTheme.brandAmber.withAlpha(51)
+              : Colors.white.withAlpha(13),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? YiShunTheme.brandAmber
+                : Colors.white.withAlpha(51),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              gua,
+              style: TextStyle(
+                fontSize: 24,
+                color: isSelected ? YiShunTheme.brandAmber : Colors.white54,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white54,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildYearPicker() {
     final currentYear = DateTime.now().year;
-    return DropdownButtonFormField<int>(
-      initialValue: _birthYear,
-      decoration: InputDecoration(
-        labelText: 'Year',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(100, (i) => currentYear - 50 + i)
-          .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthYear = v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _birthYear,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(100, (i) => currentYear - 50 + i)
+              .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+              .toList(),
+          onChanged: (v) => setState(() => _birthYear = v!),
+        ),
+      ),
     );
   }
 
   Widget _buildMonthPicker() {
-    return DropdownButtonFormField<int>(
-      initialValue: _birthMonth,
-      decoration: InputDecoration(
-        labelText: 'Month',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(12, (i) => i + 1)
-          .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthMonth = v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _birthMonth,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(12, (i) => i + 1)
+              .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
+              .toList(),
+          onChanged: (v) => setState(() => _birthMonth = v!),
+        ),
+      ),
     );
   }
 
   Widget _buildDayPicker() {
-    return DropdownButtonFormField<int>(
-      initialValue: _birthDay,
-      decoration: InputDecoration(
-        labelText: 'Day',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(31, (i) => i + 1)
-          .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
-          .toList(),
-      onChanged: (v) => setState(() => _birthDay = v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _birthDay,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(31, (i) => i + 1)
+              .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
+              .toList(),
+          onChanged: (v) => setState(() => _birthDay = v!),
+        ),
+      ),
     );
   }
 
@@ -506,17 +725,24 @@ class _DivinationScreenState extends State<DivinationScreen> {
         return GestureDetector(
           onTap: () => setState(() => _birthHour = h),
           child: Container(
-            width: 56,
+            width: 52,
             height: 40,
             decoration: BoxDecoration(
-              color: isSelected ? YiShunTheme.primaryColor : Colors.grey.shade100,
+              color: isSelected
+                  ? YiShunTheme.brandAmber.withAlpha(76)
+                  : Colors.white.withAlpha(13),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? YiShunTheme.brandAmber
+                    : Colors.white.withAlpha(51),
+              ),
             ),
             child: Center(
               child: Text(
                 '$h',
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
+                  color: isSelected ? Colors.white : Colors.white54,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -543,18 +769,17 @@ class _UpgradeBottomSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFF1A3A5C),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.white.withAlpha(51),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -562,14 +787,18 @@ class _UpgradeBottomSheet extends StatelessWidget {
           const Text('📺', style: TextStyle(fontSize: 60)),
           const SizedBox(height: 16),
           const Text(
-            'Free Credits Exhausted',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            '今日免费次数已用完',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Watch a short video to unlock 1 free analysis, or subscribe for unlimited access!',
+            '观看短视频解锁1次免费分析，或开通会员获得无限次数',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: Colors.white.withAlpha(179)),
           ),
           const SizedBox(height: 24),
           Row(
@@ -578,6 +807,8 @@ class _UpgradeBottomSheet extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onWatchAd,
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white54),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -587,7 +818,7 @@ class _UpgradeBottomSheet extends StatelessWidget {
                     children: [
                       Icon(Icons.play_circle_outline, size: 28),
                       SizedBox(height: 4),
-                      Text('Watch Ad'),
+                      Text('看广告'),
                     ],
                   ),
                 ),
@@ -597,8 +828,8 @@ class _UpgradeBottomSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onSubscribe,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: YiShunTheme.accentColor,
-                    foregroundColor: Colors.black,
+                    backgroundColor: YiShunTheme.brandCinnabar,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -608,7 +839,7 @@ class _UpgradeBottomSheet extends StatelessWidget {
                     children: [
                       Icon(Icons.star, size: 28),
                       SizedBox(height: 4),
-                      Text('\$9.9/mo'),
+                      Text('¥28/月'),
                     ],
                   ),
                 ),
@@ -618,7 +849,10 @@ class _UpgradeBottomSheet extends StatelessWidget {
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              '取消',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           const SizedBox(height: 8),
         ],

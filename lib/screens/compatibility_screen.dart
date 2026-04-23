@@ -18,24 +18,24 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   final _formKey2 = GlobalKey<FormState>();
   final _nameController1 = TextEditingController();
   final _nameController2 = TextEditingController();
-  
+
   // Person 1 birth info
   int _birthYear1 = 1990;
   int _birthMonth1 = 1;
   int _birthDay1 = 1;
   int _birthHour1 = 12;
-  
+
   // Person 2 birth info
   int _birthYear2 = 1990;
   int _birthMonth2 = 1;
   int _birthDay2 = 1;
   int _birthHour2 = 12;
-  
+
   // State
   bool _isLoading = false;
   Map<String, dynamic>? _result;
   String? _error;
-  int _currentStep = 0; // 0: input, 1: analyzing, 2: result
+  int _currentStep = 0;
 
   @override
   void initState() {
@@ -68,8 +68,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
       final apiService = ApiService(authService);
       final geminiService = GeminiService();
       final historyService = HistoryService();
-      
-      // Calculate Bazi for both people
+
       final bazi1Future = apiService.getBazi(
         year: _birthYear1,
         month: _birthMonth1,
@@ -77,7 +76,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         hour: _birthHour1,
         name: _nameController1.text,
       );
-      
+
       final bazi2Future = apiService.getBazi(
         year: _birthYear2,
         month: _birthMonth2,
@@ -85,21 +84,18 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         hour: _birthHour2,
         name: _nameController2.text,
       );
-      
+
       final results = await Future.wait([bazi1Future, bazi2Future]);
       final bazi1 = results[0];
       final bazi2 = results[1];
-      
-      // Get basic compatibility from server
+
       final compatibility = await apiService.getCompatibility(
         bazi1: bazi1,
         bazi2: bazi2,
       );
-      
-      // Get AI-powered detailed analysis
+
       final aiResult = await geminiService.analyzeCompatibility(bazi1, bazi2);
-      
-      // Save to history
+
       await historyService.saveCompatibilityToHistory(
         bazi1: bazi1,
         bazi2: bazi2,
@@ -137,23 +133,15 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
-      appBar: AppBar(
-        backgroundColor: YiShunTheme.primaryColor,
-        title: const Text('合盘分析', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        elevation: 0,
-        leading: _currentStep == 2
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() {
-                  _currentStep = 0;
-                  _result = null;
-                }),
-              )
-            : null,
+      backgroundColor: YiShunTheme.surfaceDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: YiShunTheme.primaryGradient,
+        ),
+        child: SafeArea(
+          child: _currentStep == 2 ? _buildResultView() : _buildInputView(),
+        ),
       ),
-      body: _currentStep == 2 ? _buildResultView() : _buildInputView(),
     );
   }
 
@@ -167,23 +155,28 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  YiShunTheme.secondaryColor,
-                  YiShunTheme.secondaryColor.withAlpha(204),
-                ],
+              gradient: const LinearGradient(
+                colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
               ),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withAlpha(25)),
             ),
             child: Column(
               children: [
-                const Text('💑', style: TextStyle(fontSize: 50)),
-                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: YiShunTheme.fireColor.withAlpha(51),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Text('💑', style: TextStyle(fontSize: 48)),
+                ),
+                const SizedBox(height: 12),
                 const Text(
-                  '八字合盘分析',
+                  '双人合盘分析',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -201,6 +194,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           _buildPersonCard(
             title: '甲方',
             icon: Icons.person,
+            color: YiShunTheme.brandCinnabar,
             formKey: _formKey1,
             nameController: _nameController1,
             year: _birthYear1,
@@ -217,12 +211,12 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           // Divider with heart
           Row(
             children: [
-              Expanded(child: Divider(color: Colors.grey.shade300)),
+              Expanded(child: Divider(color: Colors.white.withAlpha(25))),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('💕', style: TextStyle(fontSize: 24, color: Colors.grey.shade400)),
+                child: Text('💕', style: TextStyle(fontSize: 24, color: Colors.white.withAlpha(128))),
               ),
-              Expanded(child: Divider(color: Colors.grey.shade300)),
+              Expanded(child: Divider(color: Colors.white.withAlpha(25))),
             ],
           ),
           const SizedBox(height: 16),
@@ -231,6 +225,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           _buildPersonCard(
             title: '乙方',
             icon: Icons.person_outline,
+            color: YiShunTheme.waterColor,
             formKey: _formKey2,
             nameController: _nameController2,
             year: _birthYear2,
@@ -249,16 +244,16 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Colors.red.withAlpha(51),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: Colors.red.withAlpha(76)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  const Icon(Icons.error_outline, color: Colors.red),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(_error!, style: TextStyle(color: Colors.red.shade700)),
+                    child: Text(_error!, style: const TextStyle(color: Colors.red)),
                   ),
                 ],
               ),
@@ -271,18 +266,24 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _analyze,
               style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.secondaryColor,
+                backgroundColor: YiShunTheme.brandCinnabar,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: 8,
+                shadowColor: YiShunTheme.brandCinnabar.withAlpha(128),
               ),
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.favorite),
+                        Text('💕', style: TextStyle(fontSize: 20)),
                         SizedBox(width: 8),
                         Text(
                           '开始合盘分析',
@@ -301,6 +302,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   Widget _buildPersonCard({
     required String title,
     required IconData icon,
+    required Color color,
     required GlobalKey<FormState> formKey,
     required TextEditingController nameController,
     required int year,
@@ -312,56 +314,80 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
     required ValueChanged<int> onDayChanged,
     required ValueChanged<int> onHourChanged,
   }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: YiShunTheme.secondaryColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(25)),
+      ),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(51),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Name input
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(13),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withAlpha(51)),
               ),
-              const SizedBox(height: 16),
-              
-              // Name input
-              TextFormField(
+              child: TextFormField(
                 controller: nameController,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: '姓名 (可选)',
+                  labelText: '姓名（可选）',
+                  labelStyle: const TextStyle(color: Colors.white54),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
                 ),
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 16),
 
-              // Birth date
-              Row(
-                children: [
-                  Expanded(child: _buildYearPicker(year, onYearChanged)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildMonthPicker(month, onMonthChanged)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildDayPicker(day, onDayChanged)),
-                ],
-              ),
-              const SizedBox(height: 16),
+            // Birth date
+            Row(
+              children: [
+                Expanded(child: _buildYearPicker(year, onYearChanged)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildMonthPicker(month, onMonthChanged)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildDayPicker(day, onDayChanged)),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-              // Birth hour
-              const Text('出生时辰', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 8),
-              _buildHourPicker(hour, onHourChanged),
-            ],
-          ),
+            // Birth hour
+            Text(
+              '出生时辰',
+              style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(153)),
+            ),
+            const SizedBox(height: 8),
+            _buildHourPicker(hour, onHourChanged),
+          ],
         ),
       ),
     );
@@ -369,47 +395,71 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
 
   Widget _buildYearPicker(int value, ValueChanged<int> onChanged) {
     final currentYear = DateTime.now().year;
-    return DropdownButtonFormField<int>(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: '年',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(100, (i) => currentYear - 50 + i)
-          .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-          .toList(),
-      onChanged: (v) => onChanged(v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(100, (i) => currentYear - 50 + i)
+              .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+              .toList(),
+          onChanged: (v) => onChanged(v!),
+        ),
+      ),
     );
   }
 
   Widget _buildMonthPicker(int value, ValueChanged<int> onChanged) {
-    return DropdownButtonFormField<int>(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: '月',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(12, (i) => i + 1)
-          .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
-          .toList(),
-      onChanged: (v) => onChanged(v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(12, (i) => i + 1)
+              .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
+              .toList(),
+          onChanged: (v) => onChanged(v!),
+        ),
+      ),
     );
   }
 
   Widget _buildDayPicker(int value, ValueChanged<int> onChanged) {
-    return DropdownButtonFormField<int>(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: '日',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
-      items: List.generate(31, (i) => i + 1)
-          .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
-          .toList(),
-      onChanged: (v) => onChanged(v!),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: YiShunTheme.surfaceDark,
+          style: const TextStyle(color: Colors.white),
+          items: List.generate(31, (i) => i + 1)
+              .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
+              .toList(),
+          onChanged: (v) => onChanged(v!),
+        ),
+      ),
     );
   }
 
@@ -425,14 +475,19 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             width: 48,
             height: 36,
             decoration: BoxDecoration(
-              color: isSelected ? YiShunTheme.secondaryColor : Colors.grey.shade100,
+              color: isSelected
+                  ? YiShunTheme.brandAmber.withAlpha(76)
+                  : Colors.white.withAlpha(13),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? YiShunTheme.brandAmber : Colors.white.withAlpha(51),
+              ),
             ),
             child: Center(
               child: Text(
                 '$i',
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
+                  color: isSelected ? Colors.white : Colors.white54,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   fontSize: 12,
                 ),
@@ -446,16 +501,16 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
 
   Widget _buildResultView() {
     if (_result == null) return const SizedBox.shrink();
-    
+
     final bazi1 = _result!['bazi1'];
     final bazi2 = _result!['bazi2'];
     final compatibility = _result!['compatibility'];
     final aiAnalysis = _result!['ai_analysis'];
-    
+
     final score = compatibility['score'] ?? 75;
     final level = compatibility['level'] ?? '一般';
     final reasons = List<String>.from(compatibility['reasons'] ?? []);
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -492,11 +547,11 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   Widget _buildScoreCard(int score, String level) {
     Color scoreColor;
     if (score >= 80) {
-      scoreColor = Colors.green;
+      scoreColor = YiShunTheme.woodColor;
     } else if (score >= 60) {
-      scoreColor = Colors.orange;
+      scoreColor = YiShunTheme.brandAmber;
     } else {
-      scoreColor = Colors.red;
+      scoreColor = YiShunTheme.fireColor;
     }
 
     return Container(
@@ -506,6 +561,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           colors: [scoreColor, scoreColor.withAlpha(204)],
         ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withAlpha(25)),
       ),
       child: Column(
         children: [
@@ -548,105 +604,114 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   }
 
   Widget _buildBaziComparisonCard(Map<String, dynamic> bazi1, Map<String, dynamic> bazi2) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('☯️', style: TextStyle(fontSize: 20)),
-                SizedBox(width: 8),
-                Text(
-                  '八字对比',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(25)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: YiShunTheme.brandAmber.withAlpha(51),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Headers
-            Row(
-              children: [
-                const Expanded(flex: 2, child: SizedBox()),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    _nameController1.text.isNotEmpty ? _nameController1.text : '甲方',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                child: const Text('☯️', style: TextStyle(fontSize: 18)),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '八字对比',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Headers
+          Row(
+            children: [
+              const Expanded(flex: 2, child: SizedBox()),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  _nameController1.text.isNotEmpty ? _nameController1.text : '甲方',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    _nameController2.text.isNotEmpty ? _nameController2.text : '乙方',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  _nameController2.text.isNotEmpty ? _nameController2.text : '乙方',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-              ],
-            ),
-            const Divider(),
-            
-            // Bazi rows
-            _buildBaziRow('年', bazi1['year'], bazi2['year']),
-            _buildBaziRow('月', bazi1['month'], bazi2['month']),
-            _buildBaziRow('日', bazi1['day'], bazi2['day']),
-            _buildBaziRow('时', bazi1['hour'], bazi2['hour']),
-            
-            const Divider(),
-            
-            // Day master
-            Row(
-              children: [
-                const Expanded(flex: 2, child: Text('日主', style: TextStyle(color: Colors.grey))),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    '${bazi1['day_master']}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              ),
+            ],
+          ),
+          Divider(color: Colors.white.withAlpha(25)),
+          _buildBaziRow('年', bazi1['year'], bazi2['year']),
+          _buildBaziRow('月', bazi1['month'], bazi2['month']),
+          _buildBaziRow('日', bazi1['day'], bazi2['day']),
+          _buildBaziRow('时', bazi1['hour'], bazi2['hour']),
+          Divider(color: Colors.white.withAlpha(25)),
+          Row(
+            children: [
+              const Expanded(flex: 2, child: Text('日主', style: TextStyle(color: Colors.white54))),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  '${bazi1['day_master']}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    '${bazi2['day_master']}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  '${bazi2['day_master']}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBaziRow(String label, Map<String, dynamic> z1, Map<String, dynamic> z2) {
+    final color1 = YiShunTheme.getWuxingColor(z1['wuxing'] ?? '');
+    final color2 = YiShunTheme.getWuxingColor(z2['wuxing'] ?? '');
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
             flex: 2,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            child: Text(label, style: const TextStyle(color: Colors.white54)),
           ),
           Expanded(
             flex: 3,
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               decoration: BoxDecoration(
-                color: YiShunTheme.primaryColor.withAlpha(26),
+                color: color1.withAlpha(25),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color1.withAlpha(76)),
               ),
               child: Text(
                 '${z1['gan']}${z1['zhi']}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold, color: color1),
               ),
             ),
           ),
@@ -656,13 +721,14 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               decoration: BoxDecoration(
-                color: YiShunTheme.secondaryColor.withAlpha(26),
+                color: color2.withAlpha(25),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color2.withAlpha(76)),
               ),
               child: Text(
                 '${z2['gan']}${z2['zhi']}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold, color: color2),
               ),
             ),
           ),
@@ -672,91 +738,102 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   }
 
   Widget _buildReasonsCard(List<String> reasons) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star, color: YiShunTheme.brandAmber, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                '合盘亮点',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...reasons.map((reason) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
               children: [
-                Icon(Icons.star, color: Colors.amber, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  '合盘亮点',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const Icon(Icons.check_circle, color: YiShunTheme.woodColor, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(reason, style: TextStyle(color: Colors.white.withAlpha(179))),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ...reasons.map((reason) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(reason)),
-                ],
-              ),
-            )),
-          ],
-        ),
+          )),
+        ],
       ),
     );
   }
 
   Widget _buildAIAnalysisCard(String aiAnalysis) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'AI 深度分析',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              aiAnalysis,
-              style: const TextStyle(height: 1.6),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: YiShunTheme.brandCinnabar, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'AI 深度分析',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            aiAnalysis,
+            style: TextStyle(height: 1.6, color: Colors.white.withAlpha(179)),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCompatibilityDetailsCard(Map<String, dynamic> compatibility) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.analytics, color: YiShunTheme.primaryColor, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  '详细分析',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              compatibility['message'] ?? '专业八字合盘分析结果',
-              style: const TextStyle(height: 1.6),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics, color: YiShunTheme.brandInkBlue, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                '详细分析',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            compatibility['message'] ?? '专业八字合盘分析结果',
+            style: TextStyle(height: 1.6, color: Colors.white.withAlpha(179)),
+          ),
+        ],
       ),
     );
   }

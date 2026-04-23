@@ -11,20 +11,21 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
-      appBar: AppBar(
-        backgroundColor: YiShunTheme.primaryColor,
-        title: const Text('Profile'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Consumer<UserModel>(
-        builder: (context, user, _) {
-          if (!user.isLoggedIn) {
-            return _buildLoggedOutView(context);
-          }
-          return _buildLoggedInView(context, user);
-        },
+      backgroundColor: YiShunTheme.surfaceDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: YiShunTheme.primaryGradient,
+        ),
+        child: SafeArea(
+          child: Consumer<UserModel>(
+            builder: (context, user, _) {
+              if (!user.isLoggedIn) {
+                return _buildLoggedOutView(context);
+              }
+              return _buildLoggedInView(context, user);
+            },
+          ),
+        ),
       ),
     );
   }
@@ -37,31 +38,32 @@ class ProfileScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: YiShunTheme.primaryColor.withAlpha(25),
+                color: YiShunTheme.brandAmber.withAlpha(25),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.person_outline,
                 size: 80,
-                color: YiShunTheme.primaryColor,
+                color: YiShunTheme.brandAmber,
               ),
             ),
             const SizedBox(height: 32),
             const Text(
-              'Welcome to YiShun',
+              '欢迎使用 YiShun',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Sign in to sync your data and unlock premium features',
+              '登录以同步数据，解锁会员功能',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: Colors.white.withAlpha(179),
                 fontSize: 14,
               ),
             ),
@@ -72,14 +74,14 @@ class ProfileScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.pushNamed(context, '/auth'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: YiShunTheme.primaryColor,
+                  backgroundColor: YiShunTheme.brandCinnabar,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: const Text(
-                  'Sign In / Register',
+                  '登录 / 注册',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -96,114 +98,128 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         children: [
           // User info card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: YiShunTheme.primaryColor.withAlpha(25),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: YiShunTheme.primaryColor,
-                    ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(13),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withAlpha(25)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: YiShunTheme.brandAmber.withAlpha(51),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.name ?? user.email ?? 'User',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user.email ?? '',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: const Icon(
+                    Icons.person,
+                    size: 40,
+                    color: YiShunTheme.brandAmber,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.name ?? user.email ?? '用户',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user.email ?? '',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(153),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
 
           // Membership card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildMembershipStatus(user),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(13),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withAlpha(25)),
+            ),
+            child: Column(
+              children: [
+                _buildMembershipStatus(user),
+                if (!user.isPremium) ...[
                   const SizedBox(height: 16),
-                  if (!user.isPremium) ...[
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/subscription'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: YiShunTheme.accentColor,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Upgrade to Premium - \$9.9/mo',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pushNamed(context, '/subscription'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: YiShunTheme.brandAmber,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: const Text(
+                        '开通会员 - ¥28/月起',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
 
           // Settings
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(13),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withAlpha(25)),
+            ),
             child: Column(
               children: [
                 _buildSettingsTile(
                   icon: Icons.notifications_outlined,
-                  title: 'Notifications',
+                  title: '通知设置',
                   onTap: () {},
                 ),
-                const Divider(height: 1),
+                Divider(color: Colors.white.withAlpha(13), height: 1),
                 _buildSettingsTile(
                   icon: Icons.language,
-                  title: 'Language',
-                  trailing: const Text('English'),
+                  title: '语言',
+                  trailing: const Text('中文', style: TextStyle(color: Colors.white54)),
                   onTap: () {},
                 ),
-                const Divider(height: 1),
+                Divider(color: Colors.white.withAlpha(13), height: 1),
                 _buildSettingsTile(
                   icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
+                  title: '隐私政策',
                   onTap: () {},
                 ),
-                const Divider(height: 1),
+                Divider(color: Colors.white.withAlpha(13), height: 1),
                 _buildSettingsTile(
                   icon: Icons.description_outlined,
-                  title: 'Terms of Service',
+                  title: '服务条款',
                   onTap: () {},
                 ),
               ],
@@ -212,35 +228,40 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Version & Logout
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(13),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withAlpha(25)),
+            ),
             child: Column(
               children: [
                 _buildSettingsTile(
                   icon: Icons.info_outline,
-                  title: 'Version',
-                  trailing: const Text('1.0.0'),
+                  title: '版本',
+                  trailing: const Text('1.0.0', style: TextStyle(color: Colors.white54)),
                   onTap: () {},
                 ),
-                const Divider(height: 1),
+                Divider(color: Colors.white.withAlpha(13), height: 1),
                 _buildSettingsTile(
                   icon: Icons.logout,
-                  title: 'Logout',
-                  textColor: Colors.red,
+                  title: '退出登录',
+                  textColor: Colors.red.shade300,
                   onTap: () async {
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
+                        backgroundColor: YiShunTheme.surfaceDark,
+                        title: const Text('退出登录', style: TextStyle(color: Colors.white)),
+                        content: const Text('确定要退出登录吗？', style: TextStyle(color: Colors.white70)),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel'),
+                            child: const Text('取消'),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Logout',
-                                style: TextStyle(color: Colors.red)),
+                            child: const Text('退出', style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
@@ -268,8 +289,8 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPremium
-              ? [YiShunTheme.accentColor, YiShunTheme.accentColor.withAlpha(204)]
-              : [Colors.grey.shade300, Colors.grey.shade400],
+              ? [YiShunTheme.brandAmber, YiShunTheme.brandAmber.withAlpha(204)]
+              : [Colors.grey.shade600, Colors.grey.shade700],
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -282,7 +303,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isPremium ? 'Premium Member' : 'Free User',
+                  isPremium ? '会员用户' : '免费用户',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -292,8 +313,8 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   isPremium
-                      ? 'All features unlocked'
-                      : '${user.freeUsesRemaining} free analyses left today',
+                      ? '全部功能已解锁'
+                      : '今日剩余 ${user.freeUsesRemaining} 次免费分析',
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
@@ -312,16 +333,15 @@ class ProfileScreen extends StatelessWidget {
     Color? textColor,
   }) {
     return ListTile(
-      leading: Icon(icon, color: textColor ?? YiShunTheme.secondaryColor),
+      leading: Icon(icon, color: textColor ?? Colors.white70),
       title: Text(
         title,
         style: TextStyle(
-          color: textColor,
+          color: textColor ?? Colors.white,
           fontSize: 15,
         ),
       ),
-      trailing: trailing ??
-          const Icon(Icons.chevron_right, color: Colors.grey),
+      trailing: trailing ?? Icon(Icons.chevron_right, color: Colors.white.withAlpha(76)),
       onTap: onTap,
     );
   }
