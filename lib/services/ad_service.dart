@@ -17,8 +17,9 @@ class AdService extends ChangeNotifier {
     // Temporarily disabled
   }
 
-  Future<void> showRewardedAd() async {
-    // Temporarily disabled
+  Future<bool> showRewardedAd() async {
+    // Temporarily disabled - return false to indicate ad not available
+    return false;
   }
 
   bool get isInitialized => _isInitialized;
