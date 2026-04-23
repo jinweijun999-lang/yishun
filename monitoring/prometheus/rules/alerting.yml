@@ -1,0 +1,43 @@
+groups:
+  - name: yishun_api_alerts
+    interval: 30s
+    rules:
+      # CPU 使用率 > 80% 持续 5分钟
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="yishun-api"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 服务 CPU 使用率过高"
+          description: "YiShun API CPU 使用率已持续超过 80% 达 5分钟，当前值: {{ $value }}%"
+
+      # API 错误率 > 1%
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{job="yishun-api", status=~"5.."}[5m]) / rate(http_requests_total{job="yishun-api"}[5m]) > 0.01
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 错误率过高"
+          description: "API 5xx 错误率已超过 1%，当前值: {{ $value | humanizePercentage }}"
+
+      # 服务不可用 (up == 0)
+      - alert: ServiceDown
+        expr: up{job="yishun-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "YiShun API 服务不可用"
+          description: "API 服务已停止响应，请立即检查！"
+
+      # 内存使用过高
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="yishun-api"} / 1024 / 1024 > 512
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 服务内存使用过高"
+          description: "API 服务内存使用超过 512MB，当前值: {{ $value | humanize }}MB"

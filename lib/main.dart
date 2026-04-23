@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'screens/home_screen.dart';
 import 'screens/divination_screen.dart';
 import 'screens/result_screen.dart';
@@ -8,6 +10,7 @@ import 'screens/profile_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/compatibility_screen.dart';
+import 'screens/subscription_screen.dart';
 import 'services/auth_service.dart';
 import 'services/ad_service.dart';
 import 'services/analytics_service.dart';
@@ -16,6 +19,12 @@ import 'utils/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase Crashlytics for error tracking
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  };
   
   // Initialize services
   final authService = AuthService();
@@ -74,6 +83,7 @@ class _YiShunAppState extends State<YiShunApp> {
         '/result': (context) => const ResultScreen(),
         '/history': (context) => const HistoryScreen(),
         '/compatibility': (context) => const CompatibilityScreen(),
+        '/subscription': (context) => const SubscriptionScreen(),
       },
     );
   }

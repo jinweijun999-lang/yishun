@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
 import '../services/history_service.dart';
 import '../models/user_model.dart';
 import '../utils/theme.dart';
@@ -49,11 +50,19 @@ class _DivinationScreenState extends State<DivinationScreen> {
 
     // Check free credits or premium
     final user = context.read<UserModel>();
+    final adService = context.read<AdService>();
+    
+    // First check if premium or has free credits
     if (!user.isPremium && !user.useFreeCredit()) {
+      // Show the upgrade/ad dialog
       _showUpgradeDialog();
       return;
     }
 
+    await _performAnalysis();
+  }
+
+  Future<void> _performAnalysis() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -74,6 +83,7 @@ class _DivinationScreenState extends State<DivinationScreen> {
       );
 
       // Log analytics
+      final user = context.read<UserModel>();
       await analytics.logBaziCalculation(
         year: _birthYear,
         month: _birthMonth,
@@ -113,53 +123,72 @@ class _DivinationScreenState extends State<DivinationScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('👑', style: TextStyle(fontSize: 60)),
-            const SizedBox(height: 16),
-            const Text(
-              'Free Credits Exhausted',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You\'ve used all 3 free analyses today. Subscribe to Premium for unlimited access!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Watch Ad'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Navigate to subscription
-                    },
-                    child: const Text('Subscribe \$9.9'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+      builder: (ctx) => _UpgradeBottomSheet(
+        onWatchAd: _handleWatchAd,
+        onSubscribe: _handleSubscribe,
       ),
     );
+  }
+
+  Future<void> _handleWatchAd() async {
+    Navigator.pop(context); // Close bottom sheet
+    
+    final adService = context.read<AdService>();
+    final user = context.read<UserModel>();
+    final analytics = context.read<AnalyticsService>();
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      // Check if ad is ready
+      if (!adService.isRewardedAdReady) {
+        await adService.preloadAd();
+        // Wait a bit for ad to load
+        await Future.delayed(const Duration(seconds: 2));
+      }
+      
+      final success = await adService.showRewardedAd();
+      
+      if (success) {
+        // Ad reward earned - grant access
+        await analytics.logAdWatched(completed: true);
+        await analytics.logPremiumUnlock(method: 'ad');
+        
+        // Use the free credit
+        user.useFreeCredit();
+        
+        // Perform the analysis
+        await _performAnalysis();
+      } else {
+        await analytics.logAdWatched(completed: false);
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ad not completed. Please try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint('Ad error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load ad. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleSubscribe() {
+    Navigator.pop(context); // Close bottom sheet
+    // Navigate to subscription screen
+    Navigator.pushNamed(context, '/subscription');
   }
 
   @override
@@ -496,6 +525,105 @@ class _DivinationScreenState extends State<DivinationScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+/// Bottom sheet widget for upgrade options
+class _UpgradeBottomSheet extends StatelessWidget {
+  final VoidCallback onWatchAd;
+  final VoidCallback onSubscribe;
+
+  const _UpgradeBottomSheet({
+    required this.onWatchAd,
+    required this.onSubscribe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text('📺', style: TextStyle(fontSize: 60)),
+          const SizedBox(height: 16),
+          const Text(
+            'Free Credits Exhausted',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Watch a short video to unlock 1 free analysis, or subscribe for unlimited access!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onWatchAd,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.play_circle_outline, size: 28),
+                      SizedBox(height: 4),
+                      Text('Watch Ad'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onSubscribe,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: YiShunTheme.accentColor,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.star, size: 28),
+                      SizedBox(height: 4),
+                      Text('\$9.9/mo'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }
