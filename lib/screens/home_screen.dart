@@ -319,12 +319,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       {
         'icon': '🔮', 'title': '十神详解', 'desc': '关系图谱分析',
         'color': YiShunTheme.metalColor, 'wuxing': '金',
-        'route': '/divination'
+        'route': '/ten_gods_guide'
       },
       {
         'icon': '📚', 'title': '命理知识', 'desc': '了解五行十神',
         'color': YiShunTheme.waterColor, 'wuxing': '水',
-        'route': '/history'
+        'route': '/ten_gods_guide'
       },
     ];
 

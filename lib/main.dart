@@ -10,6 +10,8 @@ import 'screens/auth_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/compatibility_screen.dart';
 import 'screens/subscription_screen.dart';
+import 'screens/ten_gods_guide.dart';
+import 'screens/dayun_liunian_page.dart';
 import 'services/auth_service.dart';
 import 'services/ad_service.dart';
 import 'services/analytics_service.dart';
@@ -81,6 +83,8 @@ class _YiShunAppState extends State<YiShunApp> {
         '/history': (context) => const HistoryScreen(),
         '/compatibility': (context) => const CompatibilityScreen(),
         '/subscription': (context) => const SubscriptionScreen(),
+        '/ten_gods_guide': (context) => const TenGodsGuidePage(),
+        '/dayun_liunian': (context) => DaYunLiuNianPage(baziResult: ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {}),
       },
     );
   }

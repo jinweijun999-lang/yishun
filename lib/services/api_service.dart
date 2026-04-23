@@ -306,13 +306,104 @@ class ApiService {
   }
 
   Map<String, dynamic> _generateLocalFortune(Map<String, dynamic> bazi) {
+    final wuxingCount = bazi['wuxing_count'] as Map<String, dynamic>? ?? {};
+    final dayMaster = bazi['day_master'] as String? ?? '甲';
+    final dayStrength = bazi['day_strength'] as String? ?? '中和';
+    
+    // Analyze strongest and weakest wuxing
+    final elements = ['木', '火', '土', '金', '水'];
+    String? strongest;
+    String? weakest;
+    int maxCount = 0;
+    int minCount = 10;
+    
+    for (final e in elements) {
+      final count = wuxingCount[e] as int? ?? 0;
+      if (count > maxCount) {
+        maxCount = count;
+        strongest = e;
+      }
+      if (count < minCount) {
+        minCount = count;
+        weakest = e;
+      }
+    }
+    
+    // Generate tiaohou (调候) - what element needs balance
+    String tiaohou = '';
+    if (dayMaster == '甲' || dayMaster == '乙') {
+      tiaohou = dayMaster == '甲' ? '喜庚金' : '喜丙火癸水';
+    } else if (dayMaster == '丙' || dayMaster == '丁') {
+      tiaohou = dayMaster == '丙' ? '喜壬水' : '喜甲木';
+    } else if (dayMaster == '戊' || dayMaster == '己') {
+      tiaohou = dayMaster == '戊' ? '喜癸水' : '喜丙火';
+    } else if (dayMaster == '庚' || dayMaster == '辛') {
+      tiaohou = dayMaster == '庚' ? '喜丁火甲木' : '喜壬水';
+    } else {
+      tiaohou = dayMaster == '壬' ? '喜丙火' : '喜庚金';
+    }
+    
+    // Generate personalized fortune based on wuxing
+    String fortune = '';
+    String career = '';
+    String love = '';
+    String health = '';
+    String wealth = '';
+    
+    if (strongest == '木') {
+      fortune = '木气旺盛，创造力和学习能力突出';
+      career = '适合教育培训、设计创意、媒体传播';
+      love = '感情中注重精神交流，讲究默契';
+      health = '注意肝胆方面保养';
+      wealth = '宜稳扎稳打，不宜投机';
+    } else if (strongest == '火') {
+      fortune = '火气旺盛，热情洋溢敢于表达';
+      career = '适合演讲、销售、公关餐饮';
+      love = '感情中主动热烈，善于表达';
+      health = '注意心血管方面保养';
+      wealth = '财运波动大，需谨慎理财';
+    } else if (strongest == '土') {
+      fortune = '土气厚重，稳重务实有耐心';
+      career = '适合建筑、房地产、财务会计';
+      love = '感情中注重责任，稳定可靠';
+      health = '注意脾胃消化系统';
+      wealth = '财运稳步增长，宜长期投资';
+    } else if (strongest == '金') {
+      fortune = '金气清冽，决断力强有魄力';
+      career = '适合金融、法律、管理、军警';
+      love = '感情中讲究原则，有领导欲';
+      health = '注意呼吸系统和骨骼';
+      wealth = '财运较好，善于把握机会';
+    } else {
+      fortune = '水气流通，智慧灵变善交际';
+      career = '适合贸易、物流、智慧产业';
+      love = '感情中浪漫多情，善于沟通';
+      health = '注意泌尿系统和肾部';
+      wealth = '财运较好，但波动较大';
+    }
+    
+    // Add day strength modifier
+    if (dayStrength == '旺') {
+      fortune = fortune.replaceAll('创造力和学习能力突出', '创造力旺盛，影响力强');
+    } else if (dayStrength == '弱') {
+      fortune = fortune.replaceAll('突出', '需后天培养');
+    }
+    
     return {
-      'fortune': '综合运势平稳',
-      'career': '事业上有发展机会',
-      'love': '感情运势不错',
-      'health': '注意身体健康',
-      'wealth': '财运有起色',
-      'tips': ['多关注人际关系', '保持积极心态', '注意休息'],
+      'fortune': fortune,
+      'career': career,
+      'love': love,
+      'health': health,
+      'wealth': wealth,
+      'tiaohou': tiaohou,
+      'day_strength': dayStrength,
+      'strongest': strongest,
+      'weakest': weakest,
+      'tips': [
+        '五行$strongest为命中最旺，保持优势',
+        '注意补足五行$weakest，$tiaohou',
+        '日主$dayMaster，$dayStrength之格',
+      ],
     };
   }
 

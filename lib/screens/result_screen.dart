@@ -23,6 +23,8 @@ class _ResultScreenState extends State<ResultScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   late AnimationController _spinController;
+  late AnimationController _radarAnimationController;
+  late Animation<double> _radarAnimation;
 
   @override
   void initState() {
@@ -44,6 +46,18 @@ class _ResultScreenState extends State<ResultScreen>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
+
+    // Radar chart animation
+    _radarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _radarAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _radarAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
   }
 
   @override
@@ -51,6 +65,7 @@ class _ResultScreenState extends State<ResultScreen>
     _tabController.dispose();
     _fadeController.dispose();
     _spinController.dispose();
+    _radarAnimationController.dispose();
     super.dispose();
   }
 
@@ -59,8 +74,12 @@ class _ResultScreenState extends State<ResultScreen>
     if (args is Map<String, dynamic>) {
       _baziResult = args;
       _loadFortune();
-      // Start spin animation
+      // Start animations
       _spinController.forward();
+      // Delay radar animation to let page load first
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) _radarAnimationController.forward();
+      });
     }
   }
 
@@ -590,37 +609,48 @@ class _ResultScreenState extends State<ResultScreen>
       return total > 0 ? (count / total * 100).roundToDouble() : 0.0;
     }).toList();
 
-    return RadarChart(
-      RadarChartData(
-        radarShape: RadarShape.polygon,
-        radarBorderData: const BorderSide(color: Colors.white24, width: 1),
-        gridBorderData: const BorderSide(color: Colors.white12, width: 1),
-        tickBorderData: const BorderSide(color: Colors.transparent),
-        ticksTextStyle: const TextStyle(color: Colors.transparent),
-        tickCount: 4,
-        titlePositionPercentageOffset: 0.15,
-        titleTextStyle: const TextStyle(
-          color: Colors.white70,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-        getTitle: (index, angle) {
-          final labels = ['木', '火', '土', '金', '水'];
-          return RadarChartTitle(
-            text: labels[index],
-            angle: angle,
-          );
-        },
-        dataSets: [
-          RadarDataSet(
-            fillColor: YiShunTheme.brandInkBlue.withAlpha(76),
-            borderColor: YiShunTheme.brandAmber,
-            borderWidth: 2,
-            entryRadius: 4,
-            dataEntries: values.map((v) => RadarEntry(value: v)).toList(),
+
+    return AnimatedBuilder(
+      animation: _radarAnimation,
+      builder: (context, child) {
+        final currentValues = values.map((v) {
+          return _radarAnimation.value * v;
+        }).toList();
+
+
+        return RadarChart(
+          RadarChartData(
+            radarShape: RadarShape.polygon,
+            radarBorderData: const BorderSide(color: Colors.white24, width: 1),
+            gridBorderData: const BorderSide(color: Colors.white12, width: 1),
+            tickBorderData: const BorderSide(color: Colors.transparent),
+            ticksTextStyle: const TextStyle(color: Colors.transparent),
+            tickCount: 4,
+            titlePositionPercentageOffset: 0.15,
+            titleTextStyle: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            getTitle: (index, angle) {
+              final labels = ['木', '火', '土', '金', '水'];
+              return RadarChartTitle(
+                text: labels[index],
+                angle: angle,
+              );
+            },
+            dataSets: [
+              RadarDataSet(
+                fillColor: YiShunTheme.brandInkBlue.withAlpha(76),
+                borderColor: YiShunTheme.brandAmber,
+                borderWidth: 2,
+                entryRadius: 4,
+                dataEntries: currentValues.map((v) => RadarEntry(value: v)).toList(),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
