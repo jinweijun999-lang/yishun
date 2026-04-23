@@ -24,7 +24,6 @@ dependencies:
   shimmer: ^3.0.0
   fl_chart: ^0.69.0
   firebase_crashlytics: ^4.3.10
-  stripe_payment: ^1.1.4
   flutter_stripe: ^12.6.0
 
 dev_dependencies:
