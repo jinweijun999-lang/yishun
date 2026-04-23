@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Four Pillars of Destiny (四柱排盘) - Core Algorithm
 ///
 /// References:
@@ -5,8 +7,6 @@
 /// - 地支 (Earthly Branches): 子丑寅卯辰巳午未申酉戌亥
 /// - 五行 (Five Elements): 木火土金水
 /// - 十神 (Ten Gods): 比肩,劫财,食神,伤官,偏财,正财,偏官,正官,偏印,正印
-
-import 'dart:math' as math;
 
 class BaziData {
   /// 年柱 (Year Pillar)
@@ -101,22 +101,6 @@ class TianGan {
   static String getGanForZhiMonth(String zhi, int yearGanIdx) {
     // 月令地支对应的天干表 (五鼠遁)
     // 子月(正月)从甲开始, 丑月从乙开始, ...
-    final monthGans = [
-      ['甲', '丙', '戊', '庚', '壬'], // 子月(正月)
-      ['乙', '丁', '己', '辛', '癸'], // 丑月
-      ['丙', '戊', '庚', '壬', '甲'], // 寅月
-      ['丁', '己', '辛', '癸', '乙'], // 卯月
-      ['戊', '庚', '壬', '甲', '丙'], // 辰月
-      ['己', '辛', '癸', '乙', '丁'], // 巳月
-      ['庚', '壬', '甲', '丙', '戊'], // 午月
-      ['辛', '癸', '乙', '丁', '己'], // 未月
-      ['壬', '甲', '丙', '戊', '庚'], // 申月
-      ['癸', '乙', '丁', '己', '辛'], // 酉月
-      ['甲', '丙', '戊', '庚', '壬'], // 戌月
-      ['乙', '丁', '己', '辛', '癸'], // 亥月
-    ];
-    
-    // 获取年份天干的阴阳性来决定用哪一列
     final zhiIdx = DiZhi.index(zhi);
     final col = isYang(names[yearGanIdx % 10]) ? 0 : 1;
     // 简化: 使用年干+月支计算月干
@@ -239,24 +223,7 @@ class ShiShen {
     final dayIdx = TianGan.index(dayGan);
     final otherIdx = TianGan.index(otherGan);
     
-    // 计算天干间的十神关系
-    // 同我者为比劫, 我生者为食伤, 我克者为财, 克我者为官杀, 生我者为印
-    final diff = (otherIdx - dayIdx + 10) % 10;
-    
-    // 以日干为基准的关系表
-    // 十神表: 比和(比肩/劫财), 异我生(食神/伤官), 异我克(偏财/正财), 克我(七杀/正官), 生我(偏印/正印)
-    // 0:同, 1:我生, 2:我克, 3:克我, 4:生我
-    
-    // 根据日干阴阳和关系干阴阳决定具体十神
-    final dayIsYang = TianGan.isYang(dayGan);
-    final otherIsYang = TianGan.isYang(otherGan);
-    
-    // 计算生克关系
-    // 10天干顺序: 甲1乙2丙3丁4戊5己6庚7辛8壬9癸10
-    // 1(甲)生3(丙),2(乙)生4(丁)... 即(我生) = (我索引+2)%10
-    // 1(甲)克5(戊),2(乙)克6(己)... 即(我克) = (我索引+4)%10
-    // 3(丙)克1(甲),4(丁)克2(乙)... 即(克我) = (我索引-4+10)%10
-    
+    // 十神表
     final table = [
       //  甲    乙    丙    丁    戊    己    庚    辛    壬    癸
       ['比肩','劫财','食神','伤官','偏财','正财','偏官','正官','偏印','正印'], // 甲
@@ -482,13 +449,11 @@ class BaziCalculator {
   static List<Map<String, String>> _calculateDaYun(String monthGan, String monthZhi, DateTime birthTime, String dayGan) {
     final results = <Map<String, String>>[];
     
-    // 大运从月柱开始, 阳男阴女顺行, 阴男阳女逆行
-    final yearGanIdx = TianGan.index(monthGan); // 使用月干年份
     final isYangYear = TianGan.isYang(TianGan.names[(birthTime.year - 4) % 10]);
     final isYangDay = TianGan.isYang(dayGan);
-    
-    // 顺逆决定: 阳男阴女顺, 阴男阳女逆
     final forward = (isYangYear && isYangDay) || (!isYangYear && !isYangDay);
+    
+
     
     final monthZhiIdx = DiZhi.index(monthZhi);
     final monthGanIdx = TianGan.index(monthGan);

@@ -370,7 +370,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   Widget _buildYearPicker(int value, ValueChanged<int> onChanged) {
     final currentYear = DateTime.now().year;
     return DropdownButtonFormField<int>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: '年',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -385,7 +385,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
 
   Widget _buildMonthPicker(int value, ValueChanged<int> onChanged) {
     return DropdownButtonFormField<int>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: '月',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -400,7 +400,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
 
   Widget _buildDayPicker(int value, ValueChanged<int> onChanged) {
     return DropdownButtonFormField<int>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: '日',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

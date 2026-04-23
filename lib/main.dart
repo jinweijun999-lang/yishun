@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'screens/home_screen.dart';
 import 'screens/divination_screen.dart';
 import 'screens/result_screen.dart';
@@ -55,9 +54,7 @@ class YiShunApp extends StatefulWidget {
 }
 
 class _YiShunAppState extends State<YiShunApp> {
-  Locale _locale = const Locale('en');
-  
-
+  final Locale _locale = const Locale('en');
 
   @override
   Widget build(BuildContext context) {

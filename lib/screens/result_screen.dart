@@ -390,14 +390,14 @@ class _ResultScreenState extends State<ResultScreen>
       children: [
         if (strongest != null)
           _buildAnalysisItem(
-            '最旺: ${strongest}行',
-            '${strongest}元素最为旺盛，性格特征明显',
+            '最旺: $strongest行',
+            '$strongest元素最为旺盛，性格特征明显',
             YiShunTheme.getWuxingColor(strongest),
           ),
         if (weakest != null && strongest != weakest)
           _buildAnalysisItem(
-            '最弱: ${weakest}行',
-            '${weakest}元素相对缺乏，需要后天补足',
+            '最弱: $weakest行',
+            '$weakest元素相对缺乏，需要后天补足',
             YiShunTheme.getWuxingColor(weakest),
           ),
         const SizedBox(height: 12),

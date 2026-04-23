@@ -50,7 +50,6 @@ class _DivinationScreenState extends State<DivinationScreen> {
 
     // Check free credits or premium
     final user = context.read<UserModel>();
-    final adService = context.read<AdService>();
     
     // First check if premium or has free credits
     if (!user.isPremium && !user.useFreeCredit()) {
@@ -454,7 +453,7 @@ class _DivinationScreenState extends State<DivinationScreen> {
   Widget _buildYearPicker() {
     final currentYear = DateTime.now().year;
     return DropdownButtonFormField<int>(
-      value: _birthYear,
+      initialValue: _birthYear,
       decoration: InputDecoration(
         labelText: 'Year',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -469,7 +468,7 @@ class _DivinationScreenState extends State<DivinationScreen> {
 
   Widget _buildMonthPicker() {
     return DropdownButtonFormField<int>(
-      value: _birthMonth,
+      initialValue: _birthMonth,
       decoration: InputDecoration(
         labelText: 'Month',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -484,7 +483,7 @@ class _DivinationScreenState extends State<DivinationScreen> {
 
   Widget _buildDayPicker() {
     return DropdownButtonFormField<int>(
-      value: _birthDay,
+      initialValue: _birthDay,
       decoration: InputDecoration(
         labelText: 'Day',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
