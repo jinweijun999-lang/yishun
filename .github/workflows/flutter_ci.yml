@@ -143,7 +143,10 @@ jobs:
         run: flutter pub get
 
       - name: Clean Gradle cache
-        run: rm -rf ~/.gradle/caches/8.* ~/.gradle/wrapper/dists/gradle-8* || true
+        run: |
+          rm -rf ~/.gradle/caches/8.* ~/.gradle/wrapper/dists/gradle-8* || true
+          rm -rf ~/.gradle/caches/modules-2/files-2.1/com.google.gms/google-services/
+          rm -rf ~/.gradle/caches/jars-*/google-services/ || true
 
       - name: Build Android APK
         run: flutter build apk --debug
