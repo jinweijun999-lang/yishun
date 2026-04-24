@@ -95,11 +95,7 @@ class _DivinationScreenState extends State<DivinationScreen>
 
       final user = context.read<UserModel>();
       await analytics.logBaziCalculation(
-        year: _birthYear,
-        month: _birthMonth,
-        day: _birthDay,
-        hour: _birthHour,
-        isPremium: user.isPremium,
+        birthTime: "$_birthYear-$_birthMonth-$_birthDay $_birthHour"
       );
 
       final historyService = HistoryService();
