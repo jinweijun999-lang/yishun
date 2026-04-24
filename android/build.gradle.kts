@@ -5,7 +5,6 @@ buildscript {
     }
     dependencies {
         classpath("com.google.gms:google-services:4.4.0")
-        classpath("com.stripe:stripe-android:24.0.0")
     }
 }
 
