@@ -355,6 +355,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildFeatureCard(String emoji, String title, String desc, Color color, String wuxing, String route) {
     return GestureDetector(
       onTap: () {
+        // Check if this is a premium feature
+        final isPremiumFeature = ['☯️', '⚖️', '💑', '📜', '🔮'].contains(emoji);
+        final user = context.read<UserModel>();
+        
+        // Redirect free users to paywall for premium features
+        if (isPremiumFeature && !user.isPremium) {
+          Navigator.pushNamed(context, '/paywall');
+          return;
+        }
+        
         if (route == '/divination') {
           DefaultTabController.of(context).animateTo(1);
         } else {
@@ -615,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '¥28/月起 - 无限八字分析',
+                  '\$9.9/月起 - 无限八字分析',
                   style: TextStyle(
                     color: Colors.white.withAlpha(179),
                     fontSize: 12,
@@ -625,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pushNamed(context, '/subscription'),
+            onPressed: () => Navigator.pushNamed(context, '/paywall'),
             style: ElevatedButton.styleFrom(
               backgroundColor: YiShunTheme.brandAmber,
               foregroundColor: Colors.black,

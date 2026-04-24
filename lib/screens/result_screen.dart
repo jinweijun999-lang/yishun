@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/theme.dart';
+import 'ad_unlock_screen.dart';
 
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key});
@@ -18,6 +19,7 @@ class _ResultScreenState extends State<ResultScreen>
   Map<String, dynamic>? _baziResult;
   Map<String, dynamic>? _fortuneResult;
   bool _isLoadingFortune = false;
+  bool _reportUnlocked = false;
 
   // Animation controllers
   late AnimationController _fadeController;
@@ -58,6 +60,15 @@ class _ResultScreenState extends State<ResultScreen>
         curve: Curves.easeOutCubic,
       ),
     );
+
+    // Listen for ad unlock result
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupAdUnlockListener();
+    });
+  }
+
+  void _setupAdUnlockListener() async {
+    // This screen receives the unlock result via Navigator pop
   }
 
   @override
@@ -99,6 +110,100 @@ class _ResultScreenState extends State<ResultScreen>
     } catch (e) {
       setState(() => _isLoadingFortune = false);
     }
+  }
+
+  void _navigateToAdUnlock() async {
+    // Pass full bazi result as the "locked" data to be unlocked
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (context) => AdUnlockScreen(
+          fullReportData: _baziResult!,
+        ),
+      ),
+    );
+
+    if (result != null && result['unlocked'] == true && mounted) {
+      // Refresh fortune with unlocked access
+      setState(() {
+        _reportUnlocked = true;
+        _fortuneResult = null;
+        _isLoadingFortune = true;
+      });
+      _loadFortune();
+    }
+  }
+
+  Widget _buildAdUnlockBanner() {
+    return GestureDetector(
+      onTap: _navigateToAdUnlock,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              YiShunTheme.brandCinnabar.withAlpha(204),
+              YiShunTheme.brandCinnabar.withAlpha(128),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: YiShunTheme.brandCinnabar.withAlpha(127)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(51),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '看广告解锁完整报告',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '观看 20 秒广告，解锁详细运势分析',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(179),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdUnlockButton() {
+    return ElevatedButton.icon(
+      onPressed: _navigateToAdUnlock,
+      icon: const Icon(Icons.play_circle_outline, size: 20),
+      label: const Text('看广告解锁'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: YiShunTheme.brandCinnabar,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1061,8 +1166,15 @@ class _ResultScreenState extends State<ResultScreen>
   // ==================== 运势 Tab ====================
   Widget _buildFortuneTab() {
     if (_isLoadingFortune) {
-      return const Center(
-        child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+      return Column(
+        children: [
+          _buildAdUnlockBanner(),
+          const Expanded(
+            child: Center(
+              child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+            ),
+          ),
+        ],
       );
     }
 
@@ -1078,13 +1190,7 @@ class _ResultScreenState extends State<ResultScreen>
               style: TextStyle(color: Colors.white54),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadFortune,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.brandCinnabar,
-              ),
-              child: const Text('Retry'),
-            ),
+            _buildAdUnlockButton(),
           ],
         ),
       );
@@ -1094,6 +1200,11 @@ class _ResultScreenState extends State<ResultScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          // Ad unlock banner (shown when not yet unlocked)
+          if (!_reportUnlocked) _buildAdUnlockBanner(),
+
+          const SizedBox(height: 12),
+
           // 综合运势
           Container(
             width: double.infinity,
