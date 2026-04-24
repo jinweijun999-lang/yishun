@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'auth_service.dart';
-import 'analytics_service.dart';
+import '../services/auth_service.dart';
+import '../services/analytics_service.dart';
 
 enum SubscriptionPlan { monthly, yearly }
 enum SubscriptionStatus { none, active, cancelled, expired }
 
 class SubscriptionService extends ChangeNotifier {
-  final AuthService _authService;
-  final AnalyticsService _analyticsService;
+  final AuthService? _authService;
+  final AnalyticsService? _analyticsService;
   
   SubscriptionStatus _status = SubscriptionStatus.none;
   DateTime? _expireDate;
@@ -23,29 +23,38 @@ class SubscriptionService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  /// Initialize Stripe (stub)
   Future<void> initialize() async {
-    debugPrint('Subscription: Stripe disabled - using stub');
+    debugPrint('Stripe: using stub (no real key)');
   }
 
-  Future<void> checkSubscriptionStatus() async {
-    debugPrint('Subscription: check status - stub');
-  }
-
+  /// Create payment intent (stub)
   Future<String?> createPaymentIntent(SubscriptionPlan plan) async {
-    debugPrint('Subscription: createPaymentIntent - stub (Stripe disabled)');
+    debugPrint('Stripe: createPaymentIntent stub for $plan');
+    _error = 'Stripe stub: not connected to backend';
     return null;
   }
 
+  /// Process payment (stub)
   Future<bool> processPayment(String clientSecret) async {
-    debugPrint('Subscription: processPayment - stub');
+    debugPrint('Stripe: processPayment stub');
     return false;
   }
 
-  Future<void> purchaseSubscription(SubscriptionPlan plan) async {
-    debugPrint('Subscription: purchase - stub');
+  /// Check subscription status (stub)
+  Future<void> checkSubscriptionStatus() async {
+    debugPrint('Stripe: checkSubscriptionStatus stub');
   }
 
+  /// Restore purchases (stub)
   Future<bool> restorePurchases() async {
+    debugPrint('Stripe: restorePurchases stub');
+    return false;
+  }
+
+  /// Cancel subscription (stub)
+  Future<bool> cancelSubscription() async {
+    debugPrint('Stripe: cancelSubscription stub');
     return false;
   }
 }
