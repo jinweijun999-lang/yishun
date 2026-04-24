@@ -60,7 +60,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final analytics = context.read<AnalyticsService>();
       final subscriptionService = SubscriptionService(authService, analytics);
 
-      await subscriptionService.initialize();
+      await subscriptionService.initialize('');
 
       final clientSecret = await subscriptionService.createPaymentIntent(plan);
 
