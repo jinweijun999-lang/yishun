@@ -29,7 +29,12 @@ class SubscriptionService extends ChangeNotifier {
   String? get error => _error;
 
   /// Initialize Stripe with publishable key
-  Future<void> initialize(String publishableKey) async {
+  /// If no key provided, will use stub mode (for testing)
+  Future<void> initialize([String? publishableKey]) async {
+    if (publishableKey == null || publishableKey.isEmpty) {
+      debugPrint('Stripe: no publishable key provided, using stub mode');
+      return;
+    }
     try {
       Stripe.publishableKey = publishableKey;
       await Stripe.instance.applySettings();
