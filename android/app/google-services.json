@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1085186805177",
+    "project_id": "yishun-app",
+    "storage_bucket": "yishun-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085186805177:android:bebba953662b9d7745fa68",
+        "android_client_info": {
+          "package_name": "com.yishun.yishun_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzM50OhE0D4RhLvv0qo7wAx2XZO951y4o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
