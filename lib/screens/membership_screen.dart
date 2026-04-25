@@ -157,6 +157,10 @@ class _MembershipScreenState extends State<MembershipScreen> {
 
                       // Subscription History
                       _buildHistorySection(),
+                      const SizedBox(height: 24),
+
+                      // Family Plan Entry
+                      _buildFamilyPlanEntry(),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -461,6 +465,57 @@ class _MembershipScreenState extends State<MembershipScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFamilyPlanEntry() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/family'),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(13),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withAlpha(25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: YiShunTheme.brandAmber.withAlpha(51),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.family_restroom, color: YiShunTheme.brandAmber, size: 24),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '家庭计划',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '邀请家人共享高级功能',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white38),
+          ],
+        ),
+      ),
     );
   }
 }

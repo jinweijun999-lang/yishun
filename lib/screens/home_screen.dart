@@ -326,6 +326,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'color': YiShunTheme.waterColor, 'wuxing': '水',
         'route': '/ten_gods_guide'
       },
+      {
+        'icon': '🗓', 'title': '深度报告', 'desc': '流年姻缘事业',
+        'color': YiShunTheme.brandCinnabar, 'wuxing': '火',
+        'route': '/report_purchase'
+      },
     ];
 
     return GridView.builder(
