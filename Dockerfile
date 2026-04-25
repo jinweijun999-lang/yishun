@@ -11,12 +11,13 @@ RUN apt-get update && apt-get install -y \
 # 复制源代码
 COPY src/ ./src/
 
-# 安装Python依赖
+# 安装Python依赖（包括 Gemini AI）
 RUN pip install --no-cache-dir \
     fastapi==0.109.0 \
     uvicorn==0.27.0 \
     pydantic==2.5.0 \
-    python-multipart==0.0.6
+    python-multipart==0.0.6 \
+    google-genai>=1.0.0
 
 # 暴露端口
 EXPOSE 8000
