@@ -1,3 +1,13 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+secrets.json
+*.secrets
+
+# Stripe
+stripe*.log
+
 # Miscellaneous
 *.class
 *.log

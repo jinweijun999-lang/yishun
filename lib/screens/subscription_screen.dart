@@ -5,6 +5,7 @@ import '../services/subscription_service.dart';
 import '../services/analytics_service.dart';
 import '../models/user_model.dart';
 import '../utils/theme.dart';
+import '../config/stripe_config.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -60,7 +61,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final analytics = context.read<AnalyticsService>();
       final subscriptionService = SubscriptionService(authService, analytics);
 
-      await subscriptionService.initialize('');
+      await subscriptionService.initialize(StripeConfig.publishableKey);
 
       final clientSecret = await subscriptionService.createPaymentIntent(plan);
 

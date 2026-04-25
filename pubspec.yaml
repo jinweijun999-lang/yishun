@@ -27,6 +27,7 @@ dependencies:
   firebase_crashlytics: ^4.3.10
 
   # Stripe
+  flutter_stripe: ^11.1.0
 
 dev_dependencies:
   flutter_test:
