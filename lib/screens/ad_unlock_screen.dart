@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
+import '../widgets/decorations.dart';
 
 /// 广告解锁界面
 /// 神秘东方色彩，玄学风格
@@ -46,7 +47,7 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
 
   void _initAnimations() {
     _progressController = AnimationController(
-      duration: Duration(seconds: _adDuration),
+      duration: const Duration(seconds: _adDuration),
       vsync: this,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
@@ -115,49 +116,49 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
           gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(YiShunTheme.space6),
-            child: Column(
-              children: [
-                // App Bar
-                Row(
+          child: Column(
+            children: [
+              // 顶部装饰
+              const MysticTopDecoration(height: 80),
+
+              // App Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space4,
+                ),
+                child: Row(
                   children: [
-                    GestureDetector(
+                    MysticIconBtn(
+                      icon: Icons.close,
                       onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(YiShunTheme.space2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(13),
-                          borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
-                        ),
-                        child: const Icon(Icons.close, color: YiShunTheme.textPrimary),
-                      ),
                     ),
                     const Spacer(),
                   ],
                 ),
+              ),
 
-                const Spacer(),
+              const Spacer(),
 
-                // 中心内容
-                _AdContent(
-                  secondsRemaining: _secondsRemaining,
-                  adDuration: _adDuration,
-                  adCompleted: _adCompleted,
-                  progressController: _progressController,
-                  pulseAnimation: _pulseAnimation,
-                ),
+              // 中心内容
+              _AdContent(
+                secondsRemaining: _secondsRemaining,
+                adDuration: _adDuration,
+                adCompleted: _adCompleted,
+                progressController: _progressController,
+                pulseAnimation: _pulseAnimation,
+              ),
 
-                const Spacer(),
+              const Spacer(),
 
-                // 底部操作区
-                _BottomAction(
-                  adCompleted: _adCompleted,
-                  isUnlocking: _isUnlocking,
-                  onUnlock: _unlockReport,
-                ),
-              ],
-            ),
+              // 底部操作区
+              _BottomAction(
+                adCompleted: _adCompleted,
+                isUnlocking: _isUnlocking,
+                onUnlock: _unlockReport,
+              ),
+
+              const SizedBox(height: YiShunTheme.space8),
+            ],
           ),
         ),
       ),
@@ -223,6 +224,13 @@ class _WatchingContent extends StatelessWidget {
               color: YiShunTheme.goldPrimary.withAlpha(76),
               width: 2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: YiShunTheme.goldPrimary.withAlpha(38),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -264,13 +272,25 @@ class _WatchingContent extends StatelessWidget {
         const SizedBox(height: YiShunTheme.space8),
 
         // 标题
-        Text(
-          '📺 观看广告',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: YiShunTheme.goldPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.smart_display,
+              color: YiShunTheme.goldPrimary,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '观看广告',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: YiShunTheme.goldPrimary,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
         ),
 
         const SizedBox(height: YiShunTheme.space2),
@@ -286,19 +306,13 @@ class _WatchingContent extends StatelessWidget {
         const SizedBox(height: YiShunTheme.space8),
 
         // 模拟广告占位
-        Container(
-          width: double.infinity,
+        MysticCard(
           padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space8),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(13),
-            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
-            border: Border.all(color: Colors.white.withAlpha(25)),
-          ),
           child: Column(
             children: [
               Icon(
                 Icons.smart_display,
-                size: 48,
+                size: 52,
                 color: YiShunTheme.purpleMystic.withAlpha(127),
               ),
               const SizedBox(height: YiShunTheme.space3),
@@ -337,6 +351,12 @@ class _WatchingContent extends StatelessWidget {
               decoration: BoxDecoration(
                 color: YiShunTheme.goldPrimary,
                 borderRadius: BorderRadius.circular(2),
+                boxShadow: [
+                  BoxShadow(
+                    color: YiShunTheme.goldPrimary.withAlpha(127),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
             ),
           ),
@@ -379,6 +399,13 @@ class _CompletedContent extends StatelessWidget {
                 color: YiShunTheme.success.withAlpha(127),
                 width: 2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: YiShunTheme.success.withAlpha(51),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
             child: const Icon(
               Icons.check_circle,
@@ -390,13 +417,31 @@ class _CompletedContent extends StatelessWidget {
 
         const SizedBox(height: YiShunTheme.space8),
 
-        Text(
-          '🎉 广告观看完成',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: YiShunTheme.goldPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              color: YiShunTheme.goldPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '广告观看完成',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: YiShunTheme.goldPrimary,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.auto_awesome,
+              color: YiShunTheme.goldPrimary,
+              size: 20,
+            ),
+          ],
         ),
 
         const SizedBox(height: YiShunTheme.space2),
@@ -412,14 +457,8 @@ class _CompletedContent extends StatelessWidget {
         const SizedBox(height: YiShunTheme.space8),
 
         // 奖励预览
-        Container(
-          width: double.infinity,
+        MysticGoldCard(
           padding: const EdgeInsets.all(YiShunTheme.space5),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(13),
-            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
-            border: Border.all(color: YiShunTheme.goldPrimary.withAlpha(76)),
-          ),
           child: Column(
             children: [
               Row(
@@ -495,31 +534,34 @@ class _BottomAction extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: onUnlock,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: YiShunTheme.goldPrimary,
-          foregroundColor: YiShunTheme.backgroundDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.lock_open, size: 20),
-            SizedBox(width: YiShunTheme.space2),
-            Text(
-              '解锁完整报告',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: YiShunTheme.space4),
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: onUnlock,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: YiShunTheme.goldPrimary,
+            foregroundColor: YiShunTheme.backgroundDark,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_open, size: 20),
+              const SizedBox(width: YiShunTheme.space2),
+              const Text(
+                '解锁完整报告',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

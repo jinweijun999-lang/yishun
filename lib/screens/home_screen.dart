@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../models/user_model.dart';
 import '../utils/theme.dart';
+import '../widgets/decorations.dart';
 
 /// 八字排盘主界面 - 首页
 /// 神秘东方色彩，玄学风格
@@ -76,6 +77,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             opacity: _fadeAnimation,
             child: CustomScrollView(
               slivers: [
+                // === 神秘顶部装饰 ===
+                const SliverToBoxAdapter(
+                  child: MysticTopDecoration(height: 100),
+                ),
+
                 // === App Bar ===
                 SliverAppBar(
                   floating: true,
@@ -84,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       // 太极图标
                       Container(
-                        padding: const EdgeInsets.all(YiShunTheme.space2),
+                        padding: const EdgeInsets.all(YiShunTheme.space2 + 2),
                         decoration: BoxDecoration(
                           color: YiShunTheme.goldPrimary.withAlpha(25),
                           borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
@@ -92,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             color: YiShunTheme.goldPrimary.withAlpha(51),
                           ),
                         ),
-                        child: const Text('☯️', style: TextStyle(fontSize: 18)),
+                        child: const Text('☯', style: TextStyle(fontSize: 20)),
                       ),
                       const SizedBox(width: YiShunTheme.space3),
                       const Text(
@@ -101,28 +107,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           fontWeight: FontWeight.w600,
                           color: YiShunTheme.textPrimary,
                           fontSize: 20,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '命理',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          color: YiShunTheme.goldPrimary.withAlpha(179),
+                          fontSize: 14,
                           letterSpacing: 2,
                         ),
                       ),
                     ],
                   ),
                   actions: [
-                    _IconBtn(
+                    MysticIconBtn(
                       icon: Icons.notifications_outlined,
                       onTap: () {},
                     ),
-                    _IconBtn(
+                    const SizedBox(width: YiShunTheme.space2),
+                    MysticIconBtn(
                       icon: Icons.settings_outlined,
                       onTap: () {},
                     ),
-                    const SizedBox(width: YiShunTheme.space2),
+                    const SizedBox(width: YiShunTheme.space4),
                   ],
                 ),
 
                 // === Content ===
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(YiShunTheme.space4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: YiShunTheme.space4,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -134,12 +153,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         const SizedBox(height: YiShunTheme.space6),
 
                         // 功能入口标题
-                        _SectionTitle(
-                          icon: '⚡',
+                        const MysticTitle(
                           title: '命理服务',
                           subtitle: '探索命运的奥秘',
+                          icon: Icons.auto_awesome,
                         ),
-                        const SizedBox(height: YiShunTheme.space3),
+                        const SizedBox(height: YiShunTheme.space4),
 
                         // 功能网格
                         _FeatureGrid(),
@@ -165,76 +184,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-// === 小组件 ===
-
-class _IconBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _IconBtn({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(YiShunTheme.space2),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(13),
-          borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
-        ),
-        child: Icon(icon, color: YiShunTheme.textSecondary, size: 22),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String subtitle;
-
-  const _SectionTitle({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 16)),
-        const SizedBox(width: YiShunTheme.space2),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: YiShunTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(width: YiShunTheme.space2),
-        Text(
-          '·',
-          style: TextStyle(
-            color: YiShunTheme.goldPrimary.withAlpha(127),
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(width: YiShunTheme.space2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: YiShunTheme.textMuted,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // === 今日运势卡片 ===
 class _DailyFortuneCard extends StatelessWidget {
   final Map<String, dynamic>? fortune;
@@ -244,10 +193,9 @@ class _DailyFortuneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return MysticGoldCard(
+      useGoldAccent: true,
       padding: const EdgeInsets.all(YiShunTheme.space5),
-      decoration: YiShunTheme.goldCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -263,15 +211,16 @@ class _DailyFortuneCard extends StatelessWidget {
                       color: YiShunTheme.goldPrimary.withAlpha(38),
                       borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
                     ),
-                    child: const Text('🌙', style: TextStyle(fontSize: 14)),
+                    child: const Text('🌙', style: TextStyle(fontSize: 16)),
                   ),
-                  const SizedBox(width: YiShunTheme.space2),
+                  const SizedBox(width: YiShunTheme.space3),
                   const Text(
                     '今日运势',
                     style: TextStyle(
                       color: YiShunTheme.goldPrimary,
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
                     ),
                   ),
                 ],
@@ -284,14 +233,28 @@ class _DailyFortuneCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: YiShunTheme.purpleMystic.withAlpha(51),
                   borderRadius: BorderRadius.circular(YiShunTheme.radiusFull),
-                ),
-                child: Text(
-                  fortune?['god_of_day'] ?? '青龙',
-                  style: TextStyle(
-                    color: YiShunTheme.purpleMystic.withAlpha(204),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                  border: Border.all(
+                    color: YiShunTheme.purpleMystic.withAlpha(76),
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.star,
+                      color: YiShunTheme.purpleMystic.withAlpha(204),
+                      size: 11,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      fortune?['god_of_day'] ?? '青龙',
+                      style: TextStyle(
+                        color: YiShunTheme.purpleMystic.withAlpha(204),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -299,19 +262,41 @@ class _DailyFortuneCard extends StatelessWidget {
           const SizedBox(height: YiShunTheme.space2),
 
           // 农历日期
-          Text(
-            fortune?['lunar_date'] ?? '甲辰年 · 三月初五',
-            style: TextStyle(
-              color: YiShunTheme.textMuted,
-              fontSize: 12,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 11,
+                color: YiShunTheme.textMuted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                fortune?['lunar_date'] ?? '甲辰年 · 三月初五',
+                style: TextStyle(
+                  color: YiShunTheme.textMuted,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
 
-          YiShunTheme.baguaDivider(color: YiShunTheme.goldPrimary.withAlpha(38)),
+          const GoldenDivider(margin: EdgeInsets.symmetric(vertical: 12)),
 
           // 运势摘要
           if (isLoading)
-            _LoadingIndicator()
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: YiShunTheme.goldPrimary,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            )
           else
             Text(
               fortune?['summary'] ?? '今日运势较好，适合做重要决定',
@@ -325,26 +310,17 @@ class _DailyFortuneCard extends StatelessWidget {
           const SizedBox(height: YiShunTheme.space4),
 
           // 五行幸运标签
-          Row(
+          Wrap(
+            spacing: YiShunTheme.space2,
+            runSpacing: YiShunTheme.space2,
             children: [
-              _LuckyChip(
-                emoji: '🎨',
-                text: fortune?['lucky_color'] ?? '青',
-              ),
-              const SizedBox(width: YiShunTheme.space2),
-              _LuckyChip(
-                emoji: '🔢',
-                text: '${fortune?['lucky_number'] ?? 8}',
-              ),
-              const SizedBox(width: YiShunTheme.space2),
-              _LuckyChip(
-                emoji: '🧭',
-                text: '东方',
-              ),
+              _LuckyChip(emoji: '🎨', text: '幸运色: ${fortune?['lucky_color'] ?? '青'}'),
+              _LuckyChip(emoji: '🔢', text: '${fortune?['lucky_number'] ?? 8}'),
+              _LuckyChip(emoji: '🧭', text: '东方'),
             ],
           ),
 
-          const SizedBox(height: YiShunTheme.space3),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 宜忌
           Row(
@@ -354,7 +330,7 @@ class _DailyFortuneCard extends StatelessWidget {
                 color: YiShunTheme.wuXingWood,
                 text: fortune?['yi'] ?? '出行·求财',
               ),
-              const SizedBox(width: YiShunTheme.space4),
+              const SizedBox(width: YiShunTheme.space5),
               _YiJiTag(
                 label: '忌',
                 color: YiShunTheme.wuXingFire,
@@ -382,9 +358,9 @@ class _LuckyChip extends StatelessWidget {
         vertical: YiShunTheme.space2,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
+        color: Colors.white.withAlpha(10),
         borderRadius: BorderRadius.circular(YiShunTheme.radiusFull),
-        border: Border.all(color: Colors.white.withAlpha(25)),
+        border: Border.all(color: Colors.white.withAlpha(20)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -421,23 +397,24 @@ class _YiJiTag extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: YiShunTheme.space2,
-            vertical: 2,
+            horizontal: YiShunTheme.space2 + 2,
+            vertical: 3,
           ),
           decoration: BoxDecoration(
             color: color.withAlpha(38),
             borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+            border: Border.all(color: color.withAlpha(76)),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: color,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
-        const SizedBox(width: YiShunTheme.space2),
+        const SizedBox(width: YiShunTheme.space3),
         Text(
           text,
           style: TextStyle(
@@ -446,22 +423,6 @@ class _YiJiTag extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _LoadingIndicator extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(
-          color: YiShunTheme.goldPrimary,
-          strokeWidth: 2,
-        ),
-      ),
     );
   }
 }
@@ -543,9 +504,16 @@ class _FeatureCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(YiShunTheme.space4),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
+          color: color.withAlpha(15),
           borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
           border: Border.all(color: color.withAlpha(51)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withAlpha(13),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,27 +526,11 @@ class _FeatureCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color.withAlpha(38),
                     borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+                    border: Border.all(color: color.withAlpha(76)),
                   ),
                   child: Text(icon, style: const TextStyle(fontSize: 22)),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: YiShunTheme.space2,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(51),
-                    borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
-                  ),
-                  child: Text(
-                    wuxing,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                WuXingIndicator(element: wuxing),
               ],
             ),
             const Spacer(),
@@ -609,24 +561,19 @@ class _FeatureCard extends StatelessWidget {
 class _WuXingCycleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return MysticCard(
+      borderColor: YiShunTheme.goldPrimary.withAlpha(38),
       padding: const EdgeInsets.all(YiShunTheme.space5),
-      decoration: YiShunTheme.cardDecoration(
-        borderColor: YiShunTheme.goldPrimary.withAlpha(38),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 标题
           Row(
             children: [
-              Text(
-                '✦',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: YiShunTheme.goldPrimary.withAlpha(179),
-                ),
+              Icon(
+                Icons.auto_awesome,
+                color: YiShunTheme.goldPrimary.withAlpha(179),
+                size: 16,
               ),
               const SizedBox(width: YiShunTheme.space2),
               const Text(
@@ -635,6 +582,25 @@ class _WuXingCycleCard extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: YiShunTheme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space2,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: YiShunTheme.wuXingEarth.withAlpha(38),
+                  borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+                ),
+                child: Text(
+                  '土',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: YiShunTheme.wuXingEarth,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -658,7 +624,7 @@ class _WuXingCycleCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: YiShunTheme.space3),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 相克
           Row(
@@ -771,8 +737,8 @@ class _WuXingKeItem extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
             color: fromColor.withAlpha(38),
             borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
@@ -784,7 +750,7 @@ class _WuXingKeItem extends StatelessWidget {
               style: TextStyle(
                 color: fromColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),
@@ -798,8 +764,8 @@ class _WuXingKeItem extends StatelessWidget {
           ),
         ),
         Container(
-          width: 34,
-          height: 34,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
             color: toColor.withAlpha(38),
             borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
@@ -811,7 +777,7 @@ class _WuXingKeItem extends StatelessWidget {
               style: TextStyle(
                 color: toColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),
@@ -834,11 +800,16 @@ class _PremiumCTA extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            YiShunTheme.wuXingFire.withAlpha(204),
-            YiShunTheme.wuXingFire.withAlpha(153),
+            YiShunTheme.wuXingFire.withAlpha(230),
+            YiShunTheme.wuXingFire.withAlpha(179),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
+        border: Border.all(
+          color: YiShunTheme.wuXingFire.withAlpha(127),
+        ),
         boxShadow: YiShunTheme.shadowMd(YiShunTheme.wuXingFire),
       ),
       child: Row(

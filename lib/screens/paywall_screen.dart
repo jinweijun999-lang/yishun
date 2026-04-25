@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../services/analytics_service.dart';
 import '../utils/theme.dart';
+import '../widgets/decorations.dart';
 
 /// 订阅墙 (Paywall)
 /// 神秘东方色彩，玄学风格
@@ -49,8 +50,37 @@ class _PaywallScreenState extends State<PaywallScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              // 顶部装饰
+              const MysticTopDecoration(height: 80),
+
               // App Bar
-              _PaywallAppBar(onBack: () => Navigator.pop(context)),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space4,
+                ),
+                child: Row(
+                  children: [
+                    MysticIconBtn(
+                      icon: Icons.arrow_back,
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: YiShunTheme.space4),
+                    const Expanded(
+                      child: Text(
+                        '解锁高级功能',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: YiShunTheme.textPrimary,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: YiShunTheme.space4),
 
               // Content
               Expanded(
@@ -59,17 +89,26 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Premium Header Card
                       _PremiumHeaderCard(),
                       const SizedBox(height: YiShunTheme.space5),
+
+                      // Comparison Section
                       _ComparisonSection(),
                       const SizedBox(height: YiShunTheme.space5),
+
+                      // Pricing Section
                       _PricingSection(),
                       const SizedBox(height: YiShunTheme.space5),
+
+                      // CTA Button
                       _CTAButton(
                         isLoading: _isLoading,
                         onPressed: _subscribe,
                       ),
                       const SizedBox(height: YiShunTheme.space3),
+
+                      // Terms
                       Center(
                         child: Text(
                           '订阅即表示同意《会员协议》。订阅自动续费，\n如需取消请在到期前24小时操作。',
@@ -93,92 +132,75 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 }
 
-// === App Bar ===
-class _PaywallAppBar extends StatelessWidget {
-  final VoidCallback onBack;
-
-  const _PaywallAppBar({required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(YiShunTheme.space4),
-      child: Row(
-        children: [
-          _BackButton(onTap: onBack),
-          const SizedBox(width: YiShunTheme.space4),
-          const Expanded(
-            child: Text(
-              '解锁高级功能',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: YiShunTheme.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _BackButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(YiShunTheme.space2),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(13),
-          borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
-        ),
-        child: const Icon(Icons.arrow_back, color: YiShunTheme.textPrimary, size: 22),
-      ),
-    );
-  }
-}
-
 // === Premium Header Card ===
 class _PremiumHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return MysticGoldCard(
       padding: const EdgeInsets.all(YiShunTheme.space6),
-      decoration: YiShunTheme.goldCardDecoration(),
       child: Column(
         children: [
+          // 神秘光晕
           Container(
-            padding: const EdgeInsets.all(YiShunTheme.space4),
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             decoration: BoxDecoration(
               color: YiShunTheme.goldPrimary.withAlpha(38),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: YiShunTheme.goldPrimary.withAlpha(76),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: YiShunTheme.goldPrimary.withAlpha(51),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
-            child: const Text('👑', style: TextStyle(fontSize: 48)),
+            child: const Text('👑', style: TextStyle(fontSize: 52)),
           ),
-          const SizedBox(height: YiShunTheme.space4),
+          const SizedBox(height: YiShunTheme.space5),
+
           const Text(
             '易顺高级会员',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.w700,
               color: YiShunTheme.goldPrimary,
-              letterSpacing: 2,
+              letterSpacing: 3,
             ),
           ),
           const SizedBox(height: YiShunTheme.space2),
-          Text(
-            '解锁全部高级功能，开启完整命理之旅',
-            style: TextStyle(
-              fontSize: 13,
-              color: YiShunTheme.textSecondary,
-            ),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                size: 12,
+                color: YiShunTheme.goldPrimary.withAlpha(153),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '解锁全部高级功能，开启完整命理之旅',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: YiShunTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.auto_awesome,
+                size: 12,
+                color: YiShunTheme.goldPrimary.withAlpha(153),
+              ),
+            ],
           ),
+
+          const SizedBox(height: YiShunTheme.space4),
+
+          // 神秘符文装饰
+          const GoldenDivider(),
         ],
       ),
     );
@@ -204,10 +226,8 @@ class _ComparisonSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: YiShunTheme.cardDecoration(
-        borderColor: Colors.white.withAlpha(25),
-      ),
+    return MysticCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           // Free tier header
@@ -219,16 +239,29 @@ class _ComparisonSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(YiShunTheme.space4),
             child: Column(
-              children: freeFeatures.map((f) => _FeatureRow(
-                icon: f['icon']!,
-                title: f['title']!,
-                desc: f['desc']!,
-                isPremium: false,
-              )).toList(),
+              children: freeFeatures
+                  .map((f) => _FeatureRow(
+                        icon: f['icon']!,
+                        title: f['title']!,
+                        desc: f['desc']!,
+                        isPremium: false,
+                      ))
+                  .toList(),
             ),
           ),
 
-          const Divider(color: Colors.white12),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  YiShunTheme.goldPrimary.withAlpha(51),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
 
           // Premium tier header
           _TierHeader(
@@ -240,12 +273,14 @@ class _ComparisonSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(YiShunTheme.space4),
             child: Column(
-              children: premiumFeatures.map((f) => _FeatureRow(
-                icon: f['icon']!,
-                title: f['title']!,
-                desc: f['desc']!,
-                isPremium: true,
-              )).toList(),
+              children: premiumFeatures
+                  .map((f) => _FeatureRow(
+                        icon: f['icon']!,
+                        title: f['title']!,
+                        desc: f['desc']!,
+                        isPremium: true,
+                      ))
+                  .toList(),
             ),
           ),
         ],
@@ -274,7 +309,9 @@ class _TierHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space3),
       decoration: BoxDecoration(
-        color: isFree ? Colors.white.withAlpha(8) : YiShunTheme.goldPrimary.withAlpha(13),
+        color: isFree
+            ? Colors.white.withAlpha(8)
+            : YiShunTheme.goldPrimary.withAlpha(13),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(YiShunTheme.radiusLg - 1),
         ),
@@ -356,7 +393,9 @@ class _FeatureRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isPremium ? YiShunTheme.textPrimary : YiShunTheme.textSecondary,
+                    color: isPremium
+                        ? YiShunTheme.textPrimary
+                        : YiShunTheme.textSecondary,
                   ),
                 ),
                 Text(
@@ -386,11 +425,9 @@ class _FeatureRow extends StatelessWidget {
 class _PricingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return MysticCard(
+      borderColor: YiShunTheme.goldPrimary.withAlpha(76),
       padding: const EdgeInsets.all(YiShunTheme.space5),
-      decoration: YiShunTheme.cardDecoration(
-        borderColor: YiShunTheme.goldPrimary.withAlpha(76),
-      ),
       child: Column(
         children: [
           Row(
@@ -400,13 +437,14 @@ class _PricingSection extends StatelessWidget {
               const Text(
                 '\$9.9',
                 style: TextStyle(
-                  fontSize: 44,
+                  fontSize: 48,
                   fontWeight: FontWeight.bold,
                   color: YiShunTheme.goldPrimary,
+                  letterSpacing: -1,
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   '/月',
                   style: TextStyle(
@@ -418,14 +456,32 @@ class _PricingSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: YiShunTheme.space2),
-          Text(
-            '首月体验价，之后 \$28/月',
-            style: TextStyle(
-              fontSize: 12,
-              color: YiShunTheme.textMuted,
-            ),
+
+          // 原价对比
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '首月体验价  ',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: YiShunTheme.textMuted,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: YiShunTheme.textMuted,
+                ),
+              ),
+              Text(
+                '之后 \$28/月',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: YiShunTheme.textMuted,
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: YiShunTheme.space4),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -505,18 +561,19 @@ class _CTAButton extends StatelessWidget {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Row(
+            : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     '立即订阅',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
                     ),
                   ),
-                  SizedBox(width: YiShunTheme.space2),
-                  Icon(Icons.arrow_forward_rounded, size: 20),
+                  const SizedBox(width: YiShunTheme.space2),
+                  const Icon(Icons.arrow_forward_rounded, size: 20),
                 ],
               ),
       ),

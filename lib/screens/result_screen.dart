@@ -4,8 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/theme.dart';
+import '../widgets/decorations.dart';
 import 'ad_unlock_screen.dart';
 
+/// 命盘分析结果页
+/// 神秘东方色彩，玄学风格
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key});
 
@@ -24,7 +27,6 @@ class _ResultScreenState extends State<ResultScreen>
   // Animation controllers
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  late AnimationController _spinController;
   late AnimationController _radarAnimationController;
   late Animation<double> _radarAnimation;
 
@@ -44,11 +46,6 @@ class _ResultScreenState extends State<ResultScreen>
     );
     _fadeController.forward();
 
-    _spinController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
     // Radar chart animation
     _radarAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1200),
@@ -61,21 +58,16 @@ class _ResultScreenState extends State<ResultScreen>
       ),
     );
 
-    // Listen for ad unlock result
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupAdUnlockListener();
+    // Delay radar animation to let page load first
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _radarAnimationController.forward();
     });
-  }
-
-  void _setupAdUnlockListener() async {
-    // This screen receives the unlock result via Navigator pop
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _fadeController.dispose();
-    _spinController.dispose();
     _radarAnimationController.dispose();
     super.dispose();
   }
@@ -85,12 +77,6 @@ class _ResultScreenState extends State<ResultScreen>
     if (args is Map<String, dynamic>) {
       _baziResult = args;
       _loadFortune();
-      // Start animations
-      _spinController.forward();
-      // Delay radar animation to let page load first
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) _radarAnimationController.forward();
-      });
     }
   }
 
@@ -113,7 +99,6 @@ class _ResultScreenState extends State<ResultScreen>
   }
 
   void _navigateToAdUnlock() async {
-    // Pass full bazi result as the "locked" data to be unlocked
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(
         builder: (context) => AdUnlockScreen(
@@ -123,7 +108,6 @@ class _ResultScreenState extends State<ResultScreen>
     );
 
     if (result != null && result['unlocked'] == true && mounted) {
-      // Refresh fortune with unlocked access
       setState(() {
         _reportUnlocked = true;
         _fortuneResult = null;
@@ -133,90 +117,30 @@ class _ResultScreenState extends State<ResultScreen>
     }
   }
 
-  Widget _buildAdUnlockBanner() {
-    return GestureDetector(
-      onTap: _navigateToAdUnlock,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              YiShunTheme.wuXingFire.withAlpha(204),
-              YiShunTheme.wuXingFire.withAlpha(128),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: YiShunTheme.wuXingFire.withAlpha(127)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '看广告解锁完整报告',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '观看 20 秒广告，解锁详细运势分析',
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(179),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdUnlockButton() {
-    return ElevatedButton.icon(
-      onPressed: _navigateToAdUnlock,
-      icon: const Icon(Icons.play_circle_outline, size: 20),
-      label: const Text('看广告解锁'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: YiShunTheme.wuXingFire,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_baziResult == null) {
       return Scaffold(
         backgroundColor: YiShunTheme.backgroundDark,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: const Text('命盘分析'),
-        ),
-        body: const Center(
-          child: Text('No data available', style: TextStyle(color: Colors.white)),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: YiShunTheme.backgroundGradient,
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                const MysticTopDecoration(height: 80),
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'No data available',
+                      style: TextStyle(color: YiShunTheme.textSecondary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -230,47 +154,62 @@ class _ResultScreenState extends State<ResultScreen>
         child: SafeArea(
           child: Column(
             children: [
+              // 顶部装饰
+              const MysticTopDecoration(height: 80),
+
               // Custom App Bar
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space4,
+                ),
                 child: Row(
                   children: [
-                    GestureDetector(
+                    MysticIconBtn(
+                      icon: Icons.arrow_back,
                       onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(25),
-                          borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(width: YiShunTheme.space4),
+                    const Expanded(
+                      child: Text(
+                        '命盘分析',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: YiShunTheme.textPrimary,
+                          letterSpacing: 1,
                         ),
-                        child: const Icon(Icons.arrow_back, color: Colors.white),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      '命盘分析',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
+                    // 日主标签
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: YiShunTheme.space3,
+                        vertical: YiShunTheme.space1,
+                      ),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.wuXingFire.withAlpha(51),
-                        borderRadius: BorderRadius.circular(12),
+                        color: YiShunTheme.wuXingFire.withAlpha(38),
+                        borderRadius: BorderRadius.circular(
+                          YiShunTheme.radiusFull,
+                        ),
+                        border: Border.all(
+                          color: YiShunTheme.wuXingFire.withAlpha(76),
+                        ),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.auto_awesome, size: 14, color: YiShunTheme.wuXingFire),
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 14,
+                            color: YiShunTheme.wuXingFire,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _baziResult!['day_master'] ?? '甲',
                             style: const TextStyle(
                               color: YiShunTheme.wuXingFire,
                               fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -280,12 +219,15 @@ class _ResultScreenState extends State<ResultScreen>
                 ),
               ),
 
+              const SizedBox(height: YiShunTheme.space4),
+
               // Tab Bar
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.symmetric(horizontal: YiShunTheme.space4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(13),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withAlpha(10),
+                  borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+                  border: Border.all(color: Colors.white.withAlpha(13)),
                 ),
                 child: TabBar(
                   controller: _tabController,
@@ -293,7 +235,7 @@ class _ResultScreenState extends State<ResultScreen>
                   indicatorWeight: 3,
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: YiShunTheme.goldPrimary,
-                  unselectedLabelColor: Colors.white54,
+                  unselectedLabelColor: YiShunTheme.textMuted,
                   dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: '四柱'),
@@ -303,6 +245,8 @@ class _ResultScreenState extends State<ResultScreen>
                   ],
                 ),
               ),
+
+              const SizedBox(height: YiShunTheme.space3),
 
               // Tab content
               Expanded(
@@ -332,33 +276,46 @@ class _ResultScreenState extends State<ResultScreen>
     final pillarNames = ['年柱', '月柱', '日柱', '时柱'];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Column(
         children: [
           // 命盘概览
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticGoldCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               children: [
-                const Text(
-                  '☯️ 八字命盘',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: YiShunTheme.goldPrimary.withAlpha(179),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '八字命盘',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: YiShunTheme.goldPrimary,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.auto_awesome,
+                      color: YiShunTheme.goldPrimary.withAlpha(179),
+                      size: 16,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: List.generate(4, (i) {
-                    final pillar = _baziResult![pillars[i]] as Map<String, dynamic>? ?? {};
+                    final pillar =
+                        _baziResult![pillars[i]] as Map<String, dynamic>? ?? {};
                     return _buildPillarColumn(
                       pillarNames[i],
                       pillar['gan'] ?? '',
@@ -370,10 +327,15 @@ class _ResultScreenState extends State<ResultScreen>
                 const SizedBox(height: 16),
                 if (_baziResult!['solar_time'] != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: YiShunTheme.space4,
+                      vertical: YiShunTheme.space2,
+                    ),
                     decoration: BoxDecoration(
-                      color: YiShunTheme.goldPrimary.withAlpha(51),
-                      borderRadius: BorderRadius.circular(20),
+                      color: YiShunTheme.goldPrimary.withAlpha(38),
+                      borderRadius: BorderRadius.circular(
+                        YiShunTheme.radiusFull,
+                      ),
                     ),
                     child: Text(
                       '真太阳时: ${_baziResult!['solar_time']}',
@@ -387,59 +349,66 @@ class _ResultScreenState extends State<ResultScreen>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 日主信息
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(YiShunTheme.space3),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.wuXingFire.withAlpha(51),
-                        borderRadius: BorderRadius.circular(12),
+                        color: YiShunTheme.wuXingFire.withAlpha(38),
+                        borderRadius: BorderRadius.circular(
+                          YiShunTheme.radiusMd,
+                        ),
+                        border: Border.all(
+                          color: YiShunTheme.wuXingFire.withAlpha(76),
+                        ),
                       ),
-                      child: const Icon(Icons.person, color: YiShunTheme.wuXingFire),
+                      child: Icon(
+                        Icons.person,
+                        color: YiShunTheme.wuXingFire,
+                        size: 22,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: YiShunTheme.space3),
                     const Text(
                       '日主',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        color: YiShunTheme.textPrimary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: YiShunTheme.space4),
                 Text(
                   '${_baziResult!['day_master'] ?? '甲'}${_baziResult!['day_master_wuxing'] ?? '木'}之人',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: YiShunTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: YiShunTheme.space2),
                 Text(
                   '日主代表自己，是八字的核心。日主天干为你的人生主旋律。',
-                  style: TextStyle(color: Colors.white.withAlpha(153), fontSize: 13),
+                  style: TextStyle(
+                    color: YiShunTheme.textMuted,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 十神概览
           _buildShishenOverview(),
@@ -448,20 +417,24 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
-  Widget _buildPillarColumn(String label, String gan, String zhi, String wuxing) {
+  Widget _buildPillarColumn(
+      String label, String gan, String zhi, String wuxing) {
     final color = YiShunTheme.getWuXingColor(wuxing);
     return Column(
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(153)),
+          style: TextStyle(
+            fontSize: 11,
+            color: YiShunTheme.textMuted,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(YiShunTheme.space3),
           decoration: BoxDecoration(
             color: color.withAlpha(25),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
             border: Border.all(color: color.withAlpha(76)),
           ),
           child: Column(
@@ -484,10 +457,15 @@ class _ResultScreenState extends State<ResultScreen>
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space2,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
                   color: color.withAlpha(51),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(
+                    YiShunTheme.radiusFull,
+                  ),
                 ),
                 child: Text(
                   wuxing,
@@ -505,54 +483,64 @@ class _ResultScreenState extends State<ResultScreen>
     final shishenData = _baziResult!['shishen'] as Map<String, dynamic>? ?? {};
     if (shishenData.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(25)),
-      ),
+    return MysticCard(
+      padding: const EdgeInsets.all(YiShunTheme.space5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(YiShunTheme.space3),
                 decoration: BoxDecoration(
-                  color: YiShunTheme.wuXingWater.withAlpha(51),
-                  borderRadius: BorderRadius.circular(12),
+                  color: YiShunTheme.wuXingWater.withAlpha(38),
+                  borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+                  border: Border.all(
+                    color: YiShunTheme.wuXingWater.withAlpha(76),
+                  ),
                 ),
-                child: const Icon(Icons.star, color: YiShunTheme.wuXingWater),
+                child: Icon(
+                  Icons.star,
+                  color: YiShunTheme.wuXingWater,
+                  size: 22,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: YiShunTheme.space3),
               const Text(
                 '十神一览',
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  color: YiShunTheme.textPrimary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: YiShunTheme.space2,
+            runSpacing: YiShunTheme.space2,
             children: shishenData.entries.map((e) {
               final color = _getShishenColor(e.value.toString());
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.space3,
+                  vertical: YiShunTheme.space2,
+                ),
                 decoration: BoxDecoration(
                   color: color.withAlpha(25),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(
+                    YiShunTheme.radiusFull,
+                  ),
                   border: Border.all(color: color.withAlpha(76)),
                 ),
                 child: Text(
                   e.value.toString(),
-                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               );
             }).toList(),
@@ -564,56 +552,55 @@ class _ResultScreenState extends State<ResultScreen>
 
   Color _getShishenColor(String shishen) {
     switch (shishen) {
-      case '正官': return YiShunTheme.wuXingWater;
-      case '七杀': return YiShunTheme.wuXingFire;
-      case '正财': return YiShunTheme.wuXingEarth;
-      case '偏财': return const Color(0xFF8D6E63);
-      case '正印': return YiShunTheme.wuXingMetal;
-      case '偏印': return const Color(0xFF9E9E9E);
-      case '食神': return YiShunTheme.wuXingWood;
-      case '伤官': return YiShunTheme.wuXingFire;
-      case '比肩': return YiShunTheme.wuXingWood;
-      case '劫财': return YiShunTheme.wuXingFire;
-      default: return Colors.grey;
+      case '正官':
+        return YiShunTheme.wuXingWater;
+      case '七杀':
+        return YiShunTheme.wuXingFire;
+      case '正财':
+        return YiShunTheme.wuXingEarth;
+      case '偏财':
+        return const Color(0xFF8D6E63);
+      case '正印':
+        return YiShunTheme.wuXingMetal;
+      case '偏印':
+        return const Color(0xFF9E9E9E);
+      case '食神':
+        return YiShunTheme.wuXingWood;
+      case '伤官':
+        return YiShunTheme.wuXingFire;
+      case '比肩':
+        return YiShunTheme.wuXingWood;
+      case '劫财':
+        return YiShunTheme.wuXingFire;
+      default:
+        return YiShunTheme.textMuted;
     }
   }
 
   // ==================== 五行 Tab ====================
   Widget _buildFiveElementsTab() {
-    final wuxingCount = _baziResult!['wuxing_count'] as Map<String, dynamic>? ?? {};
+    final wuxingCount =
+        _baziResult!['wuxing_count'] as Map<String, dynamic>? ?? {};
     final elements = ['木', '火', '土', '金', '水'];
-    final total = wuxingCount.values.fold<int>(0, (sum, v) => sum + (v as int));
+    final total =
+        wuxingCount.values.fold<int>(0, (sum, v) => sum + (v as int));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Column(
         children: [
           // 五行雷达图
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               children: [
-                const Row(
-                  children: [
-                    Text('✦', style: TextStyle(color: YiShunTheme.goldPrimary, fontSize: 16)),
-                    SizedBox(width: 8),
-                    Text(
-                      '五行分布雷达图',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                MysticTitle(
+                  title: '五行分布雷达图',
+                  subtitle: '',
+                  icon: Icons.radar,
+                  showDivider: true,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: YiShunTheme.space4),
                 SizedBox(
                   height: 240,
                   child: _buildRadarChart(wuxingCount, total),
@@ -621,35 +608,21 @@ class _ResultScreenState extends State<ResultScreen>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 五行柱状图
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.bar_chart, color: YiShunTheme.goldPrimary, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      '五行数量',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                MysticTitle(
+                  title: '五行数量',
+                  subtitle: '',
+                  icon: Icons.bar_chart,
+                  showDivider: true,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: YiShunTheme.space4),
                 ...elements.map((e) {
                   final count = wuxingCount[e] as int? ?? 0;
                   final percentage = total > 0 ? count / total : 0.0;
@@ -662,42 +635,44 @@ class _ResultScreenState extends State<ResultScreen>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 五行分析
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(YiShunTheme.space3),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.wuXingFire.withAlpha(51),
-                        borderRadius: BorderRadius.circular(12),
+                        color: YiShunTheme.wuXingFire.withAlpha(38),
+                        borderRadius:
+                            BorderRadius.circular(YiShunTheme.radiusMd),
+                        border: Border.all(
+                          color: YiShunTheme.wuXingFire.withAlpha(76),
+                        ),
                       ),
-                      child: const Icon(Icons.analytics, color: YiShunTheme.wuXingFire),
+                      child: Icon(
+                        Icons.analytics,
+                        color: YiShunTheme.wuXingFire,
+                        size: 22,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: YiShunTheme.space3),
                     const Text(
                       '五行分析',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        color: YiShunTheme.textPrimary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: YiShunTheme.space4),
                 _buildWuxingAnalysis(wuxingCount),
               ],
             ),
@@ -714,22 +689,22 @@ class _ResultScreenState extends State<ResultScreen>
       return total > 0 ? (count / total * 100).roundToDouble() : 0.0;
     }).toList();
 
-
     return AnimatedBuilder(
       animation: _radarAnimation,
       builder: (context, child) {
-        final currentValues = values.map((v) {
-          return _radarAnimation.value * v;
-        }).toList();
-
+        final currentValues =
+            values.map((v) => _radarAnimation.value * v).toList();
 
         return RadarChart(
           RadarChartData(
             radarShape: RadarShape.polygon,
-            radarBorderData: const BorderSide(color: Colors.white24, width: 1),
-            gridBorderData: const BorderSide(color: Colors.white12, width: 1),
+            radarBorderData:
+                const BorderSide(color: Colors.white24, width: 1),
+            gridBorderData:
+                const BorderSide(color: Colors.white12, width: 1),
             tickBorderData: const BorderSide(color: Colors.transparent),
-            ticksTextStyle: const TextStyle(color: Colors.transparent),
+            ticksTextStyle:
+                const TextStyle(color: Colors.transparent, fontSize: 0),
             tickCount: 4,
             titlePositionPercentageOffset: 0.15,
             titleTextStyle: const TextStyle(
@@ -750,7 +725,9 @@ class _ResultScreenState extends State<ResultScreen>
                 borderColor: YiShunTheme.goldPrimary,
                 borderWidth: 2,
                 entryRadius: 4,
-                dataEntries: currentValues.map((v) => RadarEntry(value: v)).toList(),
+                dataEntries: currentValues
+                    .map((v) => RadarEntry(value: v))
+                    .toList(),
               ),
             ],
           ),
@@ -809,7 +786,7 @@ class _ResultScreenState extends State<ResultScreen>
             textAlign: TextAlign.end,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: YiShunTheme.textPrimary,
             ),
           ),
         ),
@@ -851,21 +828,31 @@ class _ResultScreenState extends State<ResultScreen>
             '$weakest元素相对缺乏，需要后天补足',
             YiShunTheme.getWuXingColor(weakest),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: YiShunTheme.space3),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(YiShunTheme.space3),
           decoration: BoxDecoration(
             color: YiShunTheme.goldPrimary.withAlpha(25),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+            border: Border.all(
+              color: YiShunTheme.goldPrimary.withAlpha(51),
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: YiShunTheme.goldPrimary, size: 18),
+              Icon(
+                Icons.info_outline,
+                color: YiShunTheme.goldPrimary,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '五行平衡为最佳，过旺或过弱都可能影响运势',
-                  style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 12),
+                  style: TextStyle(
+                    color: YiShunTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -878,10 +865,10 @@ class _ResultScreenState extends State<ResultScreen>
   Widget _buildAnalysisItem(String title, String desc, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(YiShunTheme.space3),
       decoration: BoxDecoration(
         color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
         border: Border.all(color: color.withAlpha(76)),
       ),
       child: Column(
@@ -892,12 +879,16 @@ class _ResultScreenState extends State<ResultScreen>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             desc,
-            style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 13),
+            style: TextStyle(
+              color: YiShunTheme.textSecondary,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -906,38 +897,25 @@ class _ResultScreenState extends State<ResultScreen>
 
   // ==================== 十神 Tab ====================
   Widget _buildTenGodsTab() {
-    final shishenData = _baziResult!['shishen'] as Map<String, dynamic>? ?? {};
+    final shishenData =
+        _baziResult!['shishen'] as Map<String, dynamic>? ?? {};
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Column(
         children: [
           // 十神关系图
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(25)),
-            ),
+          MysticCard(
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             child: Column(
               children: [
-                const Row(
-                  children: [
-                    Text('✦', style: TextStyle(color: YiShunTheme.goldPrimary, fontSize: 16)),
-                    SizedBox(width: 8),
-                    Text(
-                      '十神关系图',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                MysticTitle(
+                  title: '十神关系图',
+                  subtitle: '',
+                  icon: Icons.hub,
+                  showDivider: true,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: YiShunTheme.space4),
                 SizedBox(
                   height: 280,
                   child: _buildTenGodsDiagram(shishenData),
@@ -945,12 +923,12 @@ class _ResultScreenState extends State<ResultScreen>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 十神详解列表
           ...shishenData.entries.map((e) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: YiShunTheme.space3),
               child: _buildShishenCard(e.key, e.value.toString()),
             );
           }),
@@ -960,7 +938,6 @@ class _ResultScreenState extends State<ResultScreen>
   }
 
   Widget _buildTenGodsDiagram(Map<String, dynamic> shishenData) {
-    // 以日主为中心，十神围绕分布
     final dayMaster = _baziResult!['day_master'] ?? '甲';
     final positions = [
       {'label': '正官', 'angle': 270.0, 'dist': 0.8},
@@ -982,7 +959,10 @@ class _ResultScreenState extends State<ResultScreen>
           height: 200,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withAlpha(25), width: 1),
+            border: Border.all(
+              color: Colors.white.withAlpha(25),
+              width: 1,
+            ),
           ),
         ),
         // 内圈
@@ -992,50 +972,53 @@ class _ResultScreenState extends State<ResultScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: YiShunTheme.goldPrimary.withAlpha(51),
-            border: Border.all(color: YiShunTheme.goldPrimary, width: 2),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  dayMaster,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: YiShunTheme.goldPrimary,
-                  ),
-                ),
-                const Text(
-                  '日主',
-                  style: TextStyle(fontSize: 10, color: Colors.white54),
-                ),
-              ],
+            border: Border.all(
+              color: YiShunTheme.goldPrimary,
+              width: 2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: YiShunTheme.goldPrimary.withAlpha(51),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dayMaster,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: YiShunTheme.goldPrimary,
+                ),
+              ),
+              const Text(
+                '日主',
+                style: TextStyle(fontSize: 10, color: Colors.white54),
+              ),
+            ],
           ),
         ),
         // 十神位置
-        ...positions.asMap().entries.map((entry) {
-          final pos = entry.value;
+        ...positions.map((pos) {
           final label = pos['label'] as String;
           final angle = pos['angle'] as double;
-          final dist = pos['dist'] as double;
 
           // 找到对应的值
           String? value;
           shishenData.forEach((key, v) {
-            if (v.toString() == label) {
-              value = key;
-            }
+            if (v.toString() == label) value = key;
           });
 
           final rad = angle * 3.14159 / 180;
-          final x = 100 * dist * (angle < 180 ? 1 : -1) * _cos(rad).abs();
-          final y = 100 * dist * _sin(rad);
+          final x = 100 * 0.8 * _cosApprox(rad);
+          final y = 100 * 0.8 * _sinApprox(rad);
 
           return Positioned(
-            left: 140 + x - 30,
-            top: 140 - y - 20,
+            left: 140 + x - 22,
+            top: 140 - y - 22,
             child: Column(
               children: [
                 Container(
@@ -1063,7 +1046,10 @@ class _ResultScreenState extends State<ResultScreen>
                 if (value != null)
                   Text(
                     value.toString(),
-                    style: const TextStyle(fontSize: 9, color: Colors.white54),
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.white54,
+                    ),
                   ),
               ],
             ),
@@ -1073,14 +1059,12 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
-  double _sin(double rad) => _sinApprox(rad);
-  double _cos(double rad) => _cosApprox(rad);
   double _sinApprox(double x) {
-    // 简单近似
     x = x % (2 * 3.14159);
     if (x > 3.14159) x -= 2 * 3.14159;
     return x - (x * x * x) / 6 + (x * x * x * x * x) / 120;
   }
+
   double _cosApprox(double x) {
     x = x % (2 * 3.14159);
     return _sinApprox(x + 1.5708);
@@ -1090,13 +1074,8 @@ class _ResultScreenState extends State<ResultScreen>
     final color = _getShishenColor(shishen);
     final desc = _getShishenDesc(shishen);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(25)),
-      ),
+    return MysticCard(
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Row(
         children: [
           Container(
@@ -1104,7 +1083,7 @@ class _ResultScreenState extends State<ResultScreen>
             height: 50,
             decoration: BoxDecoration(
               color: color.withAlpha(51),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
               border: Border.all(color: color.withAlpha(128)),
             ),
             child: Center(
@@ -1118,7 +1097,7 @@ class _ResultScreenState extends State<ResultScreen>
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: YiShunTheme.space3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1126,22 +1105,26 @@ class _ResultScreenState extends State<ResultScreen>
                 Text(
                   '$pillar · $shishen',
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    color: YiShunTheme.textPrimary,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   desc,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(153),
+                    color: YiShunTheme.textMuted,
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          Icon(Icons.chevron_right, color: Colors.white.withAlpha(76)),
+          Icon(
+            Icons.chevron_right,
+            color: Colors.white.withAlpha(76),
+          ),
         ],
       ),
     );
@@ -1149,17 +1132,28 @@ class _ResultScreenState extends State<ResultScreen>
 
   String _getShishenDesc(String shishen) {
     switch (shishen) {
-      case '正官': return '代表地位、权力、约束力';
-      case '七杀': return '代表挑战、压力、果断';
-      case '正印': return '代表学业、智慧、庇护';
-      case '偏印': return '代表独创、思考、孤僻';
-      case '正财': return '代表收入、理财、务实';
-      case '偏财': return '代表意外之财、投资、冒险';
-      case '食神': return '代表表达、创意、食禄';
-      case '伤官': return '代表才华、叛逆、口才';
-      case '比肩': return '代表自信、伙伴、独立';
-      case '劫财': return '代表竞争、果断、冲动';
-      default: return '十神之一';
+      case '正官':
+        return '代表地位、权力、约束力';
+      case '七杀':
+        return '代表挑战、压力、果断';
+      case '正印':
+        return '代表学业、智慧、庇护';
+      case '偏印':
+        return '代表独创、思考、孤僻';
+      case '正财':
+        return '代表收入、理财、务实';
+      case '偏财':
+        return '代表意外之财、投资、冒险';
+      case '食神':
+        return '代表表达、创意、食禄';
+      case '伤官':
+        return '代表才华、叛逆、口才';
+      case '比肩':
+        return '代表自信、伙伴、独立';
+      case '劫财':
+        return '代表竞争、果断、冲动';
+      default:
+        return '十神之一';
     }
   }
 
@@ -1168,10 +1162,17 @@ class _ResultScreenState extends State<ResultScreen>
     if (_isLoadingFortune) {
       return Column(
         children: [
-          _buildAdUnlockBanner(),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: YiShunTheme.space4,
+            ),
+            child: _buildAdUnlockBanner(),
+          ),
           const Expanded(
             child: Center(
-              child: CircularProgressIndicator(color: YiShunTheme.goldPrimary),
+              child: CircularProgressIndicator(
+                color: YiShunTheme.goldPrimary,
+              ),
             ),
           ),
         ],
@@ -1183,11 +1184,15 @@ class _ResultScreenState extends State<ResultScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off, size: 64, color: Colors.white54),
+            Icon(
+              Icons.cloud_off,
+              size: 64,
+              color: YiShunTheme.textMuted.withAlpha(127),
+            ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Failed to load fortune',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: YiShunTheme.textMuted),
             ),
             const SizedBox(height: 16),
             _buildAdUnlockButton(),
@@ -1197,37 +1202,58 @@ class _ResultScreenState extends State<ResultScreen>
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Column(
         children: [
           // Ad unlock banner (shown when not yet unlocked)
           if (!_reportUnlocked) _buildAdUnlockBanner(),
 
-          const SizedBox(height: 12),
+          if (!_reportUnlocked) const SizedBox(height: YiShunTheme.space4),
 
           // 综合运势
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(YiShunTheme.space5),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   YiShunTheme.purpleMystic,
                   YiShunTheme.purpleMystic.withAlpha(204),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
               border: Border.all(color: Colors.white.withAlpha(25)),
+              boxShadow: YiShunTheme.shadowMd(YiShunTheme.purpleMystic),
             ),
             child: Column(
               children: [
-                const Text(
-                  '🔮 综合运势',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white.withAlpha(179),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '综合运势',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white.withAlpha(179),
+                      size: 18,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -1235,18 +1261,19 @@ class _ResultScreenState extends State<ResultScreen>
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
+                    height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
 
           // 运势分类
           ...['career', 'love', 'health', 'wealth'].map((aspect) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: YiShunTheme.space3),
               child: _buildFortuneCard(
                 aspect,
                 _fortuneResult![aspect] ?? '一般',
@@ -1256,27 +1283,25 @@ class _ResultScreenState extends State<ResultScreen>
 
           // 建议
           if (_fortuneResult!['tips'] != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(13),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withAlpha(25)),
-              ),
+            MysticCard(
+              padding: const EdgeInsets.all(YiShunTheme.space5),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.lightbulb_outline, color: YiShunTheme.goldPrimary),
-                      SizedBox(width: 8),
-                      Text(
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: YiShunTheme.goldPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
                         '建议',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          color: YiShunTheme.textPrimary,
                         ),
                       ),
                     ],
@@ -1289,11 +1314,21 @@ class _ResultScreenState extends State<ResultScreen>
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('• ', style: TextStyle(color: YiShunTheme.goldPrimary)),
+                                Text(
+                                  '✦ ',
+                                  style: TextStyle(
+                                    color: YiShunTheme.goldPrimary,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 Expanded(
                                   child: Text(
                                     tip.toString(),
-                                    style: TextStyle(color: Colors.white.withAlpha(179)),
+                                    style: TextStyle(
+                                      color: YiShunTheme.textSecondary,
+                                      fontSize: 13,
+                                      height: 1.5,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1303,6 +1338,93 @@ class _ResultScreenState extends State<ResultScreen>
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAdUnlockBanner() {
+    return GestureDetector(
+      onTap: _navigateToAdUnlock,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(YiShunTheme.space4),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              YiShunTheme.wuXingFire.withAlpha(230),
+              YiShunTheme.wuXingFire.withAlpha(153),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+          border: Border.all(
+            color: YiShunTheme.wuXingFire.withAlpha(127),
+          ),
+          boxShadow: YiShunTheme.shadowSm(YiShunTheme.wuXingFire),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(YiShunTheme.space3),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(51),
+                borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+              ),
+              child: const Icon(
+                Icons.play_circle_fill,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: YiShunTheme.space3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '看广告解锁完整报告',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '观看 20 秒广告，解锁详细运势分析',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(179),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white.withAlpha(179),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdUnlockButton() {
+    return ElevatedButton.icon(
+      onPressed: _navigateToAdUnlock,
+      icon: const Icon(Icons.play_circle_outline, size: 20),
+      label: const Text('看广告解锁'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: YiShunTheme.wuXingFire,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+        ),
       ),
     );
   }
@@ -1322,32 +1444,30 @@ class _ResultScreenState extends State<ResultScreen>
     };
     final colors = {
       'career': YiShunTheme.wuXingFire,
-      'love': YiShunTheme.wuXingFire,
+      'love': YiShunTheme.purpleMystic,
       'health': YiShunTheme.wuXingWood,
       'wealth': YiShunTheme.wuXingEarth,
     };
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(25)),
-      ),
+    final color = colors[aspect] ?? YiShunTheme.textMuted;
+
+    return MysticCard(
+      padding: const EdgeInsets.all(YiShunTheme.space4),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(YiShunTheme.space3),
             decoration: BoxDecoration(
-              color: (colors[aspect] ?? Colors.grey).withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withAlpha(25),
+              borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
+              border: Border.all(color: color.withAlpha(51)),
             ),
             child: Text(
               icons[aspect] ?? '📌',
               style: const TextStyle(fontSize: 24),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: YiShunTheme.space3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1355,16 +1475,16 @@ class _ResultScreenState extends State<ResultScreen>
                 Text(
                   labels[aspect] ?? aspect,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: Colors.white,
+                    color: YiShunTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   content,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(179),
+                    color: YiShunTheme.textSecondary,
                     fontSize: 13,
                   ),
                 ),
