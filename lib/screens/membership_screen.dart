@@ -5,8 +5,7 @@ import '../services/analytics_service.dart';
 import '../utils/theme.dart';
 import '../widgets/decorations.dart';
 
-/// 会员管理界面
-/// 神秘东方色彩，玄学风格
+/// 会员中心 - NanoBanana 2 精品设计
 class MembershipScreen extends StatefulWidget {
   const MembershipScreen({super.key});
 
@@ -36,8 +35,8 @@ class _MembershipScreenState extends State<MembershipScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('✅ 续费成功！'),
+        const SnackBar(
+          content: Text('✅ 续费成功！'),
           backgroundColor: YiShunTheme.success,
         ),
       );
@@ -48,7 +47,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: YiShunTheme.backgroundMid,
+        backgroundColor: YiShunTheme.backgroundCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
         ),
@@ -84,8 +83,8 @@ class _MembershipScreenState extends State<MembershipScreen> {
         context.read<UserModel>().setMemberStatus(MemberStatus.free);
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('订阅已取消'),
+          const SnackBar(
+            content: Text('订阅已取消'),
             backgroundColor: YiShunTheme.warning,
           ),
         );
@@ -108,21 +107,18 @@ class _MembershipScreenState extends State<MembershipScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // 顶部装饰
-              const MysticTopDecoration(height: 80),
+              const SizedBox(height: 24),
 
               // App Bar
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: YiShunTheme.space4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
-                    MysticIconBtn(
+                    IconBtn(
                       icon: Icons.arrow_back,
                       onTap: () => Navigator.pop(context),
                     ),
-                    const SizedBox(width: YiShunTheme.space4),
+                    const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         '会员中心',
@@ -138,39 +134,39 @@ class _MembershipScreenState extends State<MembershipScreen> {
                 ),
               ),
 
-              const SizedBox(height: YiShunTheme.space4),
+              const SizedBox(height: 24),
 
               // Content
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(YiShunTheme.space4),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Status Card
                       _StatusCard(isPremium: isPremium, user: user),
-                      const SizedBox(height: YiShunTheme.space5),
+                      const SizedBox(height: 32),
 
                       if (isPremium) ...[
                         _SubscriptionInfoCard(),
-                        const SizedBox(height: YiShunTheme.space5),
+                        const SizedBox(height: 24),
                         _ActionButtons(
                           isLoading: _isLoading,
                           onRenew: _renewSubscription,
                           onCancel: _cancelSubscription,
                         ),
-                        const SizedBox(height: YiShunTheme.space5),
+                        const SizedBox(height: 32),
                       ],
 
                       // History Section
                       _HistorySection(history: _subscriptionHistory),
-                      const SizedBox(height: YiShunTheme.space5),
+                      const SizedBox(height: 24),
 
                       // Family Plan Entry
                       _FamilyPlanEntry(
                         onTap: () => Navigator.pushNamed(context, '/family'),
                       ),
-                      const SizedBox(height: YiShunTheme.space8),
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),
@@ -193,7 +189,7 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(YiShunTheme.space6),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPremium
@@ -208,9 +204,9 @@ class _StatusCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(YiShunTheme.radiusXl),
+        borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
         border: Border.all(color: Colors.white.withAlpha(25)),
-        boxShadow: YiShunTheme.shadowLg(
+        boxShadow: YiShunTheme.shadowCard(
           isPremium ? YiShunTheme.goldPrimary : YiShunTheme.purpleMystic,
         ),
       ),
@@ -218,7 +214,7 @@ class _StatusCard extends StatelessWidget {
         children: [
           // 光晕效果
           Container(
-            padding: const EdgeInsets.all(YiShunTheme.space4),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withAlpha(38),
               shape: BoxShape.circle,
@@ -235,7 +231,7 @@ class _StatusCard extends StatelessWidget {
               style: const TextStyle(fontSize: 52),
             ),
           ),
-          const SizedBox(height: YiShunTheme.space4),
+          const SizedBox(height: 20),
 
           Text(
             isPremium ? '高级会员' : '免费用户',
@@ -248,7 +244,7 @@ class _StatusCard extends StatelessWidget {
               letterSpacing: 3,
             ),
           ),
-          const SizedBox(height: YiShunTheme.space2),
+          const SizedBox(height: 8),
 
           Text(
             isPremium ? '您正在享受会员特权' : '升级到高级版解锁全部功能',
@@ -261,27 +257,10 @@ class _StatusCard extends StatelessWidget {
           ),
 
           if (!isPremium) ...[
-            const SizedBox(height: YiShunTheme.space5),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/paywall'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: YiShunTheme.goldPrimary,
-                  foregroundColor: YiShunTheme.backgroundDark,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-                  ),
-                ),
-                child: const Text(
-                  '立即升级',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: '立即升级',
+              onPressed: () => Navigator.pushNamed(context, '/paywall'),
             ),
           ],
         ],
@@ -294,58 +273,38 @@ class _StatusCard extends StatelessWidget {
 class _SubscriptionInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MysticCard(
-      padding: const EdgeInsets.all(YiShunTheme.space5),
+    return NanoCard(
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           _InfoRow(label: '当前计划', value: '年卡会员'),
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.white.withAlpha(25),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
+          _divider(),
           _InfoRow(label: '到期时间', value: '2027-03-25'),
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.white.withAlpha(25),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
+          _divider(),
           _InfoRow(label: '续费方式', value: '自动续费'),
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.white.withAlpha(25),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
+          _divider(),
           _InfoRow(
             label: '下次扣款',
-            value: '\$28.00',
+            value: '¥28.00',
             valueColor: YiShunTheme.goldPrimary,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _divider() {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.white.withAlpha(25),
+            Colors.transparent,
+          ],
+        ),
       ),
     );
   }
@@ -365,21 +324,24 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space1),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.circle,
-                size: 6,
-                color: YiShunTheme.textMuted.withAlpha(127),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: YiShunTheme.textMuted.withAlpha(127),
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   color: YiShunTheme.textMuted,
                   fontSize: 14,
                 ),
@@ -417,48 +379,17 @@ class _ActionButtons extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              onPressed: isLoading ? null : onRenew,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.goldPrimary,
-                foregroundColor: YiShunTheme.backgroundDark,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-                ),
-              ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: YiShunTheme.backgroundDark,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text(
-                      '立即续费',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-            ),
+          child: PrimaryButton(
+            text: '立即续费',
+            isLoading: isLoading,
+            onPressed: onRenew,
           ),
         ),
-        const SizedBox(width: YiShunTheme.space3),
+        const SizedBox(width: 12),
         Expanded(
-          child: SizedBox(
-            height: 52,
-            child: OutlinedButton(
-              onPressed: isLoading ? null : onCancel,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: YiShunTheme.textSecondary,
-                side: BorderSide(color: YiShunTheme.textMuted),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-                ),
-              ),
-              child: const Text('取消订阅'),
-            ),
+          child: SecondaryButton(
+            text: '取消订阅',
+            onPressed: onCancel,
           ),
         ),
       ],
@@ -477,15 +408,17 @@ class _HistorySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MysticTitle(
-          title: '订阅历史',
-          subtitle: '',
-          icon: Icons.history,
-          showDivider: true,
+        const Text(
+          '订阅历史',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: YiShunTheme.textPrimary,
+          ),
         ),
-        const SizedBox(height: YiShunTheme.space3),
+        const SizedBox(height: 12),
 
-        MysticCard(
+        NanoCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: history.asMap().entries.map((entry) {
@@ -526,13 +459,13 @@ class _HistoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(YiShunTheme.space4),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(YiShunTheme.space3),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: YiShunTheme.purpleMystic.withAlpha(38),
+              color: YiShunTheme.purpleSubtle,
               borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
             ),
             child: Icon(
@@ -541,7 +474,7 @@ class _HistoryItem extends StatelessWidget {
               size: 20,
             ),
           ),
-          const SizedBox(width: YiShunTheme.space3),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,7 +490,7 @@ class _HistoryItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   item['date']!,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: YiShunTheme.textMuted,
                     fontSize: 12,
                   ),
@@ -570,7 +503,7 @@ class _HistoryItem extends StatelessWidget {
             children: [
               Text(
                 item['amount']!,
-                style: TextStyle(
+                style: const TextStyle(
                   color: YiShunTheme.goldPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -578,10 +511,7 @@ class _HistoryItem extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: YiShunTheme.space2,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: YiShunTheme.success.withAlpha(38),
                   borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
@@ -613,19 +543,17 @@ class _FamilyPlanEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: MysticCard(
-        borderColor: YiShunTheme.goldPrimary.withAlpha(38),
-        padding: const EdgeInsets.all(YiShunTheme.space5),
+      child: NanoCard(
+        showGoldBorder: true,
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(YiShunTheme.space3),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: YiShunTheme.goldPrimary.withAlpha(38),
+                color: YiShunTheme.goldSubtle,
                 borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-                border: Border.all(
-                  color: YiShunTheme.goldPrimary.withAlpha(76),
-                ),
+                border: Border.all(color: YiShunTheme.goldBorder),
               ),
               child: Icon(
                 Icons.family_restroom,
@@ -633,7 +561,7 @@ class _FamilyPlanEntry extends StatelessWidget {
                 size: 24,
               ),
             ),
-            const SizedBox(width: YiShunTheme.space4),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

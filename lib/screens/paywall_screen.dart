@@ -5,8 +5,6 @@ import '../services/analytics_service.dart';
 import '../utils/theme.dart';
 import '../widgets/decorations.dart';
 
-/// 订阅墙 (Paywall)
-/// 神秘东方色彩，玄学风格
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
 
@@ -16,6 +14,23 @@ class PaywallScreen extends StatefulWidget {
 
 class _PaywallScreenState extends State<PaywallScreen> {
   bool _isLoading = false;
+  int _selectedPlan = 1;
+
+  final _plans = const [
+    {
+      'name': '月卡',
+      'price': '¥28',
+      'period': '/月',
+      'desc': '随时取消',
+    },
+    {
+      'name': '年卡',
+      'price': '¥68',
+      'period': '/年',
+      'desc': '省 ¥268',
+      'badge': '推荐',
+    },
+  ];
 
   @override
   void initState() {
@@ -26,13 +41,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Future<void> _subscribe() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
-
     if (mounted) {
       context.read<UserModel>().setMemberStatus(MemberStatus.premium);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 订阅成功！欢迎成为会员！'),
-          backgroundColor: YiShunTheme.success,
+        SnackBar(
+          content: const Text('🎉 订阅成功！欢迎成为会员'),
+          backgroundColor: YiShunTheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+          ),
         ),
       );
       Navigator.pop(context);
@@ -42,540 +59,303 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.backgroundDark,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: YiShunTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 顶部装饰
-              const MysticTopDecoration(height: 80),
-
-              // App Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: YiShunTheme.space4,
-                ),
-                child: Row(
-                  children: [
-                    MysticIconBtn(
-                      icon: Icons.arrow_back,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: YiShunTheme.space4),
-                    const Expanded(
-                      child: Text(
-                        '解锁高级功能',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: YiShunTheme.textPrimary,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      backgroundColor: YiShunTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: YiShunTheme.spaceMd,
+                vertical: YiShunTheme.spaceSm,
               ),
-
-              const SizedBox(height: YiShunTheme.space4),
-
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(YiShunTheme.space4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Premium Header Card
-                      _PremiumHeaderCard(),
-                      const SizedBox(height: YiShunTheme.space5),
-
-                      // Comparison Section
-                      _ComparisonSection(),
-                      const SizedBox(height: YiShunTheme.space5),
-
-                      // Pricing Section
-                      _PricingSection(),
-                      const SizedBox(height: YiShunTheme.space5),
-
-                      // CTA Button
-                      _CTAButton(
-                        isLoading: _isLoading,
-                        onPressed: _subscribe,
-                      ),
-                      const SizedBox(height: YiShunTheme.space3),
-
-                      // Terms
-                      Center(
-                        child: Text(
-                          '订阅即表示同意《会员协议》。订阅自动续费，\n如需取消请在到期前24小时操作。',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: YiShunTheme.textMuted,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: YiShunTheme.space8),
-                    ],
+              child: Row(
+                children: [
+                  AppIconBtn(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// === Premium Header Card ===
-class _PremiumHeaderCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MysticGoldCard(
-      padding: const EdgeInsets.all(YiShunTheme.space6),
-      child: Column(
-        children: [
-          // 神秘光晕
-          Container(
-            padding: const EdgeInsets.all(YiShunTheme.space5),
-            decoration: BoxDecoration(
-              color: YiShunTheme.goldPrimary.withAlpha(38),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: YiShunTheme.goldPrimary.withAlpha(76),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: YiShunTheme.goldPrimary.withAlpha(51),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Text('👑', style: TextStyle(fontSize: 52)),
-          ),
-          const SizedBox(height: YiShunTheme.space5),
-
-          const Text(
-            '易顺高级会员',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: YiShunTheme.goldPrimary,
-              letterSpacing: 3,
-            ),
-          ),
-          const SizedBox(height: YiShunTheme.space2),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                size: 12,
-                color: YiShunTheme.goldPrimary.withAlpha(153),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '解锁全部高级功能，开启完整命理之旅',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: YiShunTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.auto_awesome,
-                size: 12,
-                color: YiShunTheme.goldPrimary.withAlpha(153),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: YiShunTheme.space4),
-
-          // 神秘符文装饰
-          const GoldenDivider(),
-        ],
-      ),
-    );
-  }
-}
-
-// === Comparison Section ===
-class _ComparisonSection extends StatelessWidget {
-  final List<Map<String, String>> freeFeatures = const [
-    {'icon': '☯️', 'title': '四柱排盘', 'desc': '每日1次'},
-    {'icon': '📜', 'title': '基础命理', 'desc': '3项分析'},
-    {'icon': '📚', 'title': '命理知识', 'desc': '免费阅读'},
-  ];
-
-  final List<Map<String, String>> premiumFeatures = const [
-    {'icon': '☯️', 'title': '无限八字分析', 'desc': '无限制'},
-    {'icon': '💑', 'title': '双人合盘', 'desc': '无限次'},
-    {'icon': '📜', 'title': '大运流年', 'desc': '完整解读'},
-    {'icon': '🔮', 'title': '十神详解', 'desc': '深度分析'},
-    {'icon': '⚖️', 'title': '五行分析', 'desc': '完整雷达'},
-    {'icon': '👑', 'title': '专属客服', 'desc': '优先响应'},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return MysticCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          // Free tier header
-          _TierHeader(
-            label: '免费版',
-            color: YiShunTheme.textMuted,
-            isFree: true,
-          ),
-          Padding(
-            padding: const EdgeInsets.all(YiShunTheme.space4),
-            child: Column(
-              children: freeFeatures
-                  .map((f) => _FeatureRow(
-                        icon: f['icon']!,
-                        title: f['title']!,
-                        desc: f['desc']!,
-                        isPremium: false,
-                      ))
-                  .toList(),
-            ),
-          ),
-
-          Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  YiShunTheme.goldPrimary.withAlpha(51),
-                  Colors.transparent,
+                  const SizedBox(width: YiShunTheme.spaceSm),
+                  const Text(
+                    '开通会员',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: YiShunTheme.onSurface,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
 
-          // Premium tier header
-          _TierHeader(
-            label: '高级版',
-            color: YiShunTheme.goldPrimary,
-            badge: 'PRO',
-            badgeColor: YiShunTheme.wuXingFire,
-          ),
-          Padding(
-            padding: const EdgeInsets.all(YiShunTheme.space4),
-            child: Column(
-              children: premiumFeatures
-                  .map((f) => _FeatureRow(
-                        icon: f['icon']!,
-                        title: f['title']!,
-                        desc: f['desc']!,
-                        isPremium: true,
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+            const ThinDivider(),
 
-class _TierHeader extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool isFree;
-  final String? badge;
-  final Color? badgeColor;
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YiShunTheme.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: YiShunTheme.spaceLg),
 
-  const _TierHeader({
-    required this.label,
-    required this.color,
-    this.isFree = false,
-    this.badge,
-    this.badgeColor,
-  });
+                    // Crown icon
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: YiShunTheme.primary.withAlpha(20),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: YiShunTheme.primary.withAlpha(51),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Text('👑', style: TextStyle(fontSize: 36)),
+                      ),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceLg),
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space3),
-      decoration: BoxDecoration(
-        color: isFree
-            ? Colors.white.withAlpha(8)
-            : YiShunTheme.goldPrimary.withAlpha(13),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(YiShunTheme.radiusLg - 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (badge != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: YiShunTheme.space2,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: badgeColor ?? YiShunTheme.goldPrimary,
-                borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
-              ),
-              child: Text(
-                badge!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                    // Title
+                    const Text(
+                      '易顺高级会员',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: YiShunTheme.primary,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '解锁全部高级功能',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: YiShunTheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceXl),
+
+                    // Plan Cards
+                    Row(
+                      children: _plans.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final plan = entry.value;
+                        final isSelected = _selectedPlan == i;
+
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedPlan = i),
+                            child: Container(
+                              margin: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                              padding: const EdgeInsets.all(YiShunTheme.spaceMd),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? YiShunTheme.primary.withAlpha(15)
+                                    : YiShunTheme.surfaceContainerLowest,
+                                borderRadius:
+                                    BorderRadius.circular(YiShunTheme.radiusMd),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? YiShunTheme.primary
+                                      : YiShunTheme.cardBorder,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  if (plan['badge'] != null) ...[
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: YiShunTheme.primary,
+                                        borderRadius: BorderRadius.circular(
+                                          YiShunTheme.radiusSm,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        plan['badge']!,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: YiShunTheme.onPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  Text(
+                                    plan['name']!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: YiShunTheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    plan['price']!,
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: YiShunTheme.primary,
+                                    ),
+                                  ),
+                                  Text(
+                                    plan['period']!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: YiShunTheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    plan['desc']!,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: YiShunTheme.outline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceXl),
+
+                    // Privileges
+                    OriCard(
+                      padding: const EdgeInsets.all(YiShunTheme.cardPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            '会员特权',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: YiShunTheme.onSurface,
+                            ),
+                          ),
+                          SizedBox(height: YiShunTheme.spaceMd),
+                          _PrivilegeItem(text: '无限次八字分析'),
+                          _PrivilegeItem(text: '双人合盘无限次'),
+                          _PrivilegeItem(text: '大运流年完整解读'),
+                          _PrivilegeItem(text: '十神详解深度分析'),
+                          _PrivilegeItem(text: '无广告干扰'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceXl),
+
+                    // Subscribe Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _subscribe,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: YiShunTheme.primary,
+                          foregroundColor: YiShunTheme.onPrimary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(YiShunTheme.radiusSm),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: YiShunTheme.onPrimary,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Text(
+                                    '立即订阅',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.arrow_forward_rounded, size: 20),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceMd),
+
+                    // Disclaimer
+                    const Text(
+                      '订阅即表示同意《会员协议》，自动续费，\n如需取消请在到期前24小时操作。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: YiShunTheme.outline,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: YiShunTheme.spaceXl),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: YiShunTheme.space2),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _FeatureRow extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String desc;
-  final bool isPremium;
+class _PrivilegeItem extends StatelessWidget {
+  final String text;
 
-  const _FeatureRow({
-    required this.icon,
-    required this.title,
-    required this.desc,
-    required this.isPremium,
-  });
+  const _PrivilegeItem({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: YiShunTheme.space3),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(YiShunTheme.space2),
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
-              color: isPremium
-                  ? YiShunTheme.goldPrimary.withAlpha(25)
-                  : Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+              color: YiShunTheme.primary.withAlpha(25),
+              shape: BoxShape.circle,
             ),
-            child: Text(icon, style: const TextStyle(fontSize: 18)),
-          ),
-          const SizedBox(width: YiShunTheme.space3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isPremium
-                        ? YiShunTheme.textPrimary
-                        : YiShunTheme.textSecondary,
-                  ),
-                ),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isPremium
-                        ? YiShunTheme.goldPrimary.withAlpha(153)
-                        : YiShunTheme.textMuted,
-                  ),
-                ),
-              ],
+            child: const Center(
+              child: Icon(
+                Icons.check,
+                size: 12,
+                color: YiShunTheme.primary,
+              ),
             ),
           ),
-          Icon(
-            isPremium ? Icons.lock_open : Icons.lock,
-            size: 16,
-            color: isPremium ? YiShunTheme.wuXingWood : YiShunTheme.textMuted,
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: YiShunTheme.onSurfaceVariant,
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// === Pricing Section ===
-class _PricingSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MysticCard(
-      borderColor: YiShunTheme.goldPrimary.withAlpha(76),
-      padding: const EdgeInsets.all(YiShunTheme.space5),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                '\$9.9',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: YiShunTheme.goldPrimary,
-                  letterSpacing: -1,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '/月',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: YiShunTheme.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: YiShunTheme.space2),
-
-          // 原价对比
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '首月体验价  ',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: YiShunTheme.textMuted,
-                  decoration: TextDecoration.lineThrough,
-                  decorationColor: YiShunTheme.textMuted,
-                ),
-              ),
-              Text(
-                '之后 \$28/月',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: YiShunTheme.textMuted,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: YiShunTheme.space4),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _PriceTag('无限分析', YiShunTheme.wuXingWood),
-              const SizedBox(width: YiShunTheme.space2),
-              _PriceTag('无广告', YiShunTheme.purpleMystic),
-              const SizedBox(width: YiShunTheme.space2),
-              _PriceTag('年省\$268', YiShunTheme.wuXingFire),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PriceTag extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _PriceTag(this.text, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: YiShunTheme.space3,
-        vertical: YiShunTheme.space1,
-      ),
-      decoration: BoxDecoration(
-        color: color.withAlpha(38),
-        borderRadius: BorderRadius.circular(YiShunTheme.radiusFull),
-        border: Border.all(color: color.withAlpha(76)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// === CTA Button ===
-class _CTAButton extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  const _CTAButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: YiShunTheme.goldPrimary,
-          foregroundColor: YiShunTheme.backgroundDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
-          ),
-          elevation: 0,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: YiShunTheme.backgroundDark,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    '立即订阅',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(width: YiShunTheme.space2),
-                  const Icon(Icons.arrow_forward_rounded, size: 20),
-                ],
-              ),
       ),
     );
   }

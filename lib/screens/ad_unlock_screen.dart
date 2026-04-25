@@ -3,14 +3,9 @@ import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 import '../widgets/decorations.dart';
 
-/// 广告解锁界面
-/// 神秘东方色彩，玄学风格
-/// 用户观看广告后解锁完整报告
+/// 广告解锁界面 - NanoBanana 2 精品设计
 class AdUnlockScreen extends StatefulWidget {
-  /// 完整报告数据（解锁后返回给 result_screen）
   final Map<String, dynamic> fullReportData;
-
-  /// 解锁成功后返回的路由名称
   final String? successRoute;
 
   const AdUnlockScreen({
@@ -25,7 +20,6 @@ class AdUnlockScreen extends StatefulWidget {
 
 class _AdUnlockScreenState extends State<AdUnlockScreen>
     with TickerProviderStateMixin {
-  /// 广告观看倒计时（秒）
   static const int _adDuration = 20;
 
   int _secondsRemaining = _adDuration;
@@ -118,17 +112,14 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // 顶部装饰
-              const MysticTopDecoration(height: 80),
+              const SizedBox(height: 24),
 
               // App Bar
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: YiShunTheme.space4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
-                    MysticIconBtn(
+                    IconBtn(
                       icon: Icons.close,
                       onTap: () => Navigator.pop(context),
                     ),
@@ -157,7 +148,7 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
                 onUnlock: _unlockReport,
               ),
 
-              const SizedBox(height: YiShunTheme.space8),
+              const SizedBox(height: 48),
             ],
           ),
         ),
@@ -219,9 +210,9 @@ class _WatchingContent extends StatelessWidget {
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: YiShunTheme.goldPrimary.withAlpha(25),
+            color: YiShunTheme.goldSubtle,
             border: Border.all(
-              color: YiShunTheme.goldPrimary.withAlpha(76),
+              color: YiShunTheme.goldBorder,
               width: 2,
             ),
             boxShadow: [
@@ -269,7 +260,7 @@ class _WatchingContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space8),
+        const SizedBox(height: 32),
 
         // 标题
         Row(
@@ -293,7 +284,7 @@ class _WatchingContent extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: YiShunTheme.space2),
+        const SizedBox(height: 8),
 
         Text(
           '请稍候，广告即将播放完成',
@@ -303,11 +294,11 @@ class _WatchingContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space8),
+        const SizedBox(height: 32),
 
         // 模拟广告占位
-        MysticCard(
-          padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space8),
+        NanoCard(
+          padding: const EdgeInsets.symmetric(vertical: 32),
           child: Column(
             children: [
               Icon(
@@ -315,7 +306,7 @@ class _WatchingContent extends StatelessWidget {
                 size: 52,
                 color: YiShunTheme.purpleMystic.withAlpha(127),
               ),
-              const SizedBox(height: YiShunTheme.space3),
+              const SizedBox(height: 12),
               Text(
                 '广告播放中...',
                 style: TextStyle(
@@ -335,11 +326,12 @@ class _WatchingContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space6),
+        const SizedBox(height: 24),
 
         // 进度条
         Container(
           height: 4,
+          margin: const EdgeInsets.symmetric(horizontal: 48),
           decoration: BoxDecoration(
             color: Colors.white.withAlpha(25),
             borderRadius: BorderRadius.circular(2),
@@ -362,7 +354,7 @@ class _WatchingContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space2),
+        const SizedBox(height: 8),
 
         Text(
           '${(secondsRemaining * 100 / adDuration).round()}% 剩余',
@@ -415,7 +407,7 @@ class _CompletedContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space8),
+        const SizedBox(height: 32),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -444,7 +436,7 @@ class _CompletedContent extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: YiShunTheme.space2),
+        const SizedBox(height: 8),
 
         Text(
           '现在可以解锁完整报告',
@@ -454,18 +446,18 @@ class _CompletedContent extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: YiShunTheme.space8),
+        const SizedBox(height: 32),
 
         // 奖励预览
-        MysticGoldCard(
-          padding: const EdgeInsets.all(YiShunTheme.space5),
+        GoldCard(
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.lock_open, color: YiShunTheme.goldPrimary, size: 20),
-                  const SizedBox(width: YiShunTheme.space2),
+                  const SizedBox(width: 8),
                   Text(
                     '完整报告已解锁',
                     style: TextStyle(
@@ -476,7 +468,7 @@ class _CompletedContent extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: YiShunTheme.space3),
+              const SizedBox(height: 12),
               Text(
                 '包含事业·姻缘·健康·财富完整分析',
                 style: TextStyle(
@@ -518,7 +510,7 @@ class _BottomAction extends StatelessWidget {
               strokeWidth: 2.5,
             ),
           ),
-          const SizedBox(height: YiShunTheme.space3),
+          const SizedBox(height: 12),
           Text(
             '正在解锁...',
             style: TextStyle(color: YiShunTheme.textSecondary),
@@ -535,34 +527,11 @@ class _BottomAction extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: YiShunTheme.space4),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: onUnlock,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: YiShunTheme.goldPrimary,
-            foregroundColor: YiShunTheme.backgroundDark,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.lock_open, size: 20),
-              const SizedBox(width: YiShunTheme.space2),
-              const Text(
-                '解锁完整报告',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: PrimaryButton(
+        text: '解锁完整报告',
+        icon: Icons.lock_open,
+        onPressed: onUnlock,
       ),
     );
   }

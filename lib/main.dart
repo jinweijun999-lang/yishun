@@ -21,20 +21,15 @@ import 'services/ad_service.dart';
 import 'services/analytics_service.dart';
 import 'models/user_model.dart';
 import 'utils/theme.dart';
+import 'widgets/decorations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
   // Firebase disabled for CI compatibility
-  
-  // Initialize services
   final authService = AuthService();
   final adService = AdService();
   final analyticsService = AnalyticsService();
-  
-  // Initialize Ad service (stub for now)
   await adService.initialize();
-  
   runApp(
     MultiProvider(
       providers: [
@@ -63,19 +58,16 @@ class _YiShunAppState extends State<YiShunApp> {
     return MaterialApp(
       title: 'YiShun Fortune',
       debugShowCheckedModeBanner: false,
-      theme: YiShunTheme.darkTheme,
-      darkTheme: YiShunTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      theme: YiShunTheme.lightTheme,
+      darkTheme: YiShunTheme.lightTheme,
+      themeMode: ThemeMode.light,
       locale: _locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('zh'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
       routes: {
         '/': (context) => const MainNavigation(),
         '/auth': (context) => const AuthScreen(),
@@ -87,7 +79,11 @@ class _YiShunAppState extends State<YiShunApp> {
         '/membership': (context) => const MembershipScreen(),
         '/family': (context) => const FamilyScreen(),
         '/ten_gods_guide': (context) => const TenGodsGuidePage(),
-        '/dayun_liunian': (context) => DaYunLiuNianPage(baziResult: ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {}),
+        '/dayun_liunian': (context) => DaYunLiuNianPage(
+          baziResult: ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>? ??
+              {},
+        ),
         '/report_purchase': (context) => const ReportPurchaseScreen(),
         '/report_view': (context) => const ReportViewScreen(),
       },
@@ -95,6 +91,10 @@ class _YiShunAppState extends State<YiShunApp> {
   }
 }
 
+/// ============================================
+/// MainNavigation - 底部导航 (4个按钮)
+/// Home | Chart | Consult | Profile
+/// ============================================
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -104,11 +104,11 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const DivinationScreen(),
-    const ProfileScreen(),
+
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    DivinationScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -118,26 +118,9 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'Divination',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: YiShunBottomNav(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }
