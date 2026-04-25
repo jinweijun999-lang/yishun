@@ -9,10 +9,10 @@ class TenGodsGuidePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -366,7 +366,7 @@ class TenGodInfo {
       yinYang: '阳',
       wuxing: '木',
       category: '同我',
-      color: YiShunTheme.woodColor,
+      color: YiShunTheme.wuXingWood,
       basicDesc: '比肩是与日主相同五行的阳性干，代表兄弟姐妹、同事朋友、合作伙伴。表示独立、自信、竞争的关系。',
       metaphor: '如同兄弟姐妹之间的关系，平等互助但也可能产生竞争。比肩旺的人通常自尊心强，喜欢独自承担责任。',
       personalityTraits: ['独立自主', '自尊心强', '有竞争意识', '重友情', '固执己见'],
@@ -379,7 +379,7 @@ class TenGodInfo {
       yinYang: '阴',
       wuxing: '木',
       category: '异我',
-      color: YiShunTheme.woodColor,
+      color: YiShunTheme.wuXingWood,
       basicDesc: '劫财是与日主相同五行的阴性干，代表异性兄弟姐妹、竞争者、合作伙伴。表示竞争、破财、果断的关系。',
       metaphor: '如同竞争激烈的商业伙伴，既是合作伙伴又是竞争对手。劫财旺的人敢于冒险，但也容易冲动破财。',
       personalityTraits: ['敢于冒险', '果断决绝', '有赌性', '竞争心强', '易冲动'],
@@ -392,7 +392,7 @@ class TenGodInfo {
       yinYang: '阳',
       wuxing: '火',
       category: '泄我',
-      color: YiShunTheme.fireColor,
+      color: YiShunTheme.wuXingFire,
       basicDesc: '食神是日主所生的阳性干，代表表达、创意、吃喝享乐。表示才华流露、温和友善的关系。',
       metaphor: '如同艺术家将内心情感通过作品表达出来。食神旺的人通常才华横溢、温和有礼、懂得享受生活。',
       personalityTraits: ['才华横溢', '温和友善', '善于表达', '重生活质量', '有时懒散'],
@@ -405,7 +405,7 @@ class TenGodInfo {
       yinYang: '阴',
       wuxing: '火',
       category: '异泄',
-      color: YiShunTheme.fireColor,
+      color: YiShunTheme.wuXingFire,
       basicDesc: '伤官是日主所生的阴性干，代表才华、叛逆、口才、伤病。表示才华出众但易招是非的关系。',
       metaphor: '如同直言不讳的谏臣，才华横溢但锋芒太露容易得罪人。伤官旺的人聪明过人但言语犀利。',
       personalityTraits: ['聪明过人', '口才犀利', '叛逆创新', '爱表现', '有时尖酸刻薄'],
@@ -431,7 +431,7 @@ class TenGodInfo {
       yinYang: '阴',
       wuxing: '金',
       category: '我克',
-      color: YiShunTheme.earthColor,
+      color: YiShunTheme.wuXingEarth,
       basicDesc: '正财是日主所克阴性干，代表正当收入、理财、妻子（男性）。表示稳定务实、诚信的关系。',
       metaphor: '如同稳定的工作收入或婚姻中的妻子，代表踏实可靠的生活基础。正财旺的人勤俭持家。',
       personalityTraits: ['勤俭持家', '踏实务实', '诚信正直', '量入为出', '有时吝啬'],
@@ -444,7 +444,7 @@ class TenGodInfo {
       yinYang: '阴',
       wuxing: '水',
       category: '克我',
-      color: YiShunTheme.fireColor,
+      color: YiShunTheme.wuXingFire,
       basicDesc: '七杀是克日主阴性干，代表挑战、压力、权威、小人。表示严苛激烈、果断勇敢的关系。',
       metaphor: '如同严苛的上司或强大的对手，给你巨大压力但也逼你成长。七杀旺的人能扛住压力。',
       personalityTraits: ['果断勇敢', '有魄力', '抗压能力强', '要求严格', '有时冷酷'],
@@ -457,7 +457,7 @@ class TenGodInfo {
       yinYang: '阳',
       wuxing: '金',
       category: '克我',
-      color: YiShunTheme.waterColor,
+      color: YiShunTheme.wuXingWater,
       basicDesc: '正官是克日主阳性干，代表地位、权力、约束、丈夫（女性）。表示正当名望、正直守法。',
       metaphor: '如同循规蹈矩的领导或合法的权威，代表社会认可和正当秩序。正官旺的人遵纪守法。',
       personalityTraits: ['正直守法', '有责任心', '注重名誉', '循规蹈矩', '有时刻板'],
@@ -483,7 +483,7 @@ class TenGodInfo {
       yinYang: '阳',
       wuxing: '土',
       category: '生我',
-      color: YiShunTheme.metalColor,
+      color: YiShunTheme.wuXingMetal,
       basicDesc: '正印是生日主阳性干，代表学业、智慧、母亲、庇护。表示善良仁慈、贵人相助。',
       metaphor: '如同慈祥的母亲给予无条件的爱和支持，代表贵人运和学业成就。正印旺的人心地善良。',
       personalityTraits: ['心地善良', '有爱心', '学业优秀', '贵人运好', '有时过于仁慈'],
@@ -511,7 +511,7 @@ class TenGodDetailDialog extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
-          color: YiShunTheme.surfaceDark,
+          color: YiShunTheme.backgroundDark,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: god.color.withAlpha(128)),
         ),
@@ -687,21 +687,21 @@ Color getTenGodsColor(String shishen) {
   switch (shishen) {
     case '比肩':
     case '劫财':
-      return YiShunTheme.woodColor;
+      return YiShunTheme.wuXingWood;
     case '食神':
     case '伤官':
-      return YiShunTheme.fireColor;
+      return YiShunTheme.wuXingFire;
     case '正财':
-      return YiShunTheme.earthColor;
+      return YiShunTheme.wuXingEarth;
     case '偏财':
       return const Color(0xFF8D6E63);
     case '正官':
-      return YiShunTheme.waterColor;
+      return YiShunTheme.wuXingWater;
     case '偏官':
     case '七杀':
-      return YiShunTheme.fireColor;
+      return YiShunTheme.wuXingFire;
     case '正印':
-      return YiShunTheme.metalColor;
+      return YiShunTheme.wuXingMetal;
     case '偏印':
       return const Color(0xFF9E9E9E);
     default:

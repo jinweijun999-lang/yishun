@@ -190,10 +190,10 @@ class _DivinationScreenState extends State<DivinationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -243,13 +243,13 @@ class _DivinationScreenState extends State<DivinationScreen>
                             padding: const EdgeInsets.all(28),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                                colors: [YiShunTheme.purpleMystic, Color(0xFF2D5280)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: Colors.white.withAlpha(25)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: YiShunTheme.brandInkBlue.withAlpha(128),
+                                  color: YiShunTheme.purpleMystic.withAlpha(128),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 ),
@@ -319,7 +319,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                             children: [
                               const Row(
                                 children: [
-                                  Icon(Icons.cake_outlined, color: YiShunTheme.brandAmber),
+                                  Icon(Icons.cake_outlined, color: YiShunTheme.goldPrimary),
                                   SizedBox(width: 8),
                                   Text(
                                     '出生日期',
@@ -359,7 +359,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                             children: [
                               const Row(
                                 children: [
-                                  Icon(Icons.access_time, color: YiShunTheme.brandAmber),
+                                  Icon(Icons.access_time, color: YiShunTheme.goldPrimary),
                                   SizedBox(width: 8),
                                   Text(
                                     '出生时辰',
@@ -396,7 +396,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                             children: [
                               const Row(
                                 children: [
-                                  Icon(Icons.wc, color: YiShunTheme.brandAmber),
+                                  Icon(Icons.wc, color: YiShunTheme.goldPrimary),
                                   SizedBox(width: 8),
                                   Text(
                                     '性别',
@@ -438,7 +438,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                             children: [
                               const Row(
                                 children: [
-                                  Icon(Icons.location_on_outlined, color: YiShunTheme.brandAmber),
+                                  Icon(Icons.location_on_outlined, color: YiShunTheme.goldPrimary),
                                   SizedBox(width: 8),
                                   Text(
                                     '出生经度（真太阳时）',
@@ -461,10 +461,10 @@ class _DivinationScreenState extends State<DivinationScreen>
                                   Expanded(
                                     child: SliderTheme(
                                       data: SliderThemeData(
-                                        activeTrackColor: YiShunTheme.brandAmber,
+                                        activeTrackColor: YiShunTheme.goldPrimary,
                                         inactiveTrackColor: Colors.white.withAlpha(51),
-                                        thumbColor: YiShunTheme.brandAmber,
-                                        overlayColor: YiShunTheme.brandAmber.withAlpha(51),
+                                        thumbColor: YiShunTheme.goldPrimary,
+                                        overlayColor: YiShunTheme.goldPrimary.withAlpha(51),
                                       ),
                                       child: Slider(
                                         value: _longitude,
@@ -479,7 +479,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                                     width: 70,
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: YiShunTheme.brandAmber.withAlpha(51),
+                                      color: YiShunTheme.goldPrimary.withAlpha(51),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -487,7 +487,7 @@ class _DivinationScreenState extends State<DivinationScreen>
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: YiShunTheme.brandAmber,
+                                        color: YiShunTheme.goldPrimary,
                                       ),
                                     ),
                                   ),
@@ -505,17 +505,17 @@ class _DivinationScreenState extends State<DivinationScreen>
                             return Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: YiShunTheme.brandAmber.withAlpha(25),
+                                color: YiShunTheme.goldPrimary.withAlpha(25),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: YiShunTheme.brandAmber.withAlpha(51)),
+                                border: Border.all(color: YiShunTheme.goldPrimary.withAlpha(51)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.info_outline, color: YiShunTheme.brandAmber),
+                                  const Icon(Icons.info_outline, color: YiShunTheme.goldPrimary),
                                   const SizedBox(width: 8),
                                   Text(
                                     '今日剩余 ${user.freeUsesRemaining} 次免费分析',
-                                    style: const TextStyle(color: YiShunTheme.brandAmber),
+                                    style: const TextStyle(color: YiShunTheme.goldPrimary),
                                   ),
                                 ],
                               ),
@@ -554,13 +554,13 @@ class _DivinationScreenState extends State<DivinationScreen>
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _analyze,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: YiShunTheme.brandCinnabar,
+                              backgroundColor: YiShunTheme.wuXingFire,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               elevation: 8,
-                              shadowColor: YiShunTheme.brandCinnabar.withAlpha(128),
+                              shadowColor: YiShunTheme.wuXingFire.withAlpha(128),
                             ),
                             child: _isLoading
                                 ? const SizedBox(
@@ -608,12 +608,12 @@ class _DivinationScreenState extends State<DivinationScreen>
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? YiShunTheme.brandAmber.withAlpha(51)
+              ? YiShunTheme.goldPrimary.withAlpha(51)
               : Colors.white.withAlpha(13),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? YiShunTheme.brandAmber
+                ? YiShunTheme.goldPrimary
                 : Colors.white.withAlpha(51),
             width: isSelected ? 2 : 1,
           ),
@@ -624,7 +624,7 @@ class _DivinationScreenState extends State<DivinationScreen>
               gua,
               style: TextStyle(
                 fontSize: 24,
-                color: isSelected ? YiShunTheme.brandAmber : Colors.white54,
+                color: isSelected ? YiShunTheme.goldPrimary : Colors.white54,
               ),
             ),
             const SizedBox(height: 4),
@@ -654,7 +654,7 @@ class _DivinationScreenState extends State<DivinationScreen>
         child: DropdownButton<int>(
           value: _birthYear,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(100, (i) => currentYear - 50 + i)
               .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
@@ -677,7 +677,7 @@ class _DivinationScreenState extends State<DivinationScreen>
         child: DropdownButton<int>(
           value: _birthMonth,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(12, (i) => i + 1)
               .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
@@ -700,7 +700,7 @@ class _DivinationScreenState extends State<DivinationScreen>
         child: DropdownButton<int>(
           value: _birthDay,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(31, (i) => i + 1)
               .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
@@ -725,12 +725,12 @@ class _DivinationScreenState extends State<DivinationScreen>
             height: 40,
             decoration: BoxDecoration(
               color: isSelected
-                  ? YiShunTheme.brandAmber.withAlpha(76)
+                  ? YiShunTheme.goldPrimary.withAlpha(76)
                   : Colors.white.withAlpha(13),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isSelected
-                    ? YiShunTheme.brandAmber
+                    ? YiShunTheme.goldPrimary
                     : Colors.white.withAlpha(51),
               ),
             ),
@@ -824,7 +824,7 @@ class _UpgradeBottomSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onSubscribe,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: YiShunTheme.brandCinnabar,
+                    backgroundColor: YiShunTheme.wuXingFire,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

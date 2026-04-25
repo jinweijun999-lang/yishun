@@ -133,10 +133,10 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: _currentStep == 2 ? _buildResultView() : _buildInputView(),
@@ -156,7 +156,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                colors: [YiShunTheme.purpleMystic, Color(0xFF2D5280)],
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withAlpha(25)),
@@ -166,7 +166,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: YiShunTheme.fireColor.withAlpha(51),
+                    color: YiShunTheme.wuXingFire.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
                   child: const Text('💑', style: TextStyle(fontSize: 48)),
@@ -194,7 +194,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           _buildPersonCard(
             title: '甲方',
             icon: Icons.person,
-            color: YiShunTheme.brandCinnabar,
+            color: YiShunTheme.wuXingFire,
             formKey: _formKey1,
             nameController: _nameController1,
             year: _birthYear1,
@@ -225,7 +225,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           _buildPersonCard(
             title: '乙方',
             icon: Icons.person_outline,
-            color: YiShunTheme.waterColor,
+            color: YiShunTheme.wuXingWater,
             formKey: _formKey2,
             nameController: _nameController2,
             year: _birthYear2,
@@ -266,13 +266,13 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _analyze,
               style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.brandCinnabar,
+                backgroundColor: YiShunTheme.wuXingFire,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 8,
-                shadowColor: YiShunTheme.brandCinnabar.withAlpha(128),
+                shadowColor: YiShunTheme.wuXingFire.withAlpha(128),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -406,7 +406,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         child: DropdownButton<int>(
           value: value,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(100, (i) => currentYear - 50 + i)
               .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
@@ -429,7 +429,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         child: DropdownButton<int>(
           value: value,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(12, (i) => i + 1)
               .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
@@ -452,7 +452,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         child: DropdownButton<int>(
           value: value,
           isExpanded: true,
-          dropdownColor: YiShunTheme.surfaceDark,
+          dropdownColor: YiShunTheme.backgroundDark,
           style: const TextStyle(color: Colors.white),
           items: List.generate(31, (i) => i + 1)
               .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
@@ -476,11 +476,11 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             height: 36,
             decoration: BoxDecoration(
               color: isSelected
-                  ? YiShunTheme.brandAmber.withAlpha(76)
+                  ? YiShunTheme.goldPrimary.withAlpha(76)
                   : Colors.white.withAlpha(13),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? YiShunTheme.brandAmber : Colors.white.withAlpha(51),
+                color: isSelected ? YiShunTheme.goldPrimary : Colors.white.withAlpha(51),
               ),
             ),
             child: Center(
@@ -547,11 +547,11 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   Widget _buildScoreCard(int score, String level) {
     Color scoreColor;
     if (score >= 80) {
-      scoreColor = YiShunTheme.woodColor;
+      scoreColor = YiShunTheme.wuXingWood;
     } else if (score >= 60) {
-      scoreColor = YiShunTheme.brandAmber;
+      scoreColor = YiShunTheme.goldPrimary;
     } else {
-      scoreColor = YiShunTheme.fireColor;
+      scoreColor = YiShunTheme.wuXingFire;
     }
 
     return Container(
@@ -619,7 +619,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: YiShunTheme.brandAmber.withAlpha(51),
+                  color: YiShunTheme.goldPrimary.withAlpha(51),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text('☯️', style: TextStyle(fontSize: 18)),
@@ -688,8 +688,8 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   }
 
   Widget _buildBaziRow(String label, Map<String, dynamic> z1, Map<String, dynamic> z2) {
-    final color1 = YiShunTheme.getWuxingColor(z1['wuxing'] ?? '');
-    final color2 = YiShunTheme.getWuxingColor(z2['wuxing'] ?? '');
+    final color1 = YiShunTheme.getWuXingColor(z1['wuxing'] ?? '');
+    final color2 = YiShunTheme.getWuXingColor(z2['wuxing'] ?? '');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -750,7 +750,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.star, color: YiShunTheme.brandAmber, size: 20),
+              const Icon(Icons.star, color: YiShunTheme.goldPrimary, size: 20),
               const SizedBox(width: 8),
               const Text(
                 '合盘亮点',
@@ -763,7 +763,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: YiShunTheme.woodColor, size: 16),
+                const Icon(Icons.check_circle, color: YiShunTheme.wuXingWood, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(reason, style: TextStyle(color: Colors.white.withAlpha(179))),
@@ -789,7 +789,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: YiShunTheme.brandCinnabar, size: 20),
+              const Icon(Icons.auto_awesome, color: YiShunTheme.wuXingFire, size: 20),
               const SizedBox(width: 8),
               const Text(
                 'AI 深度分析',
@@ -820,7 +820,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.analytics, color: YiShunTheme.brandInkBlue, size: 20),
+              const Icon(Icons.analytics, color: YiShunTheme.purpleMystic, size: 20),
               const SizedBox(width: 8),
               const Text(
                 '详细分析',

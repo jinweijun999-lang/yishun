@@ -4,6 +4,8 @@ import '../models/user_model.dart';
 import '../services/analytics_service.dart';
 import '../utils/theme.dart';
 
+/// 订阅墙 (Paywall)
+/// 神秘东方色彩，玄学风格
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
 
@@ -22,18 +24,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   Future<void> _subscribe() async {
     setState(() => _isLoading = true);
-
-    // Simulate subscription process
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
-      final user = context.read<UserModel>();
-      user.setMemberStatus(MemberStatus.premium);
-
+      context.read<UserModel>().setMemberStatus(MemberStatus.premium);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('🎉 订阅成功！欢迎成为会员！'),
-          backgroundColor: Colors.green,
+          backgroundColor: YiShunTheme.success,
         ),
       );
       Navigator.pop(context);
@@ -43,78 +41,46 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
             children: [
               // App Bar
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(25),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Text(
-                        '解锁高级功能',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _PaywallAppBar(onBack: () => Navigator.pop(context)),
 
               // Content
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(YiShunTheme.space4),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header Card
-                      _buildHeaderCard(),
-                      const SizedBox(height: 24),
-
-                      // Free vs Premium Comparison
-                      _buildComparisonSection(),
-                      const SizedBox(height: 24),
-
-                      // Pricing Section
-                      _buildPricingSection(),
-                      const SizedBox(height: 24),
-
-                      // CTA Button
-                      _buildCTAButton(),
-                      const SizedBox(height: 16),
-
-                      // Terms
-                      Text(
-                        '订阅即表示同意《会员协议》。订阅自动续费，如需取消请在到期前24小时操作。',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withAlpha(102),
+                      _PremiumHeaderCard(),
+                      const SizedBox(height: YiShunTheme.space5),
+                      _ComparisonSection(),
+                      const SizedBox(height: YiShunTheme.space5),
+                      _PricingSection(),
+                      const SizedBox(height: YiShunTheme.space5),
+                      _CTAButton(
+                        isLoading: _isLoading,
+                        onPressed: _subscribe,
+                      ),
+                      const SizedBox(height: YiShunTheme.space3),
+                      Center(
+                        child: Text(
+                          '订阅即表示同意《会员协议》。订阅自动续费，\n如需取消请在到期前24小时操作。',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: YiShunTheme.textMuted,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: YiShunTheme.space8),
                     ],
                   ),
                 ),
@@ -125,157 +91,160 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
     );
   }
+}
 
-  Widget _buildHeaderCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withAlpha(25)),
-        boxShadow: [
-          BoxShadow(
-            color: YiShunTheme.brandInkBlue.withAlpha(128),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
+// === App Bar ===
+class _PaywallAppBar extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _PaywallAppBar({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(YiShunTheme.space4),
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: YiShunTheme.brandAmber.withAlpha(51),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: const Text('👑', style: TextStyle(fontSize: 50)),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'YiShun 高级会员',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '解锁全部高级功能，开启完整命理之旅',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withAlpha(179),
+          _BackButton(onTap: onBack),
+          const SizedBox(width: YiShunTheme.space4),
+          const Expanded(
+            child: Text(
+              '解锁高级功能',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: YiShunTheme.textPrimary,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildComparisonSection() {
-    final freeFeatures = [
-      {'icon': '☯️', 'title': '四柱排盘', 'desc': '每日1次'},
-      {'icon': '📜', 'title': '基础命理', 'desc': '3项分析'},
-      {'icon': '📚', 'title': '命理知识', 'desc': '免费阅读'},
-    ];
+class _BackButton extends StatelessWidget {
+  final VoidCallback onTap;
 
-    final premiumFeatures = [
-      {'icon': '☯️', 'title': '无限八字分析', 'desc': '无限制'},
-      {'icon': '💑', 'title': '双人合盘', 'desc': '无限次'},
-      {'icon': '📜', 'title': '大运流年', 'desc': '完整解读'},
-      {'icon': '🔮', 'title': '十神详解', 'desc': '深度分析'},
-      {'icon': '⚖️', 'title': '五行分析', 'desc': '完整雷达'},
-      {'icon': '👑', 'title': '专属客服', 'desc': '优先响应'},
-    ];
+  const _BackButton({required this.onTap});
 
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(YiShunTheme.space2),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(13),
+          borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+        ),
+        child: const Icon(Icons.arrow_back, color: YiShunTheme.textPrimary, size: 22),
+      ),
+    );
+  }
+}
+
+// === Premium Header Card ===
+class _PremiumHeaderCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(25)),
+      padding: const EdgeInsets.all(YiShunTheme.space6),
+      decoration: YiShunTheme.goldCardDecoration(),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(YiShunTheme.space4),
+            decoration: BoxDecoration(
+              color: YiShunTheme.goldPrimary.withAlpha(38),
+              shape: BoxShape.circle,
+            ),
+            child: const Text('👑', style: TextStyle(fontSize: 48)),
+          ),
+          const SizedBox(height: YiShunTheme.space4),
+          const Text(
+            '易顺高级会员',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: YiShunTheme.goldPrimary,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: YiShunTheme.space2),
+          Text(
+            '解锁全部高级功能，开启完整命理之旅',
+            style: TextStyle(
+              fontSize: 13,
+              color: YiShunTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// === Comparison Section ===
+class _ComparisonSection extends StatelessWidget {
+  final List<Map<String, String>> freeFeatures = const [
+    {'icon': '☯️', 'title': '四柱排盘', 'desc': '每日1次'},
+    {'icon': '📜', 'title': '基础命理', 'desc': '3项分析'},
+    {'icon': '📚', 'title': '命理知识', 'desc': '免费阅读'},
+  ];
+
+  final List<Map<String, String>> premiumFeatures = const [
+    {'icon': '☯️', 'title': '无限八字分析', 'desc': '无限制'},
+    {'icon': '💑', 'title': '双人合盘', 'desc': '无限次'},
+    {'icon': '📜', 'title': '大运流年', 'desc': '完整解读'},
+    {'icon': '🔮', 'title': '十神详解', 'desc': '深度分析'},
+    {'icon': '⚖️', 'title': '五行分析', 'desc': '完整雷达'},
+    {'icon': '👑', 'title': '专属客服', 'desc': '优先响应'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: YiShunTheme.cardDecoration(
+        borderColor: Colors.white.withAlpha(25),
       ),
       child: Column(
         children: [
           // Free tier header
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(13),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: const Center(
-              child: Text(
-                '免费版',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          _TierHeader(
+            label: '免费版',
+            color: YiShunTheme.textMuted,
+            isFree: true,
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(YiShunTheme.space4),
             child: Column(
-              children: freeFeatures.map((f) => _buildFeatureRow(
-                f['icon'] as String,
-                f['title'] as String,
-                f['desc'] as String,
-                false,
+              children: freeFeatures.map((f) => _FeatureRow(
+                icon: f['icon']!,
+                title: f['title']!,
+                desc: f['desc']!,
+                isPremium: false,
               )).toList(),
             ),
           ),
-          const Divider(color: Colors.white24),
+
+          const Divider(color: Colors.white12),
+
           // Premium tier header
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: YiShunTheme.brandAmber.withAlpha(25),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: YiShunTheme.brandCinnabar,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'PRO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    '高级版',
-                    style: TextStyle(
-                      color: YiShunTheme.brandAmber,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _TierHeader(
+            label: '高级版',
+            color: YiShunTheme.goldPrimary,
+            badge: 'PRO',
+            badgeColor: YiShunTheme.wuXingFire,
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(YiShunTheme.space4),
             child: Column(
-              children: premiumFeatures.map((f) => _buildFeatureRow(
-                f['icon'] as String,
-                f['title'] as String,
-                f['desc'] as String,
-                true,
+              children: premiumFeatures.map((f) => _FeatureRow(
+                icon: f['icon']!,
+                title: f['title']!,
+                desc: f['desc']!,
+                isPremium: true,
               )).toList(),
             ),
           ),
@@ -283,23 +252,101 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
     );
   }
+}
 
-  Widget _buildFeatureRow(String icon, String title, String desc, bool isPremium) {
+class _TierHeader extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool isFree;
+  final String? badge;
+  final Color? badgeColor;
+
+  const _TierHeader({
+    required this.label,
+    required this.color,
+    this.isFree = false,
+    this.badge,
+    this.badgeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space3),
+      decoration: BoxDecoration(
+        color: isFree ? Colors.white.withAlpha(8) : YiShunTheme.goldPrimary.withAlpha(13),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(YiShunTheme.radiusLg - 1),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (badge != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: YiShunTheme.space2,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: badgeColor ?? YiShunTheme.goldPrimary,
+                borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
+              ),
+              child: Text(
+                badge!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: YiShunTheme.space2),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String desc;
+  final bool isPremium;
+
+  const _FeatureRow({
+    required this.icon,
+    required this.title,
+    required this.desc,
+    required this.isPremium,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: YiShunTheme.space3),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(YiShunTheme.space2),
             decoration: BoxDecoration(
               color: isPremium
-                  ? YiShunTheme.brandAmber.withAlpha(25)
+                  ? YiShunTheme.goldPrimary.withAlpha(25)
                   : Colors.white.withAlpha(13),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
             ),
             child: Text(icon, style: const TextStyle(fontSize: 18)),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: YiShunTheme.space3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,8 +355,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   title,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isPremium ? Colors.white : Colors.white70,
+                    fontWeight: FontWeight.w500,
+                    color: isPremium ? YiShunTheme.textPrimary : YiShunTheme.textSecondary,
                   ),
                 ),
                 Text(
@@ -317,8 +364,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     color: isPremium
-                        ? YiShunTheme.brandAmber.withAlpha(179)
-                        : Colors.white.withAlpha(102),
+                        ? YiShunTheme.goldPrimary.withAlpha(153)
+                        : YiShunTheme.textMuted,
                   ),
                 ),
               ],
@@ -327,20 +374,22 @@ class _PaywallScreenState extends State<PaywallScreen> {
           Icon(
             isPremium ? Icons.lock_open : Icons.lock,
             size: 16,
-            color: isPremium ? YiShunTheme.woodColor : Colors.white38,
+            color: isPremium ? YiShunTheme.wuXingWood : YiShunTheme.textMuted,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPricingSection() {
+// === Pricing Section ===
+class _PricingSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: YiShunTheme.brandAmber.withAlpha(76)),
+      padding: const EdgeInsets.all(YiShunTheme.space5),
+      decoration: YiShunTheme.cardDecoration(
+        borderColor: YiShunTheme.goldPrimary.withAlpha(76),
       ),
       child: Column(
         children: [
@@ -348,56 +397,67 @@ class _PaywallScreenState extends State<PaywallScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
+              const Text(
                 '\$9.9',
-                style: const TextStyle(
-                  fontSize: 42,
+                style: TextStyle(
+                  fontSize: 44,
                   fontWeight: FontWeight.bold,
-                  color: YiShunTheme.brandAmber,
+                  color: YiShunTheme.goldPrimary,
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   '/月',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white70,
+                    color: YiShunTheme.textSecondary,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: YiShunTheme.space2),
           Text(
             '首月体验价，之后 \$28/月',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withAlpha(153),
+              color: YiShunTheme.textMuted,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: YiShunTheme.space4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildPricingTag('无限分析', YiShunTheme.woodColor),
-              const SizedBox(width: 8),
-              _buildPricingTag('无广告', YiShunTheme.brandInkBlue),
-              const SizedBox(width: 8),
-              _buildPricingTag('年省\$268', YiShunTheme.brandCinnabar),
+              _PriceTag('无限分析', YiShunTheme.wuXingWood),
+              const SizedBox(width: YiShunTheme.space2),
+              _PriceTag('无广告', YiShunTheme.purpleMystic),
+              const SizedBox(width: YiShunTheme.space2),
+              _PriceTag('年省\$268', YiShunTheme.wuXingFire),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPricingTag(String text, Color color) {
+class _PriceTag extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _PriceTag(this.text, this.color);
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: YiShunTheme.space3,
+        vertical: YiShunTheme.space1,
+      ),
       decoration: BoxDecoration(
-        color: color.withAlpha(51),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withAlpha(38),
+        borderRadius: BorderRadius.circular(YiShunTheme.radiusFull),
         border: Border.all(color: color.withAlpha(76)),
       ),
       child: Text(
@@ -405,33 +465,44 @@ class _PaywallScreenState extends State<PaywallScreen> {
         style: TextStyle(
           fontSize: 11,
           color: color,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
+}
 
-  Widget _buildCTAButton() {
+// === CTA Button ===
+class _CTAButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  const _CTAButton({
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       height: 56,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _subscribe,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: YiShunTheme.brandAmber,
-          foregroundColor: Colors.black,
+          backgroundColor: YiShunTheme.goldPrimary,
+          foregroundColor: YiShunTheme.backgroundDark,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
           ),
-          elevation: 8,
-          shadowColor: YiShunTheme.brandAmber.withAlpha(128),
+          elevation: 0,
         ),
-        child: _isLoading
+        child: isLoading
             ? const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                  color: Colors.black,
-                  strokeWidth: 2,
+                  color: YiShunTheme.backgroundDark,
+                  strokeWidth: 2.5,
                 ),
               )
             : const Row(
@@ -440,12 +511,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   Text(
                     '立即订阅',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded),
+                  SizedBox(width: YiShunTheme.space2),
+                  Icon(Icons.arrow_forward_rounded, size: 20),
                 ],
               ),
       ),

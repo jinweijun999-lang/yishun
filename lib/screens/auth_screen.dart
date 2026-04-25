@@ -83,11 +83,11 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
+      backgroundColor: YiShunTheme.backgroundLight,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: YiShunTheme.primaryColor,
+        foregroundColor: YiShunTheme.goldPrimary,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -206,7 +206,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: YiShunTheme.primaryColor,
+                      backgroundColor: YiShunTheme.goldPrimary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -240,7 +240,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Text(
                         _isLogin ? 'Sign Up' : 'Sign In',
                         style: const TextStyle(
-                          color: YiShunTheme.primaryColor,
+                          color: YiShunTheme.goldPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
 /// 广告解锁界面
-/// 用户观看15-30秒广告后解锁完整报告
+/// 神秘东方色彩，玄学风格
+/// 用户观看广告后解锁完整报告
 class AdUnlockScreen extends StatefulWidget {
   /// 完整报告数据（解锁后返回给 result_screen）
   final Map<String, dynamic> fullReportData;
@@ -39,8 +40,8 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
   @override
   void initState() {
     super.initState();
-    _startAdSimulation();
     _initAnimations();
+    _startAdSimulation();
   }
 
   void _initAnimations() {
@@ -65,7 +66,6 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
     _progressController.forward();
   }
 
-  /// 模拟广告观看（stub 实现，后续接入真实 SDK）
   void _startAdSimulation() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -73,13 +73,9 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
         return;
       }
       setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        }
+        if (_secondsRemaining > 0) _secondsRemaining--;
       });
-      if (_secondsRemaining <= 0) {
-        timer.cancel();
-      }
+      if (_secondsRemaining <= 0) timer.cancel();
     });
   }
 
@@ -92,12 +88,10 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
     if (_isUnlocking) return;
     setState(() => _isUnlocking = true);
 
-    // 模拟解锁动画
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
-    // 返回 result_screen，并携带完整报告数据
     Navigator.of(context).pop({
       'unlocked': true,
       'fullReport': widget.fullReportData,
@@ -115,14 +109,14 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(YiShunTheme.space6),
             child: Column(
               children: [
                 // App Bar
@@ -131,12 +125,12 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(YiShunTheme.space2),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(25),
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white.withAlpha(13),
+                          borderRadius: BorderRadius.circular(YiShunTheme.radiusSm),
                         ),
-                        child: const Icon(Icons.close, color: Colors.white),
+                        child: const Icon(Icons.close, color: YiShunTheme.textPrimary),
                       ),
                     ),
                     const Spacer(),
@@ -146,12 +140,22 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
                 const Spacer(),
 
                 // 中心内容
-                _buildContent(),
+                _AdContent(
+                  secondsRemaining: _secondsRemaining,
+                  adDuration: _adDuration,
+                  adCompleted: _adCompleted,
+                  progressController: _progressController,
+                  pulseAnimation: _pulseAnimation,
+                ),
 
                 const Spacer(),
 
                 // 底部操作区
-                _buildBottomAction(),
+                _BottomAction(
+                  adCompleted: _adCompleted,
+                  isUnlocking: _isUnlocking,
+                  onUnlock: _unlockReport,
+                ),
               ],
             ),
           ),
@@ -159,37 +163,70 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
       ),
     );
   }
+}
 
-  Widget _buildContent() {
-    if (_adCompleted) {
-      return _buildCompletedContent();
+// === 广告观看内容 ===
+class _AdContent extends StatelessWidget {
+  final int secondsRemaining;
+  final int adDuration;
+  final bool adCompleted;
+  final AnimationController progressController;
+  final Animation<double> pulseAnimation;
+
+  const _AdContent({
+    required this.secondsRemaining,
+    required this.adDuration,
+    required this.adCompleted,
+    required this.progressController,
+    required this.pulseAnimation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (adCompleted) {
+      return _CompletedContent(pulseAnimation: pulseAnimation);
     }
-    return _buildAdWatchingContent();
+    return _WatchingContent(
+      secondsRemaining: secondsRemaining,
+      adDuration: adDuration,
+      progressController: progressController,
+    );
   }
+}
 
-  /// 观看广告中状态
-  Widget _buildAdWatchingContent() {
-    final progress = 1.0 - (_secondsRemaining / _adDuration);
+class _WatchingContent extends StatelessWidget {
+  final int secondsRemaining;
+  final int adDuration;
+  final AnimationController progressController;
+
+  const _WatchingContent({
+    required this.secondsRemaining,
+    required this.adDuration,
+    required this.progressController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = 1.0 - (secondsRemaining / adDuration);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 装饰图标
+        // 圆形进度计时器
         Container(
           width: 120,
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: YiShunTheme.brandAmber.withAlpha(25),
+            color: YiShunTheme.goldPrimary.withAlpha(25),
             border: Border.all(
-              color: YiShunTheme.brandAmber.withAlpha(76),
+              color: YiShunTheme.goldPrimary.withAlpha(76),
               width: 2,
             ),
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 圆形进度
               SizedBox(
                 width: 100,
                 height: 100,
@@ -197,26 +234,25 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
                   value: progress,
                   strokeWidth: 4,
                   backgroundColor: Colors.white.withAlpha(25),
-                  valueColor: const AlwaysStoppedAnimation(YiShunTheme.brandAmber),
+                  valueColor: const AlwaysStoppedAnimation(YiShunTheme.goldPrimary),
                 ),
               ),
-              // 倒计时数字
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '$_secondsRemaining',
+                    '$secondsRemaining',
                     style: const TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: YiShunTheme.textPrimary,
                     ),
                   ),
-                  const Text(
-                    'seconds',
+                  Text(
+                    '秒',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white54,
+                      color: YiShunTheme.textMuted,
                     ),
                   ),
                 ],
@@ -225,60 +261,59 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: YiShunTheme.space8),
 
         // 标题
-        const Text(
-          '📺 Watching Ad',
+        Text(
+          '📺 观看广告',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: YiShunTheme.goldPrimary,
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: YiShunTheme.space2),
 
-        // 副标题
         Text(
-          'Please wait while the ad plays',
+          '请稍候，广告即将播放完成',
           style: TextStyle(
             fontSize: 14,
-            color: Colors.white.withAlpha(179),
+            color: YiShunTheme.textSecondary,
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: YiShunTheme.space8),
 
         // 模拟广告占位
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 60),
+          padding: const EdgeInsets.symmetric(vertical: YiShunTheme.space8),
           decoration: BoxDecoration(
             color: Colors.white.withAlpha(13),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
             border: Border.all(color: Colors.white.withAlpha(25)),
           ),
           child: Column(
             children: [
-              const Icon(
+              Icon(
                 Icons.smart_display,
                 size: 48,
-                color: Colors.white38,
+                color: YiShunTheme.purpleMystic.withAlpha(127),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: YiShunTheme.space3),
               Text(
-                '[ Ad Placeholder - Stub Implementation ]',
+                '广告播放中...',
                 style: TextStyle(
-                  color: Colors.white.withAlpha(76),
-                  fontSize: 12,
+                  color: YiShunTheme.textMuted,
+                  fontSize: 13,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Admob / Facebook Audience SDK will be integrated here',
+                'Admob / Facebook Audience SDK 将接入此处',
                 style: TextStyle(
-                  color: Colors.white.withAlpha(51),
+                  color: YiShunTheme.textMuted.withAlpha(127),
                   fontSize: 11,
                 ),
               ),
@@ -286,7 +321,7 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: YiShunTheme.space6),
 
         // 进度条
         Container(
@@ -300,108 +335,114 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
             widthFactor: progress,
             child: Container(
               decoration: BoxDecoration(
-                color: YiShunTheme.brandAmber,
+                color: YiShunTheme.goldPrimary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: YiShunTheme.space2),
 
         Text(
-          '${(_secondsRemaining * 100 / _adDuration).round()}% remaining',
-          style: const TextStyle(
+          '${(secondsRemaining * 100 / adDuration).round()}% 剩余',
+          style: TextStyle(
             fontSize: 11,
-            color: Colors.white38,
+            color: YiShunTheme.textMuted,
           ),
         ),
       ],
     );
   }
+}
 
-  /// 广告观看完成状态
-  Widget _buildCompletedContent() {
+class _CompletedContent extends StatelessWidget {
+  final Animation<double> pulseAnimation;
+
+  const _CompletedContent({required this.pulseAnimation});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // 完成图标
         ScaleTransition(
-          scale: _pulseAnimation,
+          scale: pulseAnimation,
           child: Container(
             width: 120,
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF4CAF50).withAlpha(25),
+              color: YiShunTheme.success.withAlpha(25),
               border: Border.all(
-                color: const Color(0xFF4CAF50).withAlpha(127),
+                color: YiShunTheme.success.withAlpha(127),
                 width: 2,
               ),
             ),
             child: const Icon(
               Icons.check_circle,
               size: 64,
-              color: Color(0xFF4CAF50),
+              color: YiShunTheme.success,
             ),
           ),
         ),
 
-        const SizedBox(height: 40),
-
-        const Text(
-          '🎉 Ad Completed!',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-
-        const SizedBox(height: 12),
+        const SizedBox(height: YiShunTheme.space8),
 
         Text(
-          'You can now unlock the full report',
+          '🎉 广告观看完成',
           style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withAlpha(179),
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: YiShunTheme.goldPrimary,
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: YiShunTheme.space2),
+
+        Text(
+          '现在可以解锁完整报告',
+          style: TextStyle(
+            fontSize: 14,
+            color: YiShunTheme.textSecondary,
+          ),
+        ),
+
+        const SizedBox(height: YiShunTheme.space8),
 
         // 奖励预览
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(YiShunTheme.space5),
           decoration: BoxDecoration(
             color: Colors.white.withAlpha(13),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: YiShunTheme.brandAmber.withAlpha(76)),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusLg),
+            border: Border.all(color: YiShunTheme.goldPrimary.withAlpha(76)),
           ),
           child: Column(
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock_open, color: YiShunTheme.brandAmber, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.lock_open, color: YiShunTheme.goldPrimary, size: 20),
+                  const SizedBox(width: YiShunTheme.space2),
                   Text(
-                    'Full Report Unlocked',
+                    '完整报告已解锁',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: YiShunTheme.brandAmber,
+                      fontWeight: FontWeight.w600,
+                      color: YiShunTheme.goldPrimary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: YiShunTheme.space3),
               Text(
-                'Complete fortune analysis • Career • Love • Health • Wealth',
+                '包含事业·姻缘·健康·财富完整分析',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withAlpha(153),
+                  color: YiShunTheme.textMuted,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -411,53 +452,71 @@ class _AdUnlockScreenState extends State<AdUnlockScreen>
       ],
     );
   }
+}
 
-  /// 底部操作区
-  Widget _buildBottomAction() {
-    if (_isUnlocking) {
+// === 底部操作区 ===
+class _BottomAction extends StatelessWidget {
+  final bool adCompleted;
+  final bool isUnlocking;
+  final VoidCallback onUnlock;
+
+  const _BottomAction({
+    required this.adCompleted,
+    required this.isUnlocking,
+    required this.onUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isUnlocking) {
       return Column(
         children: [
-          const CircularProgressIndicator(
-            color: YiShunTheme.brandAmber,
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: YiShunTheme.goldPrimary,
+              strokeWidth: 2.5,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: YiShunTheme.space3),
           Text(
-            'Unlocking...',
-            style: TextStyle(color: Colors.white.withAlpha(153)),
+            '正在解锁...',
+            style: TextStyle(color: YiShunTheme.textSecondary),
           ),
         ],
       );
     }
 
-    if (!_adCompleted) {
+    if (!adCompleted) {
       return Text(
-        'Please wait for the ad to finish',
-        style: TextStyle(color: Colors.white.withAlpha(76)),
+        '请等待广告播放完成',
+        style: TextStyle(color: YiShunTheme.textMuted),
       );
     }
 
     return SizedBox(
       width: double.infinity,
+      height: 56,
       child: ElevatedButton(
-        onPressed: _unlockReport,
+        onPressed: onUnlock,
         style: ElevatedButton.styleFrom(
-          backgroundColor: YiShunTheme.brandAmber,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: YiShunTheme.goldPrimary,
+          foregroundColor: YiShunTheme.backgroundDark,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(YiShunTheme.radiusMd),
           ),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.lock_open, size: 20),
-            SizedBox(width: 8),
+            SizedBox(width: YiShunTheme.space2),
             Text(
-              'Unlock Full Report',
+              '解锁完整报告',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

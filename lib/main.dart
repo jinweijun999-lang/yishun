@@ -63,7 +63,7 @@ class _YiShunAppState extends State<YiShunApp> {
     return MaterialApp(
       title: 'YiShun Fortune',
       debugShowCheckedModeBanner: false,
-      theme: YiShunTheme.lightTheme,
+      theme: YiShunTheme.darkTheme,
       darkTheme: YiShunTheme.darkTheme,
       themeMode: ThemeMode.system,
       locale: _locale,

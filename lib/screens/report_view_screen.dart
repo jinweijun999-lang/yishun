@@ -63,10 +63,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -102,18 +102,18 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: YiShunTheme.brandAmber.withAlpha(51),
+                          color: YiShunTheme.goldPrimary.withAlpha(51),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add, color: YiShunTheme.brandAmber, size: 16),
+                            Icon(Icons.add, color: YiShunTheme.goldPrimary, size: 16),
                             SizedBox(width: 4),
                             Text(
                               '购买',
                               style: TextStyle(
-                                color: YiShunTheme.brandAmber,
+                                color: YiShunTheme.goldPrimary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -130,7 +130,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+                        child: CircularProgressIndicator(color: YiShunTheme.goldPrimary),
                       )
                     : _reports.isEmpty
                         ? _buildEmptyState()
@@ -177,7 +177,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pushNamed(context, '/report_purchase'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: YiShunTheme.brandAmber,
+              backgroundColor: YiShunTheme.goldPrimary,
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -370,7 +370,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               icon: const Icon(Icons.share, size: 18),
               label: const Text('分享报告'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.brandInkBlue,
+                backgroundColor: YiShunTheme.purpleMystic,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -396,7 +396,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         child: Container(
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: YiShunTheme.surfaceDark,
+            color: YiShunTheme.backgroundDark,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withAlpha(25)),
           ),
@@ -444,15 +444,15 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Color _getTypeColor(String type) {
     switch (type) {
       case '流年':
-        return YiShunTheme.waterColor;
+        return YiShunTheme.wuXingWater;
       case '姻缘':
-        return YiShunTheme.fireColor;
+        return YiShunTheme.wuXingFire;
       case '事业':
-        return YiShunTheme.brandInkBlue;
+        return YiShunTheme.purpleMystic;
       case '财富':
-        return YiShunTheme.brandAmber;
+        return YiShunTheme.goldPrimary;
       default:
-        return YiShunTheme.brandInkBlue;
+        return YiShunTheme.purpleMystic;
     }
   }
 

@@ -89,9 +89,9 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceLight,
+      backgroundColor: YiShunTheme.backgroundLight,
       appBar: AppBar(
-        backgroundColor: YiShunTheme.primaryColor,
+        backgroundColor: YiShunTheme.goldPrimary,
         title: const Text('历史记录', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
@@ -258,7 +258,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.primaryColor.withAlpha(26),
+                        color: YiShunTheme.goldPrimary.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text('☯️', style: TextStyle(fontSize: 24)),
@@ -358,7 +358,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.secondaryColor.withAlpha(26),
+                        color: YiShunTheme.purpleMystic.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text('💑', style: TextStyle(fontSize: 24)),

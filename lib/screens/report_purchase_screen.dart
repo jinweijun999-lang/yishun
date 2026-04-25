@@ -64,10 +64,10 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -114,13 +114,13 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                            colors: [YiShunTheme.purpleMystic, Color(0xFF2D5280)],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white.withAlpha(25)),
                           boxShadow: [
                             BoxShadow(
-                              color: YiShunTheme.brandInkBlue.withAlpha(128),
+                              color: YiShunTheme.purpleMystic.withAlpha(128),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -216,12 +216,12 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? YiShunTheme.brandAmber.withAlpha(25)
+              ? YiShunTheme.goldPrimary.withAlpha(25)
               : Colors.white.withAlpha(13),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? YiShunTheme.brandAmber
+                ? YiShunTheme.goldPrimary
                 : Colors.white.withAlpha(25),
             width: isSelected ? 2 : 1,
           ),
@@ -232,7 +232,7 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? YiShunTheme.brandAmber.withAlpha(51)
+                    ? YiShunTheme.goldPrimary.withAlpha(51)
                     : Colors.white.withAlpha(25),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -248,7 +248,7 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? YiShunTheme.brandAmber : Colors.white,
+                      color: isSelected ? YiShunTheme.goldPrimary : Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -266,7 +266,7 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
-                  color: YiShunTheme.brandAmber,
+                  color: YiShunTheme.goldPrimary,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check, color: Colors.black87, size: 16),
@@ -311,7 +311,7 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: YiShunTheme.brandAmber,
+                      color: YiShunTheme.goldPrimary,
                     ),
                   ),
                   Text(
@@ -332,7 +332,7 @@ class _ReportPurchaseScreenState extends State<ReportPurchaseScreen> {
             child: ElevatedButton(
               onPressed: _isPurchasing ? null : _handlePurchase,
               style: ElevatedButton.styleFrom(
-                backgroundColor: YiShunTheme.brandAmber,
+                backgroundColor: YiShunTheme.goldPrimary,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

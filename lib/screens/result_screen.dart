@@ -142,12 +142,12 @@ class _ResultScreenState extends State<ResultScreen>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              YiShunTheme.brandCinnabar.withAlpha(204),
-              YiShunTheme.brandCinnabar.withAlpha(128),
+              YiShunTheme.wuXingFire.withAlpha(204),
+              YiShunTheme.wuXingFire.withAlpha(128),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: YiShunTheme.brandCinnabar.withAlpha(127)),
+          border: Border.all(color: YiShunTheme.wuXingFire.withAlpha(127)),
         ),
         child: Row(
           children: [
@@ -196,7 +196,7 @@ class _ResultScreenState extends State<ResultScreen>
       icon: const Icon(Icons.play_circle_outline, size: 20),
       label: const Text('看广告解锁'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: YiShunTheme.brandCinnabar,
+        backgroundColor: YiShunTheme.wuXingFire,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
@@ -210,7 +210,7 @@ class _ResultScreenState extends State<ResultScreen>
   Widget build(BuildContext context) {
     if (_baziResult == null) {
       return Scaffold(
-        backgroundColor: YiShunTheme.surfaceDark,
+        backgroundColor: YiShunTheme.backgroundDark,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           title: const Text('命盘分析'),
@@ -222,10 +222,10 @@ class _ResultScreenState extends State<ResultScreen>
     }
 
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -259,17 +259,17 @@ class _ResultScreenState extends State<ResultScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.brandCinnabar.withAlpha(51),
+                        color: YiShunTheme.wuXingFire.withAlpha(51),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.auto_awesome, size: 14, color: YiShunTheme.brandCinnabar),
+                          const Icon(Icons.auto_awesome, size: 14, color: YiShunTheme.wuXingFire),
                           const SizedBox(width: 4),
                           Text(
                             _baziResult!['day_master'] ?? '甲',
                             style: const TextStyle(
-                              color: YiShunTheme.brandCinnabar,
+                              color: YiShunTheme.wuXingFire,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -289,10 +289,10 @@ class _ResultScreenState extends State<ResultScreen>
                 ),
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: YiShunTheme.brandAmber,
+                  indicatorColor: YiShunTheme.goldPrimary,
                   indicatorWeight: 3,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: YiShunTheme.brandAmber,
+                  labelColor: YiShunTheme.goldPrimary,
                   unselectedLabelColor: Colors.white54,
                   dividerColor: Colors.transparent,
                   tabs: const [
@@ -372,13 +372,13 @@ class _ResultScreenState extends State<ResultScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: YiShunTheme.brandAmber.withAlpha(51),
+                      color: YiShunTheme.goldPrimary.withAlpha(51),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '真太阳时: ${_baziResult!['solar_time']}',
                       style: const TextStyle(
-                        color: YiShunTheme.brandAmber,
+                        color: YiShunTheme.goldPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -406,10 +406,10 @@ class _ResultScreenState extends State<ResultScreen>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.brandCinnabar.withAlpha(51),
+                        color: YiShunTheme.wuXingFire.withAlpha(51),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.person, color: YiShunTheme.brandCinnabar),
+                      child: const Icon(Icons.person, color: YiShunTheme.wuXingFire),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -449,7 +449,7 @@ class _ResultScreenState extends State<ResultScreen>
   }
 
   Widget _buildPillarColumn(String label, String gan, String zhi, String wuxing) {
-    final color = YiShunTheme.getWuxingColor(wuxing);
+    final color = YiShunTheme.getWuXingColor(wuxing);
     return Column(
       children: [
         Text(
@@ -521,10 +521,10 @@ class _ResultScreenState extends State<ResultScreen>
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: YiShunTheme.waterColor.withAlpha(51),
+                  color: YiShunTheme.wuXingWater.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.star, color: YiShunTheme.waterColor),
+                child: const Icon(Icons.star, color: YiShunTheme.wuXingWater),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -564,16 +564,16 @@ class _ResultScreenState extends State<ResultScreen>
 
   Color _getShishenColor(String shishen) {
     switch (shishen) {
-      case '正官': return YiShunTheme.waterColor;
-      case '七杀': return YiShunTheme.fireColor;
-      case '正财': return YiShunTheme.earthColor;
+      case '正官': return YiShunTheme.wuXingWater;
+      case '七杀': return YiShunTheme.wuXingFire;
+      case '正财': return YiShunTheme.wuXingEarth;
       case '偏财': return const Color(0xFF8D6E63);
-      case '正印': return YiShunTheme.metalColor;
+      case '正印': return YiShunTheme.wuXingMetal;
       case '偏印': return const Color(0xFF9E9E9E);
-      case '食神': return YiShunTheme.woodColor;
-      case '伤官': return YiShunTheme.fireColor;
-      case '比肩': return YiShunTheme.woodColor;
-      case '劫财': return YiShunTheme.fireColor;
+      case '食神': return YiShunTheme.wuXingWood;
+      case '伤官': return YiShunTheme.wuXingFire;
+      case '比肩': return YiShunTheme.wuXingWood;
+      case '劫财': return YiShunTheme.wuXingFire;
       default: return Colors.grey;
     }
   }
@@ -601,7 +601,7 @@ class _ResultScreenState extends State<ResultScreen>
               children: [
                 const Row(
                   children: [
-                    Text('✦', style: TextStyle(color: YiShunTheme.brandAmber, fontSize: 16)),
+                    Text('✦', style: TextStyle(color: YiShunTheme.goldPrimary, fontSize: 16)),
                     SizedBox(width: 8),
                     Text(
                       '五行分布雷达图',
@@ -637,7 +637,7 @@ class _ResultScreenState extends State<ResultScreen>
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.bar_chart, color: YiShunTheme.brandAmber, size: 20),
+                    Icon(Icons.bar_chart, color: YiShunTheme.goldPrimary, size: 20),
                     SizedBox(width: 8),
                     Text(
                       '五行数量',
@@ -653,7 +653,7 @@ class _ResultScreenState extends State<ResultScreen>
                 ...elements.map((e) {
                   final count = wuxingCount[e] as int? ?? 0;
                   final percentage = total > 0 ? count / total : 0.0;
-                  final color = YiShunTheme.getWuxingColor(e);
+                  final color = YiShunTheme.getWuXingColor(e);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _buildWuxingBar(e, count, percentage, color),
@@ -681,10 +681,10 @@ class _ResultScreenState extends State<ResultScreen>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: YiShunTheme.brandCinnabar.withAlpha(51),
+                        color: YiShunTheme.wuXingFire.withAlpha(51),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.analytics, color: YiShunTheme.brandCinnabar),
+                      child: const Icon(Icons.analytics, color: YiShunTheme.wuXingFire),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -746,8 +746,8 @@ class _ResultScreenState extends State<ResultScreen>
             },
             dataSets: [
               RadarDataSet(
-                fillColor: YiShunTheme.brandInkBlue.withAlpha(76),
-                borderColor: YiShunTheme.brandAmber,
+                fillColor: YiShunTheme.purpleMystic.withAlpha(76),
+                borderColor: YiShunTheme.goldPrimary,
                 borderWidth: 2,
                 entryRadius: 4,
                 dataEntries: currentValues.map((v) => RadarEntry(value: v)).toList(),
@@ -843,24 +843,24 @@ class _ResultScreenState extends State<ResultScreen>
           _buildAnalysisItem(
             '🔥 最旺: ${strongest}行',
             '$strongest元素最为旺盛，代表命主在该方面的特质明显',
-            YiShunTheme.getWuxingColor(strongest),
+            YiShunTheme.getWuXingColor(strongest),
           ),
         if (weakest != null && strongest != weakest)
           _buildAnalysisItem(
             '❄️ 最弱: ${weakest}行',
             '$weakest元素相对缺乏，需要后天补足',
-            YiShunTheme.getWuxingColor(weakest),
+            YiShunTheme.getWuXingColor(weakest),
           ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: YiShunTheme.brandAmber.withAlpha(25),
+            color: YiShunTheme.goldPrimary.withAlpha(25),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: YiShunTheme.brandAmber, size: 18),
+              const Icon(Icons.info_outline, color: YiShunTheme.goldPrimary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -925,7 +925,7 @@ class _ResultScreenState extends State<ResultScreen>
               children: [
                 const Row(
                   children: [
-                    Text('✦', style: TextStyle(color: YiShunTheme.brandAmber, fontSize: 16)),
+                    Text('✦', style: TextStyle(color: YiShunTheme.goldPrimary, fontSize: 16)),
                     SizedBox(width: 8),
                     Text(
                       '十神关系图',
@@ -991,8 +991,8 @@ class _ResultScreenState extends State<ResultScreen>
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: YiShunTheme.brandAmber.withAlpha(51),
-            border: Border.all(color: YiShunTheme.brandAmber, width: 2),
+            color: YiShunTheme.goldPrimary.withAlpha(51),
+            border: Border.all(color: YiShunTheme.goldPrimary, width: 2),
           ),
           child: Center(
             child: Column(
@@ -1003,7 +1003,7 @@ class _ResultScreenState extends State<ResultScreen>
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: YiShunTheme.brandAmber,
+                    color: YiShunTheme.goldPrimary,
                   ),
                 ),
                 const Text(
@@ -1171,7 +1171,7 @@ class _ResultScreenState extends State<ResultScreen>
           _buildAdUnlockBanner(),
           const Expanded(
             child: Center(
-              child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+              child: CircularProgressIndicator(color: YiShunTheme.goldPrimary),
             ),
           ),
         ],
@@ -1212,8 +1212,8 @@ class _ResultScreenState extends State<ResultScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  YiShunTheme.brandInkBlue,
-                  YiShunTheme.brandInkBlue.withAlpha(204),
+                  YiShunTheme.purpleMystic,
+                  YiShunTheme.purpleMystic.withAlpha(204),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -1269,7 +1269,7 @@ class _ResultScreenState extends State<ResultScreen>
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.lightbulb_outline, color: YiShunTheme.brandAmber),
+                      Icon(Icons.lightbulb_outline, color: YiShunTheme.goldPrimary),
                       SizedBox(width: 8),
                       Text(
                         '建议',
@@ -1289,7 +1289,7 @@ class _ResultScreenState extends State<ResultScreen>
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('• ', style: TextStyle(color: YiShunTheme.brandAmber)),
+                                const Text('• ', style: TextStyle(color: YiShunTheme.goldPrimary)),
                                 Expanded(
                                   child: Text(
                                     tip.toString(),
@@ -1321,10 +1321,10 @@ class _ResultScreenState extends State<ResultScreen>
       'wealth': '财运',
     };
     final colors = {
-      'career': YiShunTheme.brandCinnabar,
-      'love': YiShunTheme.fireColor,
-      'health': YiShunTheme.woodColor,
-      'wealth': YiShunTheme.earthColor,
+      'career': YiShunTheme.wuXingFire,
+      'love': YiShunTheme.wuXingFire,
+      'health': YiShunTheme.wuXingWood,
+      'wealth': YiShunTheme.wuXingEarth,
     };
 
     return Container(

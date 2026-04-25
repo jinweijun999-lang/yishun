@@ -11,10 +11,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Consumer<UserModel>(
@@ -40,13 +40,13 @@ class ProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: YiShunTheme.brandAmber.withAlpha(25),
+                color: YiShunTheme.goldPrimary.withAlpha(25),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.person_outline,
                 size: 80,
-                color: YiShunTheme.brandAmber,
+                color: YiShunTheme.goldPrimary,
               ),
             ),
             const SizedBox(height: 32),
@@ -74,7 +74,7 @@ class ProfileScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.pushNamed(context, '/auth'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: YiShunTheme.brandCinnabar,
+                  backgroundColor: YiShunTheme.wuXingFire,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -111,13 +111,13 @@ class ProfileScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: YiShunTheme.brandAmber.withAlpha(51),
+                    color: YiShunTheme.goldPrimary.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.person,
                     size: 40,
-                    color: YiShunTheme.brandAmber,
+                    color: YiShunTheme.goldPrimary,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -170,7 +170,7 @@ class ProfileScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pushNamed(context, '/subscription'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: YiShunTheme.brandAmber,
+                        backgroundColor: YiShunTheme.goldPrimary,
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -251,7 +251,7 @@ class ProfileScreen extends StatelessWidget {
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        backgroundColor: YiShunTheme.surfaceDark,
+                        backgroundColor: YiShunTheme.backgroundDark,
                         title: const Text('退出登录', style: TextStyle(color: Colors.white)),
                         content: const Text('确定要退出登录吗？', style: TextStyle(color: Colors.white70)),
                         actions: [
@@ -289,7 +289,7 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPremium
-              ? [YiShunTheme.brandAmber, YiShunTheme.brandAmber.withAlpha(204)]
+              ? [YiShunTheme.goldPrimary, YiShunTheme.goldPrimary.withAlpha(204)]
               : [Colors.grey.shade600, Colors.grey.shade700],
         ),
         borderRadius: BorderRadius.circular(12),

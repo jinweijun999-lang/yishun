@@ -103,10 +103,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -152,13 +152,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [YiShunTheme.brandInkBlue, Color(0xFF2D5280)],
+                            colors: [YiShunTheme.purpleMystic, YiShunTheme.purpleDeep],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white.withAlpha(25)),
                           boxShadow: [
                             BoxShadow(
-                              color: YiShunTheme.brandInkBlue.withAlpha(128),
+                              color: YiShunTheme.purpleMystic.withAlpha(128),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -169,7 +169,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: YiShunTheme.brandAmber.withAlpha(51),
+                                color: YiShunTheme.goldPrimary.withAlpha(51),
                                 borderRadius: BorderRadius.circular(50),
                               ),
                               child: const Text('👑', style: TextStyle(fontSize: 60)),
@@ -252,7 +252,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       if (_isLoading) ...[
                         const SizedBox(height: 16),
                         const Center(
-                          child: CircularProgressIndicator(color: YiShunTheme.brandAmber),
+                          child: CircularProgressIndicator(color: YiShunTheme.goldPrimary),
                         ),
                       ],
 
@@ -298,10 +298,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: YiShunTheme.brandAmber.withAlpha(25),
+              color: YiShunTheme.goldPrimary.withAlpha(25),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: YiShunTheme.brandAmber, size: 24),
+            child: Icon(icon, color: YiShunTheme.goldPrimary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -352,7 +352,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         color: Colors.white.withAlpha(13),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPopular ? YiShunTheme.brandAmber : Colors.white.withAlpha(25),
+          color: isPopular ? YiShunTheme.goldPrimary : Colors.white.withAlpha(25),
           width: isPopular ? 2 : 1,
         ),
       ),
@@ -363,7 +363,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 6),
               decoration: const BoxDecoration(
-                color: YiShunTheme.brandAmber,
+                color: YiShunTheme.goldPrimary,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
               ),
               child: const Text(
@@ -398,7 +398,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: YiShunTheme.brandAmber,
+                        color: YiShunTheme.goldPrimary,
                       ),
                     ),
                     Text(
@@ -415,7 +415,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.check, color: YiShunTheme.woodColor, size: 16),
+                      const Icon(Icons.check, color: YiShunTheme.wuXingWood, size: 16),
                       const SizedBox(width: 8),
                       Text(f, style: TextStyle(color: Colors.white.withAlpha(179))),
                     ],
@@ -429,8 +429,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     onPressed: onSubscribe,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isPopular
-                          ? YiShunTheme.brandAmber
-                          : YiShunTheme.brandCinnabar,
+                          ? YiShunTheme.goldPrimary
+                          : YiShunTheme.wuXingFire,
                       foregroundColor: isPopular ? Colors.black : Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

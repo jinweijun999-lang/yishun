@@ -37,10 +37,10 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
     final liuNian = widget.baziResult['liu_nian'] as List? ?? [];
 
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -83,10 +83,10 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
                 ),
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: YiShunTheme.brandAmber,
+                  indicatorColor: YiShunTheme.goldPrimary,
                   indicatorWeight: 3,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: YiShunTheme.brandAmber,
+                  labelColor: YiShunTheme.goldPrimary,
                   unselectedLabelColor: Colors.white54,
                   dividerColor: Colors.transparent,
                   tabs: const [
@@ -148,7 +148,7 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
         children: [
           const Row(
             children: [
-              Text('✦', style: TextStyle(color: YiShunTheme.brandAmber, fontSize: 16)),
+              Text('✦', style: TextStyle(color: YiShunTheme.goldPrimary, fontSize: 16)),
               SizedBox(width: 8),
               Text(
                 '大运周期图',
@@ -172,7 +172,7 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
                 final dayun = daYun[index] as Map<String, dynamic>;
                 final isSelected = index == _selectedDaYunIndex;
                 final wuxing = dayun['wuxing'] ?? '土';
-                final color = YiShunTheme.getWuxingColor(wuxing);
+                final color = YiShunTheme.getWuXingColor(wuxing);
 
                 return GestureDetector(
                   onTap: () => setState(() => _selectedDaYunIndex = index),
@@ -240,7 +240,7 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
 
     final dayun = daYun[_selectedDaYunIndex] as Map<String, dynamic>;
     final wuxing = dayun['wuxing'] ?? '土';
-    final color = YiShunTheme.getWuxingColor(wuxing);
+    final color = YiShunTheme.getWuXingColor(wuxing);
     final gan = dayun['gan'] ?? '甲';
     final zhi = dayun['zhi'] ?? '子';
 
@@ -405,7 +405,7 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (spot) => YiShunTheme.surfaceDark,
+              getTooltipColor: (spot) => YiShunTheme.backgroundDark,
             ),
           ),
         ),
@@ -453,12 +453,12 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: YiShunTheme.brandAmber.withAlpha(25),
+            color: YiShunTheme.goldPrimary.withAlpha(25),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              const Icon(Icons.lightbulb_outline, color: YiShunTheme.brandAmber, size: 16),
+              const Icon(Icons.lightbulb_outline, color: YiShunTheme.goldPrimary, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -518,7 +518,7 @@ class _DaYunLiuNianPageState extends State<DaYunLiuNianPage>
     final zhi = year['zhi'] ?? '子';
     final wuxing = year['wuxing'] ?? '土';
     final shengxiao = year['shengxiao'] ?? '鼠';
-    final color = YiShunTheme.getWuxingColor(wuxing);
+    final color = YiShunTheme.getWuXingColor(wuxing);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedLiuNianIndex = index),
@@ -667,14 +667,14 @@ class LiuNianDetailDialog extends StatelessWidget {
     final zhi = yearData['zhi'] ?? '';
     final wuxing = yearData['wuxing'] ?? '';
     final shengxiao = yearData['shengxiao'] ?? '';
-    final color = YiShunTheme.getWuxingColor(wuxing);
+    final color = YiShunTheme.getWuXingColor(wuxing);
 
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
-          color: YiShunTheme.surfaceDark,
+          color: YiShunTheme.backgroundDark,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: color.withAlpha(128)),
         ),

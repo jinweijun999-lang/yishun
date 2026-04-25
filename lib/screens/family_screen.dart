@@ -44,7 +44,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: YiShunTheme.surfaceDark,
+        backgroundColor: YiShunTheme.backgroundDark,
         title: const Text('添加家庭成员', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -59,7 +59,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   borderSide: BorderSide(color: Colors.white38),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: YiShunTheme.brandAmber),
+                  borderSide: BorderSide(color: YiShunTheme.goldPrimary),
                 ),
               ),
             ),
@@ -68,7 +68,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
               builder: (context, setDialogState) {
                 return DropdownButtonFormField<String>(
                   initialValue: selectedRelation,
-                  dropdownColor: YiShunTheme.surfaceDark,
+                  dropdownColor: YiShunTheme.backgroundDark,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: '关系',
@@ -77,7 +77,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       borderSide: BorderSide(color: Colors.white38),
                     ),
                     focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: YiShunTheme.brandAmber),
+                      borderSide: BorderSide(color: YiShunTheme.goldPrimary),
                     ),
                   ),
                   items: ['配偶', '子女', '父母', '兄弟姐妹', '其他']
@@ -99,7 +99,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
               if (nameController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
             },
-            child: const Text('添加', style: TextStyle(color: YiShunTheme.brandAmber)),
+            child: const Text('添加', style: TextStyle(color: YiShunTheme.goldPrimary)),
           ),
         ],
       ),
@@ -131,7 +131,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: YiShunTheme.surfaceDark,
+        backgroundColor: YiShunTheme.backgroundDark,
         title: const Text('移除成员', style: TextStyle(color: Colors.white)),
         content: Text(
           '确定要移除 ${member['name']} 吗？',
@@ -158,10 +158,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YiShunTheme.surfaceDark,
+      backgroundColor: YiShunTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: YiShunTheme.primaryGradient,
+          gradient: YiShunTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -235,12 +235,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            YiShunTheme.brandAmber.withAlpha(51),
-            YiShunTheme.brandAmber.withAlpha(26),
+            YiShunTheme.goldPrimary.withAlpha(51),
+            YiShunTheme.goldPrimary.withAlpha(26),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: YiShunTheme.brandAmber.withAlpha(51)),
+        border: Border.all(color: YiShunTheme.goldPrimary.withAlpha(51)),
       ),
       child: Column(
         children: [
@@ -271,7 +271,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: YiShunTheme.brandAmber,
+                  color: YiShunTheme.goldPrimary,
                 ),
               ),
               Text(
@@ -344,7 +344,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: YiShunTheme.brandInkBlue.withAlpha(51),
+              color: YiShunTheme.purpleMystic.withAlpha(51),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Center(
@@ -380,13 +380,13 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: YiShunTheme.brandAmber.withAlpha(51),
+                          color: YiShunTheme.goldPrimary.withAlpha(51),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
                           '户主',
                           style: TextStyle(
-                            color: YiShunTheme.brandAmber,
+                            color: YiShunTheme.goldPrimary,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -422,7 +422,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       child: ElevatedButton.icon(
         onPressed: _addMember,
         style: ElevatedButton.styleFrom(
-          backgroundColor: YiShunTheme.brandAmber,
+          backgroundColor: YiShunTheme.goldPrimary,
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
