@@ -14,7 +14,6 @@ class FamilyScreen extends StatefulWidget {
 }
 
 class _FamilyScreenState extends State<FamilyScreen> {
-  final bool _isLoading = false;
   final List<Map<String, dynamic>> _familyMembers = [
     {'name': '爸爸', 'relation': '父亲', 'isOwner': true},
     {'name': '妈妈', 'relation': '母亲', 'isOwner': false},
@@ -83,7 +82,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
             StatefulBuilder(
               builder: (context, setDialogState) {
                 return DropdownButtonFormField<String>(
-                  value: selectedRelation,
+                  initialValue: selectedRelation,
                   dropdownColor: YiShunTheme.backgroundDark,
                   style: const TextStyle(color: YiShunTheme.textPrimary),
                   decoration: InputDecoration(

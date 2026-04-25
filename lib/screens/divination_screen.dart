@@ -93,7 +93,8 @@ class _DivinationScreenState extends State<DivinationScreen>
         name: _nameController.text.isNotEmpty ? _nameController.text : null,
       );
 
-      final user = context.read<UserModel>();
+      // ignore: unused_local_variable
+      final _user = context.read<UserModel>();
       await analytics.logBaziCalculation(
         birthTime: "$_birthYear-$_birthMonth-$_birthDay $_birthHour"
       );

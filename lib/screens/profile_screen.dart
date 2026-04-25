@@ -224,10 +224,15 @@ class ProfileScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                    if (confirmed == true && context.mounted) {
-                      await context.read<AuthService>().logout();
-                      context.read<AnalyticsService>().logLogout();
-                      context.read<UserModel>().logout();
+                    if (confirmed == true) {
+                      // async gap - store BuildContext references before await
+                      final auth = context.read<AuthService>();
+                      final analytics = context.read<AnalyticsService>();
+                      final userModel = context.read<UserModel>();
+                      await auth.logout();
+                      if (!mounted) return;
+                      analytics.logLogout();
+                      userModel.logout();
                     }
                   },
                 ),
