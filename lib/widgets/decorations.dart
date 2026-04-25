@@ -269,7 +269,7 @@ class YiShunBottomNav extends StatelessWidget {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
-        color: YiShunTheme.surfaceContainerLowest,
+        color: YiShunTheme.navBackground,
         border: Border(
           top: BorderSide(color: YiShunTheme.cardBorder, width: 1),
         ),

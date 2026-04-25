@@ -88,6 +88,9 @@ class YiShunTheme {
   // Card border
   static const Color cardBorder = Color(0xFFD1CDC0);
 
+  // Navigation bar background - warm beige from design
+  static const Color navBackground = Color(0xFFEAE7DF);
+
   // === Spacing (4px unit) ===
   static const double spaceXs  = 4;
   static const double spaceSm  = 8;
