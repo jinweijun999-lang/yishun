@@ -225,12 +225,11 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     );
                     if (confirmed == true) {
-                      // async gap - store BuildContext references before await
+                      // Store references before async
                       final auth = context.read<AuthService>();
                       final analytics = context.read<AnalyticsService>();
                       final userModel = context.read<UserModel>();
                       await auth.logout();
-                      if (!mounted) return;
                       analytics.logLogout();
                       userModel.logout();
                     }

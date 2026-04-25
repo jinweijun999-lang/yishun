@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
@@ -144,31 +145,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               color: YiShunTheme.primary.withAlpha(51),
             ),
           ),
-          child: const Center(
-            child: Text(
-              '☯',
-              style: TextStyle(fontSize: 18),
+          child: Center(
+            child: Icon(
+              Icons.auto_awesome,
+              size: 18,
+              color: YiShunTheme.primary,
             ),
           ),
         ),
         const SizedBox(width: 10),
-        const Text(
-          '易顺',
-          style: TextStyle(
+        Text(
+          'THE STILLNESS',
+          style: GoogleFonts.notoSerif(
             fontWeight: FontWeight.w600,
-            color: YiShunTheme.onSurface,
-            fontSize: 20,
-            letterSpacing: 3,
-          ),
-        ),
-        const SizedBox(width: 4),
-        const Text(
-          '命理',
-          style: TextStyle(
-            fontWeight: FontWeight.w400,
             color: YiShunTheme.primary,
-            fontSize: 14,
-            letterSpacing: 2,
+            fontSize: 16,
+            letterSpacing: 0.2,
           ),
         ),
       ],

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class AnalyticsService extends ChangeNotifier {
-  bool _isEnabled = true;
+  final bool _isEnabled = true;
 
   AnalyticsService() {
     _initialize();

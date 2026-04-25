@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// ============================================
 /// YiShun Theme - Modern Orientalism
@@ -365,63 +366,78 @@ class YiShunTheme {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
-      textTheme: const TextTheme(
-        // Display
-        displayLarge: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
-        displayMedium: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
-        displaySmall: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
-        // Headlines - Noto Serif feel via serif
-        headlineLarge: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w600,
-          fontSize: 32, height: 1.3, letterSpacing: -0.5,
-        ),
-        headlineMedium: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w500,
-          fontSize: 28, height: 1.3,
-        ),
-        headlineSmall: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w500,
-          fontSize: 24, height: 1.4,
-        ),
-        // Titles
-        titleLarge: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w600,
-          fontSize: 20, height: 1.4,
-        ),
-        titleMedium: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w600,
-          fontSize: 16, height: 1.4, letterSpacing: 0.1,
-        ),
-        titleSmall: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w600,
-          fontSize: 14, height: 1.4, letterSpacing: 0.1,
-        ),
-        // Body - Inter
-        bodyLarge: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w400,
-          fontSize: 18, height: 1.6,
-        ),
-        bodyMedium: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w400,
-          fontSize: 16, height: 1.6,
-        ),
-        bodySmall: TextStyle(
-          color: onSurfaceVariant, fontWeight: FontWeight.w400,
-          fontSize: 14, height: 1.5,
-        ),
-        // Labels
-        labelLarge: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w600,
-          fontSize: 14, letterSpacing: 0.1,
-        ),
-        labelMedium: TextStyle(
-          color: onSurface, fontWeight: FontWeight.w500,
-          fontSize: 12, letterSpacing: 0.5,
-        ),
-        labelSmall: TextStyle(
-          color: onSurfaceVariant, fontWeight: FontWeight.w500,
-          fontSize: 11, letterSpacing: 0.5,
-        ),
+      textTheme: _buildTextTheme(),
+    );
+  }
+
+  static TextTheme _buildTextTheme() {
+    final notoSerif = GoogleFonts.notoSerif();
+    final inter = GoogleFonts.inter();
+
+    return TextTheme(
+      // Headlines - Noto Serif
+      headlineLarge: TextStyle(
+        fontFamily: notoSerif.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w600,
+        fontSize: 40, height: 1.2, letterSpacing: -0.5,
+      ),
+      headlineMedium: TextStyle(
+        fontFamily: notoSerif.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w500,
+        fontSize: 32, height: 1.3,
+      ),
+      headlineSmall: TextStyle(
+        fontFamily: notoSerif.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w500,
+        fontSize: 24, height: 1.4,
+      ),
+      // Titles
+      titleLarge: TextStyle(
+        fontFamily: notoSerif.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w600,
+        fontSize: 20, height: 1.4,
+      ),
+      titleMedium: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w600,
+        fontSize: 16, height: 1.4, letterSpacing: 0.1,
+      ),
+      titleSmall: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w600,
+        fontSize: 14, height: 1.4, letterSpacing: 0.1,
+      ),
+      // Body - Inter
+      bodyLarge: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w400,
+        fontSize: 18, height: 1.6,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w400,
+        fontSize: 16, height: 1.6,
+      ),
+      bodySmall: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurfaceVariant, fontWeight: FontWeight.w400,
+        fontSize: 14, height: 1.5,
+      ),
+      // Labels
+      labelLarge: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w600,
+        fontSize: 14, letterSpacing: 0.1,
+      ),
+      labelMedium: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurface, fontWeight: FontWeight.w500,
+        fontSize: 12, letterSpacing: 0.5,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: inter.fontFamily,
+        color: onSurfaceVariant, fontWeight: FontWeight.w500,
+        fontSize: 11, letterSpacing: 0.5,
       ),
     );
   }

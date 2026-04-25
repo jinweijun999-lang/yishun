@@ -6,16 +6,21 @@ enum SubscriptionPlan { monthly, yearly }
 enum SubscriptionStatus { none, active, cancelled, expired }
 
 class SubscriptionService extends ChangeNotifier {
+  // ignore: unused_field
   final AuthService _authService;
+  // ignore: unused_field
   final AnalyticsService _analyticsService;
-  
-  SubscriptionStatus _status = SubscriptionStatus.none;
+  // ignore: unused_field
+  final SubscriptionStatus _status = SubscriptionStatus.none;
   DateTime? _expireDate;
+  // ignore: unused_field
   String? _currentPlanId;
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _error;
 
-  SubscriptionService(this._authService, this._analyticsService);
+  SubscriptionService([AuthService? authService, AnalyticsService? analyticsService])
+      : _authService = authService ?? AuthService(),
+        _analyticsService = analyticsService ?? AnalyticsService();
 
   SubscriptionStatus get status => _status;
   DateTime? get expireDate => _expireDate;
