@@ -198,10 +198,15 @@ jobs:
           name: web-build
           path: web-build
 
+      - name: Create tarball
+        run: |
+          tar -czf web-build.tar.gz -C web-build .
+
       - name: Deploy to GCP Server
         env:
           SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
         run: |
           echo "$SERVER_SSH_KEY" | base64 -d > server_key.pem
           chmod 600 server_key.pem
-          ssh -o StrictHostKeyChecking=no -i server_key.pem yishun@34.102.18.91 "mkdir -p ~/html && rsync -avz --delete web-build/ ~/html/"
+          scp -o StrictHostKeyChecking=no -i server_key.pem web-build.tar.gz yishun@34.102.18.91:~/
+          ssh -o StrictHostKeyChecking=no -i server_key.pem yishun@34.102.18.91 "mkdir -p ~/html && tar -xzf ~/web-build.tar.gz -C ~/html && rm ~/web-build.tar.gz"
