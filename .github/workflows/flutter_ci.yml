@@ -185,28 +185,32 @@ jobs:
           path: build/web
           retention-days: 7
 
-  # ============ Firebase Distribution (optional) ============
-  # firebase-distribute:
-  #   name: Firebase App Distribution
-  #   runs-on: ubuntu-latest
-  #   needs: [build-android]
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Setup Flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         flutter-version: ${{ env.FLUTTER_VERSION }}
-  #
-  #     - name: Install dependencies
-  #       run: flutter pub get
-  #
-  #     - name: Setup Firebase CLI
-  #       uses: FirebaseExtended/action-firebase-distribute@v0.1.0
-  #       with:
-  #         appId: ${{ secrets.FIREBASE_APP_ID }}
-  #         serviceCredentialsFile: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-  #         groups: testers
-  #         file: build/app/outputs/flutter-apk/app-debug.apk
+  # ============ Deploy Web to Server ============
+  deploy-web:
+    name: Deploy Web to Server
+    runs-on: ubuntu-latest
+    needs: [build-web]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: web-build
+
+      - name: Deploy to GCP Server
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          apt-get update -qq && apt-get install -y -qq rsync openssh-client > /dev/null 2>&1
+          eval "$(ssh-agent -s)"
+          echo "$SERVER_SSH_KEY" | base64 -d > /tmp/server_key
+          chmod 600 /tmp/server_key
+          ssh-add /tmp/server_key
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 34.102.18.91 >> ~/.ssh/known_hosts 2>/dev/null
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i /tmp/server_key" web-build/ yishun@34.102.18.91:~/html/
+          rm /tmp/server_key
