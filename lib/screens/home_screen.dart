@@ -7,6 +7,7 @@ import '../services/analytics_service.dart';
 import '../models/user_model.dart';
 import '../utils/theme.dart';
 import '../widgets/decorations.dart';
+import '../../main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -218,7 +219,7 @@ class _BaziInputCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 // Navigate to divination tab
-                DefaultTabController.of(context).animateTo(1);
+                context.read<NavigationController>().navigateToDivination();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: YiShunTheme.primary,
@@ -535,7 +536,7 @@ class _FeatureItem extends StatelessWidget {
           return;
         }
         if ('☯⚖📜🔮'.contains(icon)) {
-          DefaultTabController.of(context).animateTo(1);
+          context.read<NavigationController>().navigateToDivination();
         }
       },
       child: Container(

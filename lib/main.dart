@@ -43,6 +43,24 @@ void main() async {
   );
 }
 
+/// ============================================
+/// 导航控制器 - 用于跨组件通信
+/// ============================================
+class NavigationController extends ChangeNotifier {
+  int _currentIndex = 0;
+  
+  int get currentIndex => _currentIndex;
+  
+  void navigateTo(int index) {
+    if (_currentIndex != index) {
+      _currentIndex = index;
+      notifyListeners();
+    }
+  }
+  
+  void navigateToDivination() => navigateTo(1);
+}
+
 class YiShunApp extends StatefulWidget {
   const YiShunApp({super.key});
 
@@ -52,41 +70,45 @@ class YiShunApp extends StatefulWidget {
 
 class _YiShunAppState extends State<YiShunApp> {
   final Locale _locale = const Locale('en');
+  final _navController = NavigationController();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'YiShun Fortune',
-      debugShowCheckedModeBanner: false,
-      theme: YiShunTheme.lightTheme,
-      darkTheme: YiShunTheme.lightTheme,
-      themeMode: ThemeMode.light,
-      locale: _locale,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('zh')],
-      routes: {
-        '/': (context) => const MainNavigation(),
-        '/auth': (context) => const AuthScreen(),
-        '/result': (context) => const ResultScreen(),
-        '/history': (context) => const HistoryScreen(),
-        '/compatibility': (context) => const CompatibilityScreen(),
-        '/subscription': (context) => const SubscriptionScreen(),
-        '/paywall': (context) => const PaywallScreen(),
-        '/membership': (context) => const MembershipScreen(),
-        '/family': (context) => const FamilyScreen(),
-        '/ten_gods_guide': (context) => const TenGodsGuidePage(),
-        '/dayun_liunian': (context) => DaYunLiuNianPage(
-          baziResult: ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>? ??
-              {},
-        ),
-        '/report_purchase': (context) => const ReportPurchaseScreen(),
-        '/report_view': (context) => const ReportViewScreen(),
-      },
+    return ChangeNotifierProvider.value(
+      value: _navController,
+      child: MaterialApp(
+        title: 'YiShun Fortune',
+        debugShowCheckedModeBanner: false,
+        theme: YiShunTheme.lightTheme,
+        darkTheme: YiShunTheme.lightTheme,
+        themeMode: ThemeMode.light,
+        locale: _locale,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('zh')],
+        routes: {
+          '/': (context) => const MainNavigation(),
+          '/auth': (context) => const AuthScreen(),
+          '/result': (context) => const ResultScreen(),
+          '/history': (context) => const HistoryScreen(),
+          '/compatibility': (context) => const CompatibilityScreen(),
+          '/subscription': (context) => const SubscriptionScreen(),
+          '/paywall': (context) => const PaywallScreen(),
+          '/membership': (context) => const MembershipScreen(),
+          '/family': (context) => const FamilyScreen(),
+          '/ten_gods_guide': (context) => const TenGodsGuidePage(),
+          '/dayun_liunian': (context) => DaYunLiuNianPage(
+            baziResult: ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>? ??
+                {},
+          ),
+          '/report_purchase': (context) => const ReportPurchaseScreen(),
+          '/report_view': (context) => const ReportViewScreen(),
+        },
+      ),
     );
   }
 }
@@ -103,24 +125,63 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    // 监听导航控制器变化
+    final navController = context.read<NavigationController>();
+    navController.addListener(_onNavIndexChanged);
+  }
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    DivinationScreen(),
-    ProfileScreen(),
-  ];
+  @override
+  void dispose() {
+    final navController = context.read<NavigationController>();
+    navController.removeListener(_onNavIndexChanged);
+    super.dispose();
+  }
+
+  void _onNavIndexChanged() {
+    setState(() {});
+  }
+
+  int get _currentIndex => context.read<NavigationController>().currentIndex;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: const [
+          HomeScreen(),
+          DivinationScreen(),
+          // Consult 页面暂用 Placeholder，后续添加
+          _ConsultPlaceholder(),
+          ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: YiShunBottomNav(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) => context.read<NavigationController>().navigateTo(index),
+      ),
+    );
+  }
+}
+
+/// Consult 页面占位符
+class _ConsultPlaceholder extends StatelessWidget {
+  const _ConsultPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: YiShunTheme.background,
+      appBar: AppBar(
+        backgroundColor: YiShunTheme.background,
+        title: const Text('Consult'),
+        centerTitle: true,
+      ),
+      body: const Center(
+        child: Text('Consult - Coming Soon'),
       ),
     );
   }
