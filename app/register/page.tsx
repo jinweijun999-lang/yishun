@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Background from "../components/Background";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
+import { CitySearch, type CityData } from "../components/CitySearch";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function RegisterPage() {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
   const [gender, setGender] = useState("other");
+  const [citySearch, setCitySearch] = useState("");
+  const [selectedCity, setSelectedCity] = useState<CityData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,10 +33,25 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const payload: Record<string, string> = {
+        email,
+        password,
+        birthDate,
+        birthTime,
+        gender,
+      };
+
+      if (selectedCity) {
+        payload.latitude = selectedCity.latitude.toString();
+        payload.longitude = selectedCity.longitude.toString();
+        payload.timezone = selectedCity.timezone;
+        payload.birthCity = selectedCity.name;
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, birthDate, birthTime, gender }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -126,6 +144,20 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
+
+            {/* City Search */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-400">
+                出生城市 <span className="text-gray-500">(Optional)</span>
+              </label>
+              <CitySearch
+                value={citySearch}
+                onChange={setCitySearch}
+                onSelect={setSelectedCity}
+                placeholder="Search city..."
+              />
+            </div>
+
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}

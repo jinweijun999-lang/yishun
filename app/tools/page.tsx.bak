@@ -1,0 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import Background from "../components/Background";
+import Navigation from "../components/Navigation";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useI18n } from "../components/LocaleProvider";
+
+type ProfileData = {
+  email: string;
+  birthDate: string | null;
+  birthTime: string | null;
+  gender: string | null;
+  planTier?: string | null;
+  consultationCredits?: number | null;
+};
+
+export default function ToolsPage() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
