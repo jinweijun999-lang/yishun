@@ -22,6 +22,27 @@ function normalizeGender(value: unknown) {
     : null;
 }
 
+// Helper to parse number from string or number
+function parseNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function parseTimezoneOffset(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const locale = getLocaleFromRequest(request);
@@ -76,6 +97,10 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const parsedLongitude = parseNumber(longitude);
+    const parsedLatitude = parseNumber(latitude);
+    const parsedTimezoneOffset = parseTimezoneOffset(timezoneOffsetMinutes);
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -83,11 +108,9 @@ export async function POST(request: NextRequest) {
         birthDate,
         birthTime,
         gender: normalizedGender,
-        longitude: Number.isFinite(longitude) ? longitude : null,
-        latitude: Number.isFinite(latitude) ? latitude : null,
-        timezoneOffsetMinutes: Number.isFinite(timezoneOffsetMinutes)
-          ? timezoneOffsetMinutes
-          : null,
+        longitude: parsedLongitude,
+        latitude: parsedLatitude,
+        timezoneOffsetMinutes: parsedTimezoneOffset,
         timezoneName: typeof timezoneName === "string" ? timezoneName : null,
       },
     });
