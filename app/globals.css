@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 232, 226, 213;
+  --background-start-rgb: 9, 10, 10;
+  --background-end-rgb: 15, 18, 16;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background:
+    radial-gradient(
+      60% 60% at 50% 0%,
+      rgba(111, 154, 132, 0.16),
+      transparent 60%
+    ),
+    radial-gradient(
+      40% 40% at 85% 18%,
+      rgba(194, 160, 103, 0.1),
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.025) 0 1px,
+      transparent 1px 8px
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--background-start-rgb)) 0%,
+      rgb(var(--background-end-rgb)) 60%,
+      #0b0d0c 100%
+    );
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141715;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5E8A72;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7AA48C;
+}
+
+.glass {
+  background: rgba(12, 14, 13, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(194, 160, 103, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.glow-accent {
+  box-shadow: 0 0 16px rgba(111, 154, 132, 0.18);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(194, 160, 103, 0.25);
+}
+
+.animate-in {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+.input-field {
+  @apply w-full px-4 py-3 rounded-xl bg-surface/60 border border-white/10 
+         text-white placeholder-gray-400 outline-none transition-all duration-300;
+  color: #e8e3d6;
+}
+
+.input-field::placeholder {
+  color: #7b8278;
+}
+
+.input-field:focus {
+  @apply border-secondary/40;
+  box-shadow: 0 0 0 1px rgba(194, 160, 103, 0.35),
+    0 0 12px rgba(111, 154, 132, 0.2);
+}
+
+.btn-primary {
+  @apply px-8 py-4 rounded-xl bg-gradient-to-r from-secondary/80 to-accent/70 
+         text-[#f3ead7] font-semibold tracking-wide transition-all duration-300 cursor-pointer;
+  border: 1px solid rgba(194, 160, 103, 0.25);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.btn-primary:hover {
+  @apply transform -translate-y-0.5;
+  border-color: rgba(194, 160, 103, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.btn-primary:active {
+  @apply transform scale-95;
+}
+
+.btn-primary:disabled {
+  @apply opacity-50 cursor-not-allowed transform-none;
+}
+
+.card {
+  @apply rounded-2xl bg-surface/70 backdrop-blur-xl border border-white/5 
+         transition-all duration-300;
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
