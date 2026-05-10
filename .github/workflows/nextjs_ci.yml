@@ -90,4 +90,4 @@ jobs:
             -p "${{ secrets.YISHUN_SSH_PORT }}" \
             -o BatchMode=yes \
             "${{ secrets.YISHUN_SSH_USER }}@${{ secrets.YISHUN_SSH_HOST }}" \
-            'set -e; curl -fsS --max-time 15 http://127.0.0.1:3001/ >/dev/null; curl -fsS --max-time 15 http://127.0.0.1:3001/api/kanban/status >/dev/null; sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null'
+            'set -e; for i in $(seq 1 30); do curl -fsS --max-time 10 http://127.0.0.1:3001/ >/dev/null && curl -fsS --max-time 10 http://127.0.0.1:3001/api/kanban/status >/dev/null && sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null && exit 0; echo "waiting for app health attempt=$i"; sleep 2; done; sudo -n -u yishun pm2 logs yishun-nextjs --lines 80 --nostream; exit 1'
