@@ -59,3 +59,35 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 7
+
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.YISHUN_SSH_KEY }}" > ~/.ssh/yishun_deploy_key
+          chmod 600 ~/.ssh/yishun_deploy_key
+          printf '%s\n' "${{ secrets.YISHUN_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Run server deploy script
+        run: |
+          ssh -i ~/.ssh/yishun_deploy_key \
+            -p "${{ secrets.YISHUN_SSH_PORT }}" \
+            -o BatchMode=yes \
+            "${{ secrets.YISHUN_SSH_USER }}@${{ secrets.YISHUN_SSH_HOST }}" \
+            'sudo -n -u yishun /home/yishun/deploy.sh'
+
+      - name: Verify production health
+        run: |
+          ssh -i ~/.ssh/yishun_deploy_key \
+            -p "${{ secrets.YISHUN_SSH_PORT }}" \
+            -o BatchMode=yes \
+            "${{ secrets.YISHUN_SSH_USER }}@${{ secrets.YISHUN_SSH_HOST }}" \
+            'set -e; curl -fsS --max-time 15 http://127.0.0.1:3001/ >/dev/null; curl -fsS --max-time 15 http://127.0.0.1:3001/api/kanban/status >/dev/null; sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null'
