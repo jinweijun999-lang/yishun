@@ -20,6 +20,7 @@ jobs:
     env:
       DATABASE_URL: file:./ci.db
       AUTH_SECRET: ci-build-secret
+      GOOGLE_API_KEY: placeholder-for-ci
       ZHIPU_API_KEY: placeholder-for-ci
 
     steps:
@@ -56,4 +57,5 @@ jobs:
             next.config.js
             prisma
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
