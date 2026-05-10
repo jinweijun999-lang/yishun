@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/app/components/LocaleProvider";
 
@@ -28,11 +28,7 @@ export default function AdminConsultationsPage() {
 
   const page = parseInt(searchParams.get("page") || "1", 10);
 
-  useEffect(() => {
-    fetchConsultations(page);
-  }, [page]);
-
-  const fetchConsultations = (pageNum: number) => {
+  const fetchConsultations = useCallback((pageNum: number) => {
     setLoading(true);
     const params = new URLSearchParams({
       page: pageNum.toString(),
@@ -49,7 +45,11 @@ export default function AdminConsultationsPage() {
       .catch(() => {
         setLoading(false);
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => fetchConsultations(page));
+  }, [fetchConsultations, page]);
 
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;

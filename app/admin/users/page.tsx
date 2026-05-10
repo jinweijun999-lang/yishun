@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/app/components/LocaleProvider";
 
@@ -31,11 +31,7 @@ export default function AdminUsersPage() {
 
   const page = parseInt(searchParams.get("page") || "1", 10);
 
-  useEffect(() => {
-    fetchUsers(page, search);
-  }, [page, search]);
-
-  const fetchUsers = (pageNum: number, searchQuery: string) => {
+  const fetchUsers = useCallback((pageNum: number, searchQuery: string) => {
     setLoading(true);
     const params = new URLSearchParams({
       page: pageNum.toString(),
@@ -55,7 +51,11 @@ export default function AdminUsersPage() {
       .catch(() => {
         setLoading(false);
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => fetchUsers(page, search));
+  }, [fetchUsers, page, search]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

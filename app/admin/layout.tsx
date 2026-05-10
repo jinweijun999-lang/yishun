@@ -14,18 +14,19 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useI18n();
-  const [loading, setLoading] = useState(true);
+  const isLoginPage = pathname === "/admin/login";
+  const [loading, setLoading] = useState(!isLoginPage);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Skip auth check for login page
-    if (pathname === "/admin/login") {
-      setLoading(false);
+    if (isLoginPage) {
       return;
     }
 
     // Check if user is authenticated as admin
     const checkAuth = async () => {
+      setLoading(true);
       try {
         // Read the fortune_session cookie and send to verify endpoint
         // Parse cookies properly - cookie value may contain = characters (JWT tokens)
@@ -63,7 +64,7 @@ export default function AdminLayout({
     };
 
     checkAuth();
-  }, [pathname, router]);
+  }, [isLoginPage, router]);
 
   const handleLogout = async () => {
     // Clear the session cookie
@@ -75,6 +76,11 @@ export default function AdminLayout({
     router.push("/admin/login");
   };
 
+  // Login page - no sidebar
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen relative">
@@ -84,11 +90,6 @@ export default function AdminLayout({
         </div>
       </div>
     );
-  }
-
-  // Login page - no sidebar
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
   }
 
   return (
