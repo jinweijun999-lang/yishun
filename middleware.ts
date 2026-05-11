@@ -3,7 +3,6 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
   normalizeLocale,
-  pickLocaleFromAcceptLanguage,
   SUPPORTED_LOCALES,
 } from "@/lib/i18n";
 
@@ -20,10 +19,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const detected = pickLocaleFromAcceptLanguage(
-    request.headers.get("accept-language")
-  );
-  const locale = detected ?? DEFAULT_LOCALE;
+  // Do not auto-select zh-CN from Accept-Language for first-time overseas
+  // visitors. A saved locale cookie still takes precedence above.
+  const locale = DEFAULT_LOCALE;
 
   const response = NextResponse.next();
   response.cookies.set(LOCALE_COOKIE, locale, {

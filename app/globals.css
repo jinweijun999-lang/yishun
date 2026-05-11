@@ -8,6 +8,11 @@
   --background-end-rgb: 15, 18, 16;
 }
 
+html {
+  scroll-padding-top: calc(4rem + env(safe-area-inset-top));
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background:
@@ -33,6 +38,9 @@ body {
       #0b0d0c 100%
     );
   min-height: 100vh;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 ::-webkit-scrollbar {
@@ -93,6 +101,8 @@ body {
   @apply w-full px-4 py-3 rounded-xl bg-surface/60 border border-white/10 
          text-white placeholder-gray-400 outline-none transition-all duration-300;
   color: #e8e3d6;
+  min-height: 48px;
+  font-size: 16px;
 }
 
 .input-field::placeholder {
@@ -130,6 +140,25 @@ body {
   @apply rounded-2xl bg-surface/70 backdrop-blur-xl border border-white/5 
          transition-all duration-300;
   box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+@media (max-width: 420px) {
+  .glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .card {
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

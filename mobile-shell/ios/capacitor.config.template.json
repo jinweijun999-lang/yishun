@@ -1,0 +1,28 @@
+{
+  "appId": "com.yishun.app",
+  "appName": "YiShun",
+  "webDir": "out",
+  "server": {
+    "url": "https://11263.com?source=ios_capacitor",
+    "cleartext": false,
+    "allowNavigation": ["11263.com"]
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "scheme": "YiShun"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#090a0a",
+      "showSpinner": false
+    }
+  },
+  "p0Boundaries": {
+    "iapEnabled": false,
+    "externalStripeInsideIosApp": false,
+    "adSdkEnabled": false,
+    "attPromptRequired": false,
+    "pushEnabled": false
+  }
+}

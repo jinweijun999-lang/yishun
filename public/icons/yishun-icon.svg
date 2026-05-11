@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="YiShun app icon">
+  <defs>
+    <radialGradient id="bg" cx="45%" cy="25%" r="80%">
+      <stop offset="0" stop-color="#c2a067"/>
+      <stop offset="0.45" stop-color="#6f9a84"/>
+      <stop offset="1" stop-color="#090a0a"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#f3ead7"/>
+      <stop offset="1" stop-color="#c2a067"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="164" fill="none" stroke="rgba(243,234,215,0.28)" stroke-width="10"/>
+  <path d="M256 96v320M96 256h320" stroke="rgba(243,234,215,0.18)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M165 312c38 62 144 63 183 0-25 16-54 25-91 25s-67-9-92-25Z" fill="#0b0d0c" opacity="0.75"/>
+  <path d="M166 198c23-54 77-86 144-70 42 10 72 39 87 75-32-21-66-27-100-17-41 13-76 12-131 12Z" fill="#0b0d0c" opacity="0.65"/>
+  <path d="M159 257c52-63 145-70 194-29 21 17 33 39 37 62-57-44-135-44-231-33Z" fill="url(#line)" opacity="0.96"/>
+  <text x="256" y="292" text-anchor="middle" font-family="Georgia, serif" font-size="92" font-weight="700" fill="#090a0a">易</text>
+</svg>

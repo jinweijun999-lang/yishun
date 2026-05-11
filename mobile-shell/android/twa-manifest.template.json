@@ -1,0 +1,37 @@
+{
+  "packageId": "com.yishun.app",
+  "host": "11263.com",
+  "name": "YiShun: BaZi Daily Astrology",
+  "launcherName": "YiShun",
+  "display": "standalone",
+  "themeColor": "#6f9a84",
+  "themeColorDark": "#090a0a",
+  "navigationColor": "#090a0a",
+  "navigationColorDark": "#090a0a",
+  "backgroundColor": "#090a0a",
+  "startUrl": "/?source=android_twa",
+  "iconUrl": "https://11263.com/icons/yishun-icon-512.svg",
+  "maskableIconUrl": "https://11263.com/icons/yishun-icon-512.svg",
+  "monochromeIconUrl": "https://11263.com/icons/yishun-icon.svg",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android-signing/yishun-release.keystore",
+    "alias": "yishun-release"
+  },
+  "appVersionName": "0.1.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Start Free Reading",
+      "short_name": "Reading",
+      "url": "/reading/start?source=android_twa_shortcut"
+    }
+  ],
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": false,
+    "playBilling": false,
+    "adMob": false,
+    "pushNotifications": false
+  }
+}

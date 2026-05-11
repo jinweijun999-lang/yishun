@@ -2,7 +2,9 @@ import type { NextRequest } from "next/server";
 
 export type Locale = "zh-CN" | "en";
 
-export const DEFAULT_LOCALE: Locale = "zh-CN";
+// Overseas P0 is English-first. Existing locale cookies can still override this,
+// but a fresh visitor should see the English acquisition funnel by default.
+export const DEFAULT_LOCALE: Locale = "en";
 export const SUPPORTED_LOCALES: Locale[] = ["zh-CN", "en"];
 export const LOCALE_COOKIE = "locale";
 

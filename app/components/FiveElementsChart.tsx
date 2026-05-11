@@ -17,8 +17,8 @@ type ElementBalance = {
 const ELEMENTS = [
   {
     key: "wood" as const,
-    label: "木",
-    en: "Wood",
+    label: "Wood",
+    zh: "木",
     symbol: "✿",
     color: "#10B981", // emerald
     bgClass: "bg-emerald-500/20",
@@ -27,8 +27,8 @@ const ELEMENTS = [
   },
   {
     key: "fire" as const,
-    label: "火",
-    en: "Fire",
+    label: "Fire",
+    zh: "火",
     symbol: "☲",
     color: "#EF4444", // red
     bgClass: "bg-red-500/20",
@@ -37,8 +37,8 @@ const ELEMENTS = [
   },
   {
     key: "earth" as const,
-    label: "土",
-    en: "Earth",
+    label: "Earth",
+    zh: "土",
     symbol: "▲",
     color: "#F59E0B", // amber
     bgClass: "bg-amber-500/20",
@@ -47,8 +47,8 @@ const ELEMENTS = [
   },
   {
     key: "metal" as const,
-    label: "金",
-    en: "Metal",
+    label: "Metal",
+    zh: "金",
     symbol: "○",
     color: "#94A3B8", // slate (silver)
     bgClass: "bg-slate-400/20",
@@ -57,8 +57,8 @@ const ELEMENTS = [
   },
   {
     key: "water" as const,
-    label: "水",
-    en: "Water",
+    label: "Water",
+    zh: "水",
     symbol: "☵",
     color: "#3B82F6", // blue
     bgClass: "bg-blue-500/20",
@@ -104,9 +104,9 @@ export default function FiveElementsChart({
               {/* Element Identity: symbol + color + label */}
               <div
                 className={`w-10 h-10 rounded-lg ${element.bgClass} border ${element.borderClass} flex items-center justify-center flex-shrink-0`}
-                title={`${element.en} (${element.label})`}
+                title={`${element.label} (${element.zh})`}
                 role="img"
-                aria-label={`${element.label} ${element.en}`}
+                aria-label={`${element.label} element`}
               >
                 <span
                   className="text-lg"
@@ -118,9 +118,12 @@ export default function FiveElementsChart({
               </div>
 
               {/* Label */}
-              <div className="w-8 flex-shrink-0">
-                <span className="text-sm font-medium" style={{ color: element.color }}>
+              <div className="w-16 flex-shrink-0">
+                <span className="block text-sm font-semibold" style={{ color: element.color }}>
                   {element.label}
+                </span>
+                <span className="block text-[10px] text-gray-500" title={`${element.label} in Chinese`}>
+                  {element.zh}
                 </span>
               </div>
 
@@ -197,25 +200,25 @@ function AnalysisHint({
             <>
               Your chart is strongest in{" "}
               <span className="font-medium" style={{ color: dominantElement?.color }}>
-                {dominantElement?.en}
+                {dominantElement?.label}
               </span>{" "}
-              ({dominantElement?.label}) and may need more{" "}
+              and may benefit from more{" "}
               <span className="font-medium" style={{ color: weakElement?.color }}>
-                {weakElement?.en}
+                {weakElement?.label}
               </span>{" "}
-              ({weakElement?.label}).
+              energy today.
             </>
           ) : (
             <>
               您的命盘{" "}
               <span className="font-medium" style={{ color: dominantElement?.color }}>
-                {dominantElement?.label}
+                {dominantElement?.zh}
               </span>{" "}
-              ({dominantElement?.en}) 较旺，建议补充{" "}
+              ({dominantElement?.label}) 较旺，建议补充{" "}
               <span className="font-medium" style={{ color: weakElement?.color }}>
-                {weakElement?.label}
+                {weakElement?.zh}
               </span>{" "}
-              ({weakElement?.en}) 能量。
+              ({weakElement?.label}) 能量。
             </>
           )}
         </p>

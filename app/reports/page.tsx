@@ -7,6 +7,7 @@ import Background from "../components/Background";
 import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
+import StripeCheckoutButton from "../components/StripeCheckoutButton";
 
 type Consultation = {
   id: string;
@@ -21,11 +22,29 @@ type Consultation = {
   };
 };
 
+type DailyRitualHistoryItem = {
+  date: string;
+  score: number;
+  bestFor: string[];
+  focus: string;
+  savedAt: string;
+};
+
 export default function ReportsPage() {
   const router = useRouter();
   const handleBack = () => { router.back(); };
   const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [dailyHistory] = useState<DailyRitualHistoryItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("yishun:dailyRitual:history");
+      const parsed = saved ? (JSON.parse(saved) as DailyRitualHistoryItem[]) : [];
+      return Array.isArray(parsed) ? parsed.slice(0, 7) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -87,6 +106,61 @@ export default function ReportsPage() {
             </p>
           </motion.div>
 
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="glass card p-5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-secondary/80">Daily Ritual history</p>
+                <h3 className="mt-1 text-lg font-heading font-bold text-white">Your recent timing signals</h3>
+              </div>
+              <a href="/reading/start" className="rounded-full border border-secondary/30 px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary/10">
+                New signal
+              </a>
+            </div>
+
+            {dailyHistory.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {dailyHistory.map((item) => (
+                  <div key={`${item.date}-${item.savedAt}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-white">{item.focus || "General"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-heading font-bold text-secondary">{item.score}</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">clarity</p>
+                      </div>
+                    </div>
+                    {item.bestFor?.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.bestFor.slice(0, 3).map((tag) => (
+                          <span key={tag} className="rounded-full bg-secondary/10 px-2.5 py-1 text-xs text-secondary">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-gray-400">
+                No Daily Ritual history on this device yet. Generate and save today’s signal to start a streak.
+              </div>
+            )}
+          </motion.section>
+
           {/* Reports List */}
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
@@ -107,12 +181,20 @@ export default function ReportsPage() {
               <p className="text-xs text-gray-400 mb-4">
                 {t("trigger.consultation.note")}
               </p>
-              <a
-                href="/membership"
-                className="inline-block px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
-              >
-                {t("layerC.buyMore")}
-              </a>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <StripeCheckoutButton
+                  product="report_single"
+                  className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
+                >
+                  Full report $4.99
+                </StripeCheckoutButton>
+                <a
+                  href="/membership"
+                  className="inline-block px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-gray-300 font-semibold text-sm hover:bg-white/10 transition-colors"
+                >
+                  {t("layerC.buyMore")}
+                </a>
+              </div>
             </motion.div>
           ) : (
             <div className="space-y-4">
