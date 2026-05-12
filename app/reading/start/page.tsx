@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { queueP0Analytics } from "@/lib/p0-analytics";
 
 type BirthPayload = {
   birthDate: string;
@@ -22,15 +23,13 @@ type BirthPayload = {
 
 const focusOptions = ["Work", "Money", "Love", "Energy", "Creativity", "General"];
 const loadingSteps = [
-  "Mapping your Four Pillars…",
-  "Adjusting for true solar time…",
-  "Translating today’s timing into plain English…",
+  "Finding today’s best timing…",
+  "Checking your solar-time rhythm…",
+  "Turning it into one clear action…",
 ];
 
 function track(event: string, properties: Record<string, unknown> = {}) {
-  if (typeof window === "undefined") return;
-  console.info("[YiShun funnel]", event, properties);
-  window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
+  queueP0Analytics(event, properties);
 }
 
 function toNumberOrNull(value: string) {
@@ -84,7 +83,7 @@ export default function ReadingStartPage() {
   function trackFormStart() {
     if (hasTrackedStart) return;
     setHasTrackedStart(true);
-    track("birth_form_start", { source: "reading_start", locale: "en" });
+    track("ritual_start", { source: "reading_start", locale: "en" });
   }
 
   function nextStep(next: number) {
@@ -107,7 +106,7 @@ export default function ReadingStartPage() {
     setIsSubmitting(true);
     setLoadingStep(0);
     track("birth_step_completed", { step: 3, source: "reading_start" });
-    track("birth_form_complete", {
+    track("ritual_submit", {
       birth_time_known: birthTimeKnown,
       has_place: Boolean(birthPlaceText),
       focus,
@@ -141,10 +140,10 @@ export default function ReadingStartPage() {
       localStorage.setItem("yishun:p0BirthProfile", JSON.stringify(payload));
       localStorage.setItem("yishun:p0Preview", JSON.stringify({ ...data, focus }));
       localStorage.setItem("yishun:dailyRitual:lastGeneratedAt", new Date().toISOString());
-      track("birth_chart_generated", {
-        day_master_element: data.dayMaster,
-        dominant_element: data.dominantElement,
-        missing_element: data.missingElement,
+      track("ritual_complete", {
+        score: data.dailySignal?.score,
+        best_hour: data.dailySignal?.bestHour,
+        lucky_element: data.dailySignal?.luckyElement,
         focus,
       });
       if (data.trueSolarTime) {
@@ -176,12 +175,12 @@ export default function ReadingStartPage() {
 
         <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
           <div className="rounded-3xl border border-accent/20 bg-surface/70 p-6 shadow-2xl">
-            <p className="text-xs uppercase tracking-[0.3em] text-accent/80">60-second Daily Ritual</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-accent/80">Daily Return Hook</p>
             <h1 className="mt-3 text-3xl sm:text-4xl font-heading font-bold text-white text-glow">
-              Reveal today’s decision signal.
+              Find today’s best timing in 60 seconds.
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-300">
-              Three light steps: birth moment, birthplace, and today’s focus. Advanced solar-time details are optional.
+              Enter only what we need. YiShun gives you one best window, one avoid window, and one action to try today.
             </p>
           </div>
 
@@ -214,7 +213,7 @@ export default function ReadingStartPage() {
                 <div className="space-y-5">
                   <div>
                     <h2 className="text-xl font-heading font-bold text-white">First, your birth moment.</h2>
-                    <p className="mt-2 text-sm text-gray-400">Birth time helps calculate your hour pillar. If unknown, YiShun marks precision as lower.</p>
+                    <p className="mt-2 text-sm text-gray-400">This sets your personal rhythm. If you do not know the time, we will still give a useful daily signal.</p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <label className="space-y-2 text-sm text-gray-300">
@@ -261,7 +260,7 @@ export default function ReadingStartPage() {
                 <div className="space-y-5">
                   <div>
                     <h2 className="text-xl font-heading font-bold text-white">Where were you born?</h2>
-                    <p className="mt-2 text-sm text-gray-400">We use location to adjust true solar time. You can continue with lower precision if you only know the city.</p>
+                    <p className="mt-2 text-sm text-gray-400">A city is enough. It helps us tune the timing window without making this feel like paperwork.</p>
                   </div>
                   <label className="space-y-2 text-sm text-gray-300 block">
                     <span>Birthplace</span>
@@ -301,8 +300,8 @@ export default function ReadingStartPage() {
               {step === 3 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-heading font-bold text-white">What do you want help timing today?</h2>
-                    <p className="mt-2 text-sm text-gray-400">This does not change your chart; it helps phrase today’s guidance.</p>
+                    <h2 className="text-xl font-heading font-bold text-white">What do you want to time today?</h2>
+                    <p className="mt-2 text-sm text-gray-400">Pick a theme. The result stays simple: best window, avoid window, one action.</p>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {focusOptions.map((option) => (
@@ -322,7 +321,7 @@ export default function ReadingStartPage() {
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(2)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">Back</button>
                     <button type="submit" disabled={isSubmitting} className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg disabled:opacity-60">
-                      Reveal today’s signal
+                      Find my best timing
                     </button>
                   </div>
                 </div>
