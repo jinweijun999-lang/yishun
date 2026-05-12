@@ -51,3 +51,26 @@ model StripeWebhookEvent {
   @@index([checkoutSessionId])
   @@index([userId])
 }
+
+model ShareLink {
+  id                 String   @id
+  anonymousId        String?
+  sourceScreen       String
+  cardType           String
+  templateId         String
+  locale             String   @default("en-US")
+  publicPayload      Json
+  utmSource          String?
+  utmMedium          String?
+  utmCampaign        String?
+  clickCount         Int      @default(0)
+  generateClickCount Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  expiresAt          DateTime
+
+  @@index([anonymousId])
+  @@index([sourceScreen])
+  @@index([cardType])
+  @@index([expiresAt])
+}

@@ -77,6 +77,16 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getAnonymousId() {
+  if (typeof window === "undefined") return undefined;
+  const key = "yishun:anonymousId";
+  const existing = window.localStorage.getItem(key);
+  if (existing) return existing;
+  const generated = `anon_${crypto.randomUUID()}`;
+  window.localStorage.setItem(key, generated);
+  return generated;
+}
+
 const ELEMENT_LABELS: Record<string, string> = {
   wood: "Wood",
   fire: "Fire",
@@ -169,6 +179,7 @@ export default function ReadingResultPage() {
     }
   });
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
   const [savePanelOpen, setSavePanelOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -236,17 +247,57 @@ export default function ReadingResultPage() {
   }
 
   async function handleShare() {
-    if (!preview) return;
-    const text = `My YiShun timing card today: ${preview.dailySignal.score}/100 clarity · Best window ${preview.dailySignal.bestHour} · Avoid ${toSentenceCase(preview.dailySignal.avoid)} · Try this: ${toSentenceCase(preview.dailySignal.do)} #DailyTiming`;
-    const shareData = { title: "YiShun Today Timing Card", text, url: window.location.origin };
+    if (!preview || shareBusy) return;
+    setShareBusy(true);
+    const anonymousId = getAnonymousId();
+    const payload = {
+      title: `Today’s ${stripChineseText(preview.focus, "General")} timing card`,
+      theme: stripChineseText(preview.focus, "General"),
+      summary: oneLineSummary,
+      element_hint: cleanElementName(preview.dailySignal.luckyElement) ?? undefined,
+      best_window: preview.dailySignal.bestHour,
+      avoid_window: toSentenceCase(preview.dailySignal.avoid),
+      action: toSentenceCase(preview.dailySignal.do),
+      score_label: `${preview.dailySignal.score}/100 clarity`,
+    };
+    const fallbackText = `My YiShun timing card today: ${preview.dailySignal.score}/100 clarity · Best window ${preview.dailySignal.bestHour} · Avoid ${toSentenceCase(preview.dailySignal.avoid)} · Try this: ${toSentenceCase(preview.dailySignal.do)} #DailyTiming`;
+    let shareUrl = window.location.origin;
+    let shareId: string | undefined;
+    track("share_create_click", { source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic", anonymous_id: anonymousId });
+    try {
+      const response = await fetch("/api/v1/shares", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anonymous_id: anonymousId,
+          source_screen: "bazi_result",
+          card_type: "daily_luck",
+          template_id: "mystic",
+          locale: navigator.language || "en-US",
+          payload,
+          utm: { source: "native_share", medium: "share_sheet", campaign: "p1_share_landing" },
+        }),
+      });
+      const data = (await response.json()) as { share_id?: string; share_url?: string; error?: string };
+      if (!response.ok || !data.share_url || !data.share_id) throw new Error(data.error ?? "share_create_failed");
+      shareUrl = data.share_url;
+      shareId = data.share_id;
+      track("share_link_created", { share_id: shareId, source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic" });
+    } catch (error) {
+      console.warn("YiShun share link failed; falling back to plain share text.", error);
+    }
+
+    const text = `${fallbackText}\n${shareUrl}`;
+    const shareData = { title: "YiShun Today Timing Card", text, url: shareUrl };
     const canSystemShare = "share" in navigator;
     if (canSystemShare) {
       await navigator.share(shareData).catch(() => navigator.clipboard?.writeText(text));
+      if (shareId) track("native_share_sheet_opened", { share_id: shareId, platform: navigator.platform || "web", card_type: "daily_luck" });
     } else {
       await navigator.clipboard?.writeText(text).catch(() => undefined);
     }
     setShareCopied(true);
-    track("share_card_click", { card_type: "today_signal_card", share_method: canSystemShare ? "system_share" : "copy_text" });
+    setShareBusy(false);
   }
 
   function handleReportPreview() {
@@ -339,7 +390,7 @@ export default function ReadingResultPage() {
             )}
             <div className="mt-6 grid sm:grid-cols-3 gap-3">
               <button onClick={() => setSavePanelOpen(true)} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-sm font-bold text-white">Save my profile for tomorrow</button>
-              <button onClick={handleShare} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5">{shareCopied ? "Share text ready" : "Share today’s card"}</button>
+              <button onClick={handleShare} disabled={shareBusy} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-60">{shareBusy ? "Creating link…" : shareCopied ? "Share link ready" : "Share today’s card"}</button>
               <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">See what changes tomorrow</Link>
             </div>
             {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
@@ -361,7 +412,7 @@ export default function ReadingResultPage() {
               <p className="mt-5 border-t border-white/10 pt-4 text-xs text-gray-400">No birth date or private details shown. Screenshot or share this card.</p>
             </div>
             <div className="mt-4 flex justify-center">
-              <button onClick={handleShare} className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-surface">{shareCopied ? "Copied / shared" : "Copy or system-share card text"}</button>
+              <button onClick={handleShare} disabled={shareBusy} className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-surface disabled:opacity-60">{shareBusy ? "Creating link…" : shareCopied ? "Copied / shared" : "Copy or system-share card text"}</button>
             </div>
           </section>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Background from "../../components/Background";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { queueP0Analytics } from "@/lib/p0-analytics";
@@ -40,6 +40,7 @@ function toNumberOrNull(value: string) {
 
 export default function ReadingStartPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
@@ -83,7 +84,9 @@ export default function ReadingStartPage() {
   function trackFormStart() {
     if (hasTrackedStart) return;
     setHasTrackedStart(true);
-    track("ritual_start", { source: "reading_start", locale: "en" });
+    const shareId = searchParams.get("share_id") ?? undefined;
+    track("ritual_start", { source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start", locale: "en", share_id: shareId });
+    if (shareId) track("shared_user_generate_started", { share_id: shareId, entry_screen: "reading_start", locale: "en" });
   }
 
   function nextStep(next: number) {
@@ -111,7 +114,8 @@ export default function ReadingStartPage() {
       has_place: Boolean(birthPlaceText),
       focus,
       locale: "en",
-      source: "reading_start",
+      source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start",
+      share_id: searchParams.get("share_id") ?? undefined,
     });
 
     const payload: BirthPayload = {
@@ -145,6 +149,8 @@ export default function ReadingStartPage() {
         best_hour: data.dailySignal?.bestHour,
         lucky_element: data.dailySignal?.luckyElement,
         focus,
+        source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start",
+        share_id: searchParams.get("share_id") ?? undefined,
       });
       if (data.trueSolarTime) {
         track("true_solar_time_confirmed", {
