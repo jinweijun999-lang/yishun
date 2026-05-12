@@ -209,11 +209,34 @@ export default function ReadingStartPage() {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <label className="space-y-2 text-sm text-gray-300">
                       <span>Birth date</span>
-                      <input required type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="input-field" />
+                      <input
+                        required
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="bday"
+                        pattern="\\d{4}-\\d{2}-\\d{2}"
+                        placeholder="YYYY-MM-DD"
+                        aria-describedby="birth-date-format"
+                        value={birthDate}
+                        onChange={(e) => setBirthDate(e.target.value)}
+                        className="input-field"
+                      />
+                      <span id="birth-date-format" className="text-xs text-gray-500">Use YYYY-MM-DD, for example 1990-05-20.</span>
                     </label>
                     <label className="space-y-2 text-sm text-gray-300">
                       <span>Birth time</span>
-                      <input disabled={!birthTimeKnown} type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} className="input-field disabled:opacity-50" />
+                      <input
+                        disabled={!birthTimeKnown}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="([01]\\d|2[0-3]):[0-5]\\d"
+                        placeholder="HH:MM"
+                        aria-describedby="birth-time-format"
+                        value={birthTime}
+                        onChange={(e) => setBirthTime(e.target.value)}
+                        className="input-field disabled:opacity-50"
+                      />
+                      <span id="birth-time-format" className="text-xs text-gray-500">Use 24-hour time, for example 08:30.</span>
                     </label>
                   </div>
                   <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-gray-300">

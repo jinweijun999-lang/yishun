@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   if (missingEnv.length > 0) {
     return NextResponse.json(
       {
-        error: `Stripe Test Checkout is not configured. Set ${missingEnv.join(", ")} to enable this CTA.`,
+        error: "Checkout is not configured yet. Please try again later.",
         missingEnv,
       },
       { status: 503 }
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Stripe checkout session creation failed", error);
     return NextResponse.json(
-      { error: "Unable to create Stripe Test Checkout session." },
+      { error: "Unable to create checkout session." },
       { status: 502 }
     );
   }
