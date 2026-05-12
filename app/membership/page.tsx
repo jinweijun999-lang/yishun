@@ -33,7 +33,8 @@ type MembershipTier = {
 export default function MembershipPage() {
   const router = useRouter();
   const handleBack = () => { router.back(); };
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEnglish = locale === "en";
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isBuying, setIsBuying] = useState(false);
   const [buySuccess, setBuySuccess] = useState("");
@@ -79,13 +80,20 @@ export default function MembershipPage() {
       name: t("membership.tier.free"),
       price: "$0",
       period: "",
-      description: "适合初步了解",
-      features: [
-        "每日运势信号（需观看广告）",
-        "一次免费排盘",
-        "基础五行分析",
-        "单次咨询 $2.99/次",
-      ],
+      description: isEnglish ? "Best for trying your first Daily Ritual." : "适合初步了解",
+      features: isEnglish
+        ? [
+            "Daily Ritual signal with rewarded access",
+            "One free birth-chart preview",
+            "Basic Five Elements analysis",
+            "Single consultation available at $2.99",
+          ]
+        : [
+            "每日运势信号（需观看广告）",
+            "一次免费排盘",
+            "基础五行分析",
+            "单次咨询 $2.99/次",
+          ],
       cta: t("nav.register"),
       ctaHref: "/register",
       highlight: false,
@@ -95,16 +103,24 @@ export default function MembershipPage() {
       icon: "🌙",
       name: t("membership.tier.monthly"),
       price: "$9.99",
-      period: "/月",
-      description: "适合持续使用",
-      features: [
-        "每日运势信号（无需广告）",
-        "无限排盘",
-        "完整十神图谱",
-        "每月 10 次结构化解读",
-        "优先客服支持",
-      ],
-      cta: "Test Checkout",
+      period: isEnglish ? "/month" : "/月",
+      description: isEnglish ? "Best for ongoing weekly reflection." : "适合持续使用",
+      features: isEnglish
+        ? [
+            "Daily Ritual signal without rewarded access",
+            "Unlimited birth-chart previews",
+            "Complete Ten Gods profile",
+            "10 structured interpretations per month",
+            "Priority support",
+          ]
+        : [
+            "每日运势信号（无需广告）",
+            "无限排盘",
+            "完整十神图谱",
+            "每月 10 次结构化解读",
+            "优先客服支持",
+          ],
+      cta: isEnglish ? "Continue to checkout" : "测试结账",
       ctaHref: "#",
       highlight: false,
       disabled: false,
@@ -115,16 +131,24 @@ export default function MembershipPage() {
       icon: "⭐",
       name: t("membership.tier.annual"),
       price: "$79.99",
-      period: "/年",
+      period: isEnglish ? "/year" : "/年",
       description: t("membership.tier.annualValue"),
-      features: [
-        "Monthly Member 全部权益",
-        "每日运势信号（无需广告）",
-        "无限次结构化解读",
-        "历史记录完整保存",
-        "优先客服支持",
-      ],
-      cta: "即将推出",
+      features: isEnglish
+        ? [
+            "Everything in Monthly Member",
+            "Daily Ritual signal without rewarded access",
+            "Unlimited structured interpretations",
+            "Full history retention",
+            "Priority support",
+          ]
+        : [
+            "Monthly Member 全部权益",
+            "每日运势信号（无需广告）",
+            "无限次结构化解读",
+            "历史记录完整保存",
+            "优先客服支持",
+          ],
+      cta: isEnglish ? "Coming soon" : "即将推出",
       ctaHref: "#",
       highlight: true,
       disabled: true,
@@ -142,13 +166,13 @@ export default function MembershipPage() {
               <button
                 onClick={handleBack}
                 className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label="返回"
+                aria-label={t("common.goBack")}
               >
                 ←
               </button>
               <span className="text-xl" role="img" aria-hidden="true">🔮</span>
               <h1 className="text-lg font-heading font-bold text-white">
-                YiShun <span className="text-accent text-sm">易顺</span>
+                {isEnglish ? "YiShun" : <>YiShun <span className="text-accent text-sm">易顺</span></>}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -168,7 +192,7 @@ export default function MembershipPage() {
               {t("nav.tab.membership")}
             </h2>
             <p className="text-sm text-gray-400 mt-2">
-              开启你的专业命理之旅
+              {isEnglish ? "Unlock deeper Daily Ritual guidance when you are ready." : "开启你的专业命理之旅"}
             </p>
           </motion.div>
 
@@ -220,14 +244,14 @@ export default function MembershipPage() {
                   product="consultation_single"
                   className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
                 >
-                  Test Checkout $2.99
+                  Continue to checkout $2.99
                 </StripeCheckoutButton>
                 <button
                   onClick={handleBuyCredit}
                   disabled={isBuying}
                   className="w-full px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-gray-300 font-semibold text-sm hover:bg-white/10 transition-colors disabled:opacity-50"
                 >
-                  {isBuying ? t("profile.buying") : `${t("profile.buyCredit")} (mock)`}
+                  {isBuying ? t("profile.buying") : t("profile.buyCredit")}
                 </button>
               </div>
             </div>
@@ -265,7 +289,7 @@ export default function MembershipPage() {
                         </h3>
                         {tier.highlight && (
                           <span className="rounded-full border border-secondary/30 bg-secondary/10 px-2 py-0.5 text-secondary text-xs">
-                            推荐
+                            {isEnglish ? "Best value" : "推荐"}
                           </span>
                         )}
                       </div>
@@ -323,7 +347,7 @@ export default function MembershipPage() {
             className="text-center pt-4"
           >
             <p className="text-xs text-gray-600">
-              🔮 {t("common.poweredBy")}
+              {t("common.poweredBy")}
             </p>
             <p className="text-xs text-gray-700 mt-1">
               {t("common.disclaimer")}

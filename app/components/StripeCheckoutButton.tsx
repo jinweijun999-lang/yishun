@@ -24,7 +24,7 @@ export default function StripeCheckoutButton({
   disabled = false,
   clientReferenceId,
   onStart,
-  fallbackLabel = "Stripe Test Checkout is not configured yet. Add test env vars to enable payment redirect.",
+  fallbackLabel = "Checkout is not configured yet. Please try again later.",
 }: StripeCheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -52,7 +52,7 @@ export default function StripeCheckoutButton({
       window.location.assign(data.url);
     } catch (error) {
       console.error("Failed to start Stripe checkout", error);
-      setMessage("Unable to start Stripe Test Checkout. Please try again later.");
+      setMessage("Unable to start checkout. Please try again later.");
     } finally {
       setIsLoading(false);
     }

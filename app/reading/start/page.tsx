@@ -98,8 +98,7 @@ export default function ReadingStartPage() {
     setStep(next);
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitReading() {
     if (!birthDate) {
       setError("Please add your birth date to generate the core chart.");
       return;
@@ -167,7 +166,7 @@ export default function ReadingStartPage() {
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="relative z-10 min-h-screen pb-28 sm:pb-16">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <Link href="/" className="text-sm text-gray-300 hover:text-white">← YiShun</Link>
@@ -193,7 +192,18 @@ export default function ReadingStartPage() {
               <p className="text-sm text-gray-400">YiShun explains patterns for reflection — not fixed destiny.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} onFocus={trackFormStart} className="glass card p-5 sm:p-6 space-y-5">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (step < 3) {
+                  nextStep(step + 1);
+                  return;
+                }
+                void submitReading();
+              }}
+              onFocus={trackFormStart}
+              className="glass card p-5 sm:p-6 space-y-5"
+            >
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 {[1, 2, 3].map((item) => (
                   <span key={item} className={`rounded-full px-3 py-1 ${step === item ? "bg-secondary text-white" : "bg-white/5"}`}>Step {item}</span>
@@ -209,18 +219,41 @@ export default function ReadingStartPage() {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <label className="space-y-2 text-sm text-gray-300">
                       <span>Birth date</span>
-                      <input required type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="input-field" />
+                      <input
+                        required
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="bday"
+                        pattern="\d{4}-\d{2}-\d{2}"
+                        placeholder="YYYY-MM-DD"
+                        aria-describedby="birth-date-format"
+                        value={birthDate}
+                        onChange={(e) => setBirthDate(e.target.value)}
+                        className="input-field"
+                      />
+                      <span id="birth-date-format" className="text-xs text-gray-500">Use YYYY-MM-DD, for example 1990-05-20.</span>
                     </label>
                     <label className="space-y-2 text-sm text-gray-300">
                       <span>Birth time</span>
-                      <input disabled={!birthTimeKnown} type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} className="input-field disabled:opacity-50" />
+                      <input
+                        disabled={!birthTimeKnown}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="([01]\d|2[0-3]):[0-5]\d"
+                        placeholder="HH:MM"
+                        aria-describedby="birth-time-format"
+                        value={birthTime}
+                        onChange={(e) => setBirthTime(e.target.value)}
+                        className="input-field disabled:opacity-50"
+                      />
+                      <span id="birth-time-format" className="text-xs text-gray-500">Use 24-hour time, for example 08:30.</span>
                     </label>
                   </div>
                   <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                     <input type="checkbox" checked={!birthTimeKnown} onChange={(e) => setBirthTimeKnown(!e.target.checked)} />
                     I’m not sure — use an estimated noon chart.
                   </label>
-                  <button type="button" onClick={() => nextStep(2)} className="w-full rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white">Continue</button>
+                  <button type="submit" className="sticky bottom-4 z-50 w-full rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-2xl shadow-black/40 sm:static sm:shadow-none">Continue</button>
                 </div>
               )}
 
@@ -258,9 +291,9 @@ export default function ReadingStartPage() {
                       {trueSolarPreview && <p className="sm:col-span-2 text-xs text-gray-400">{trueSolarPreview}. Offset uses JS Date.getTimezoneOffset semantics.</p>}
                     </div>
                   )}
-                  <div className="flex gap-3">
+                  <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(1)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">Back</button>
-                    <button type="button" onClick={() => nextStep(3)} className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white">Continue</button>
+                    <button type="submit" className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white">Continue</button>
                   </div>
                 </div>
               )}
@@ -286,9 +319,9 @@ export default function ReadingStartPage() {
                       <option value="male">Male</option>
                     </select>
                   </label>
-                  <div className="flex gap-3">
+                  <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(2)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">Back</button>
-                    <button disabled={isSubmitting} className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg disabled:opacity-60">
+                    <button type="submit" disabled={isSubmitting} className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg disabled:opacity-60">
                       Reveal today’s signal
                     </button>
                   </div>

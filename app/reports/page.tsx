@@ -33,7 +33,8 @@ type DailyRitualHistoryItem = {
 export default function ReportsPage() {
   const router = useRouter();
   const handleBack = () => { router.back(); };
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEnglish = locale === "en";
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [dailyHistory] = useState<DailyRitualHistoryItem[]>(() => {
     if (typeof window === "undefined") return [];
@@ -76,13 +77,13 @@ export default function ReportsPage() {
               <button
                 onClick={handleBack}
                 className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label="返回"
+                aria-label={t("common.goBack")}
               >
                 ←
               </button>
               <span className="text-xl" role="img" aria-label="reports">📊</span>
               <h1 className="text-lg font-heading font-bold text-white">
-                YiShun <span className="text-accent text-sm">易顺</span>
+                {isEnglish ? "YiShun" : <>YiShun <span className="text-accent text-sm">易顺</span></>}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -213,7 +214,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500 mb-1">
-                        {new Date(consultation.createdAt).toLocaleDateString("zh-CN", {
+                        {new Date(consultation.createdAt).toLocaleDateString(isEnglish ? "en-US" : "zh-CN", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
@@ -243,7 +244,7 @@ export default function ReportsPage() {
             className="text-center pt-4"
           >
             <p className="text-xs text-gray-600">
-              🔮 {t("common.poweredBy")}
+              {t("common.poweredBy")}
             </p>
           </motion.div>
         </div>

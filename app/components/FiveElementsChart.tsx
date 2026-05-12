@@ -104,7 +104,7 @@ export default function FiveElementsChart({
               {/* Element Identity: symbol + color + label */}
               <div
                 className={`w-10 h-10 rounded-lg ${element.bgClass} border ${element.borderClass} flex items-center justify-center flex-shrink-0`}
-                title={`${element.label} (${element.zh})`}
+                title={locale === "en" ? element.label : `${element.label} (${element.zh})`}
                 role="img"
                 aria-label={`${element.label} element`}
               >
@@ -122,9 +122,11 @@ export default function FiveElementsChart({
                 <span className="block text-sm font-semibold" style={{ color: element.color }}>
                   {element.label}
                 </span>
-                <span className="block text-[10px] text-gray-500" title={`${element.label} in Chinese`}>
-                  {element.zh}
-                </span>
+                {locale !== "en" && (
+                  <span className="block text-[10px] text-gray-500" title={`${element.label} in Chinese`}>
+                    {element.zh}
+                  </span>
+                )}
               </div>
 
               {/* Bar */}

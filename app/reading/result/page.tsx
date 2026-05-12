@@ -122,6 +122,16 @@ function formatTrueSolarOffset(minutes: number) {
   return `True solar time shifts ${abs.toFixed(2)} minutes ${minutes > 0 ? "later" : "earlier"} than clock time.`;
 }
 
+function stripChineseText(value: string | null | undefined, fallback = "Available in your full chart") {
+  const cleaned = value?.replace(/[\u3400-\u9fff]+/g, "").replace(/\s+/g, " ").trim();
+  return cleaned || fallback;
+}
+
+function toSentenceCase(value: string | null | undefined) {
+  const cleaned = stripChineseText(value, "General guidance is available in your full chart.");
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
 export default function ReadingResultPage() {
   const router = useRouter();
   const [preview] = useState<PreviewData | null>(() => {
@@ -178,8 +188,8 @@ export default function ReadingResultPage() {
     const item: DailyArchiveItem = {
       date: todayKey(),
       score: preview.dailySignal.score,
-      bestFor: preview.dailySignal.bestFor,
-      focus: preview.focus ?? "General",
+      bestFor: preview.dailySignal.bestFor.map((item) => stripChineseText(item, "Timing")),
+      focus: stripChineseText(preview.focus, "General"),
       savedAt: new Date().toISOString(),
     };
     const merged = [item, ...history.filter((entry) => entry.date !== item.date)].slice(0, 14);
@@ -193,7 +203,7 @@ export default function ReadingResultPage() {
   function handleSaveDeviceOnly() {
     archiveToday();
     setSavePanelOpen(false);
-    setSavedMessage("Saved on this device. Come back tomorrow and YiShun will reuse your profile.");
+    setSavedMessage("Saved on this device. Your Daily Ritual history is ready in Reports.");
   }
 
   function handleSaveWithReminder(event: React.FormEvent<HTMLFormElement>) {
@@ -205,14 +215,20 @@ export default function ReadingResultPage() {
 
   async function handleShare() {
     if (!preview) return;
-    const text = `YiShun Today Signal: ${preview.dailySignal.score}/100 timing clarity. Best for ${preview.dailySignal.bestFor.join(", ")}. Do: ${preview.dailySignal.do}`;
+    const text = `YiShun Today Signal: ${preview.dailySignal.score}/100 timing clarity. Best for ${preview.dailySignal.bestFor.map((item) => stripChineseText(item, "Timing")).join(", ")}. Do: ${toSentenceCase(preview.dailySignal.do)}`;
     await navigator.clipboard?.writeText(text).catch(() => undefined);
     setShareCopied(true);
     track("share_card_clicked", { card_type: "today_signal_card", share_method: "copy_text" });
   }
 
-  function handleReportPreview() {
-    track("paywall_view", { placement: "post_free_value", report_type: "full_birth_chart_report", source: "reading_result" });
+  function handleReportPreview(targetHref: "/reports" | "/membership") {
+    track("paywall_view", {
+      placement: "post_free_value",
+      report_type: "full_birth_chart_report",
+      source: "reading_result",
+      target: targetHref,
+    });
+    router.push(targetHref);
   }
 
   const elementSummary = buildElementSummary(preview);
@@ -239,7 +255,7 @@ export default function ReadingResultPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-secondary">Today’s Decision Signal · {todayKey()}</p>
-                <h1 className="mt-2 text-2xl font-heading font-bold text-white">Timing clarity for {preview.focus ?? "General"}</h1>
+                <h1 className="mt-2 text-2xl font-heading font-bold text-white">Timing clarity: {stripChineseText(preview.focus, "General")}</h1>
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">Free result unlocked</span>
             </div>
@@ -248,22 +264,23 @@ export default function ReadingResultPage() {
               <span className="pb-3 text-sm text-gray-400">/ 100 timing clarity</span>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              {preview.dailySignal.bestFor.slice(0, 3).map((item) => (
-                <span key={item} className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-sm text-secondary">Best for {item}</span>
-              ))}
+              {preview.dailySignal.bestFor.slice(0, 3).map((item) => {
+                const label = stripChineseText(item, "Timing");
+                return <span key={item} className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-sm text-secondary">Best for {label}</span>;
+              })}
               <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-sm text-accent">Golden hour: {preview.dailySignal.bestHour}</span>
             </div>
             <div className="mt-5 grid sm:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
                 <p className="text-xs font-bold uppercase text-secondary">Do</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{preview.dailySignal.do}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-200">{toSentenceCase(preview.dailySignal.do)}</p>
               </div>
               <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
                 <p className="text-xs font-bold uppercase text-accent">Avoid</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{preview.dailySignal.avoid}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-200">{toSentenceCase(preview.dailySignal.avoid)}</p>
               </div>
             </div>
-            <p className="mt-5 text-sm leading-6 text-gray-300">{preview.dailySignal.why}</p>
+            <p className="mt-5 text-sm leading-6 text-gray-300">{stripChineseText(preview.dailySignal.why, "Today’s timing signal is ready for reflection.")}</p>
             {confidenceNotes.length > 0 && (
               <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-xs leading-5 text-amber-100">
                 {confidenceNotes.map((note) => <p key={note}>{note}</p>)}
@@ -306,7 +323,7 @@ export default function ReadingResultPage() {
               </div>
             </div>
             <div className="mt-5 grid sm:grid-cols-3 gap-3">
-              <button onClick={() => setSavePanelOpen(true)} className="rounded-2xl bg-white text-surface px-4 py-3 text-sm font-bold">Save history</button>
+              <button onClick={handleSaveDeviceOnly} className="rounded-2xl bg-white text-surface px-4 py-3 text-sm font-bold">Save history</button>
               <Link href="/reports" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">View saved history</Link>
               <Link href="/reading/start" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-semibold text-secondary">Return tomorrow</Link>
             </div>
@@ -316,13 +333,13 @@ export default function ReadingResultPage() {
             <aside className="space-y-5">
               <div className="glass card p-5">
                 <p className="text-xs uppercase tracking-[0.25em] text-accent/80">Birth Profile</p>
-                <h2 className="mt-2 text-xl font-heading font-bold text-white">{preview.dayMaster}</h2>
-                <p className="mt-2 text-sm leading-6 text-gray-300">{preview.interpretation.dayMasterDescription}</p>
+                <h2 className="mt-2 text-xl font-heading font-bold text-white">Birth chart profile</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-300">{stripChineseText(preview.interpretation.dayMasterDescription, "Your full profile is calculated and ready for English guidance.")}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                   {pillars.map((pillar) => (
                     <div key={pillar.name} className="rounded-xl bg-white/5 p-3">
                       <p className="capitalize text-gray-500">{pillar.name}</p>
-                      <p className="mt-1 text-white font-semibold">{pillar.pillar}</p>
+                      <p className="mt-1 text-white font-semibold">Calculated</p>
                     </div>
                   ))}
                 </div>
@@ -351,8 +368,8 @@ export default function ReadingResultPage() {
 
               <div className="glass card p-5">
                 <p className="text-xs uppercase tracking-[0.25em] text-secondary/80">Plain-English pattern</p>
-                <h2 className="mt-2 text-xl font-heading font-bold text-white">{preview.tenGodPattern.label}</h2>
-                <p className="mt-3 text-sm leading-6 text-gray-300">{preview.dailySignal.deeperInsight}</p>
+                <h2 className="mt-2 text-xl font-heading font-bold text-white">Plain-English pattern</h2>
+                <p className="mt-3 text-sm leading-6 text-gray-300">{stripChineseText(preview.dailySignal.deeperInsight, "The unlocked layer adds context for timing, focus, and follow-through.")}</p>
               </div>
             </div>
           </section>
@@ -362,12 +379,12 @@ export default function ReadingResultPage() {
             <h2 className="mt-2 text-2xl font-heading font-bold text-white">Want a deeper 7-day view?</h2>
             <p className="mt-2 text-sm leading-6 text-gray-300">Your free Today Signal is complete. Premium can add 7-day trends, history reflection, and richer report sections later.</p>
             <div className="mt-5 grid sm:grid-cols-2 gap-3">
-              <Link onClick={handleReportPreview} href="/reports" className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-bold text-white">Open report preview</Link>
-              <Link onClick={handleReportPreview} href="/membership" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">View membership options</Link>
+              <button onClick={() => handleReportPreview("/reports")} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-bold text-white">Open report preview</button>
+              <button onClick={() => handleReportPreview("/membership")} className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">View membership options</button>
             </div>
           </section>
 
-          <p className="text-center text-xs text-gray-500">{preview.dailySignal.disclaimer}</p>
+          <p className="text-center text-xs text-gray-500">{stripChineseText(preview.dailySignal.disclaimer, "For reflection only. Not financial, medical, legal, or psychological advice.")}</p>
         </section>
       </main>
     </>
