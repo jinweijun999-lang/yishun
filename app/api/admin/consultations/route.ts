@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionPayload } from "@/lib/auth";
 
+type AdminConsultation = {
+  id: string;
+  user: { email: string };
+  question: string;
+  response: string | null;
+  createdAt: Date;
+};
+
 export async function GET(request: NextRequest) {
   const session = await getSessionPayload(request);
   if (!session || !session.isAdmin) {
@@ -28,7 +36,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      consultations: consultations.map((c) => ({
+      consultations: consultations.map((c: AdminConsultation) => ({
         id: c.id,
         userEmail: c.user.email,
         question: c.question,
