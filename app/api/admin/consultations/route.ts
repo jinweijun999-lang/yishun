@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionPayload } from "@/lib/auth";
-
-type AdminConsultation = {
-  id: string;
-  user: { email: string };
-  question: string;
-  response: string | null;
-  createdAt: Date;
-};
+import { summarizeConsultationResponse } from "@/lib/consultation-response";
 
 export async function GET(request: NextRequest) {
   const session = await getSessionPayload(request);
@@ -36,11 +29,11 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      consultations: consultations.map((c: AdminConsultation) => ({
+      consultations: consultations.map((c) => ({
         id: c.id,
         userEmail: c.user.email,
         question: c.question,
-        response: c.response,
+        response: summarizeConsultationResponse(c.response),
         createdAt: c.createdAt.toISOString(),
       })),
       pagination: {

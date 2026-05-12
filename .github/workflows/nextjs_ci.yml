@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 20
 
     env:
-      DATABASE_URL: file:./ci.db
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yishun_ci?schema=public
       AUTH_SECRET: ci-build-secret
       GOOGLE_API_KEY: placeholder-for-ci
       ZHIPU_API_KEY: placeholder-for-ci

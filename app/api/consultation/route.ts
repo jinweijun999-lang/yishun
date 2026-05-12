@@ -11,7 +11,7 @@ import {
   getAccruedCreditsUpdate,
   normalizeMembershipTier,
 } from "@/lib/membership";
-import type { User } from "@prisma/client";
+import type { Prisma, User } from "@prisma/client";
 
 type UserWithAccrual = User & { lastCreditsAccruedAt?: Date | null };
 
@@ -627,7 +627,7 @@ export async function POST(request: NextRequest) {
       question,
       category,
       status: response.status,
-      response: JSON.stringify(response),
+      response: response as Prisma.InputJsonValue,
     },
   });
 
