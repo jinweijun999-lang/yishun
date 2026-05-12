@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { fulfillCheckoutSession } from "@/lib/stripe-entitlements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +23,19 @@ export async function POST(request: NextRequest) {
   try {
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
-    // Minimal test-mode endpoint: production fulfillment should be added after persistence is defined.
     if (event.type === "checkout.session.completed") {
-      return NextResponse.json({ received: true, eventType: event.type });
+      const session = event.data.object as Stripe.Checkout.Session;
+      const result = await fulfillCheckoutSession({
+        eventId: event.id,
+        eventType: event.type,
+        session,
+      });
+
+      const status = result.fulfilled ? 200 : 400;
+      return NextResponse.json(
+        { received: true, eventType: event.type, entitlement: result },
+        { status }
+      );
     }
 
     return NextResponse.json({ received: true, eventType: event.type });

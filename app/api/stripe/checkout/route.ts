@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionPayload } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
 
   const product = (body as { product?: unknown }).product;
   const clientReferenceId = (body as { clientReferenceId?: unknown }).clientReferenceId;
+  const sessionPayload = await getSessionPayload(request);
+  const userId =
+    sessionPayload?.sub ?? (typeof clientReferenceId === "string" ? clientReferenceId : undefined);
 
   if (!isCheckoutProduct(product)) {
     return NextResponse.json({ error: "Unsupported checkout product." }, { status: 400 });
@@ -77,9 +81,10 @@ export async function POST(request: NextRequest) {
       line_items: [{ price: process.env[productConfig.priceEnv] as string, quantity: 1 }],
       success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&product=${product}`,
       cancel_url: `${siteUrl}/checkout/cancel?product=${product}`,
-      client_reference_id: typeof clientReferenceId === "string" ? clientReferenceId : undefined,
+      client_reference_id: userId,
       metadata: {
         product,
+        userId: userId ?? "",
         label: productConfig.label,
         source: "yishun_web_test_checkout",
       },
