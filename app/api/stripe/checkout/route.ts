@@ -38,6 +38,24 @@ function getSiteUrl(request: NextRequest) {
   return request.nextUrl.origin;
 }
 
+function getStripeTestSecretKey() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) return null;
+  if (!secretKey.startsWith("sk_test_")) {
+    throw new Error("Only Stripe test mode secret keys are allowed in this checkout path.");
+  }
+  return secretKey;
+}
+
+function getStripePriceId(priceEnv: string) {
+  const priceId = process.env[priceEnv];
+  if (!priceId) return null;
+  if (!priceId.startsWith("price_")) {
+    throw new Error(`${priceEnv} must be a Stripe Price ID.`);
+  }
+  return priceId;
+}
+
 export async function POST(request: NextRequest) {
   let body: unknown;
 
@@ -58,11 +76,26 @@ export async function POST(request: NextRequest) {
   }
 
   const productConfig = CHECKOUT_PRODUCTS[product];
-  const missingEnv = ["STRIPE_SECRET_KEY", productConfig.priceEnv].filter(
-    (name) => !process.env[name]
-  );
 
-  if (missingEnv.length > 0) {
+  let secretKey: string | null;
+  let priceId: string | null;
+  try {
+    secretKey = getStripeTestSecretKey();
+    priceId = getStripePriceId(productConfig.priceEnv);
+  } catch (error) {
+    console.error("Stripe checkout configuration is invalid", error);
+    return NextResponse.json(
+      { error: "Checkout is not configured for Stripe test mode." },
+      { status: 503 }
+    );
+  }
+
+  const missingEnv = [
+    !secretKey ? "STRIPE_SECRET_KEY" : null,
+    !priceId ? productConfig.priceEnv : null,
+  ].filter(Boolean);
+
+  if (missingEnv.length > 0 || !secretKey || !priceId) {
     return NextResponse.json(
       {
         error: "Checkout is not configured yet. Please try again later.",
@@ -73,12 +106,12 @@ export async function POST(request: NextRequest) {
   }
 
   const siteUrl = getSiteUrl(request);
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+  const stripe = new Stripe(secretKey);
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: productConfig.mode,
-      line_items: [{ price: process.env[productConfig.priceEnv] as string, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&product=${product}`,
       cancel_url: `${siteUrl}/checkout/cancel?product=${product}`,
       client_reference_id: userId,
@@ -86,8 +119,31 @@ export async function POST(request: NextRequest) {
         product,
         userId: userId ?? "",
         label: productConfig.label,
+        priceId,
         source: "yishun_web_test_checkout",
       },
+      subscription_data:
+        productConfig.mode === "subscription"
+          ? {
+              metadata: {
+                product,
+                userId: userId ?? "",
+                priceId,
+                source: "yishun_web_test_checkout",
+              },
+            }
+          : undefined,
+      payment_intent_data:
+        productConfig.mode === "payment"
+          ? {
+              metadata: {
+                product,
+                userId: userId ?? "",
+                priceId,
+                source: "yishun_web_test_checkout",
+              },
+            }
+          : undefined,
       allow_promotion_codes: true,
     });
 

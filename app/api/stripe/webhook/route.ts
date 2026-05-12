@@ -5,24 +5,57 @@ import { fulfillCheckoutSession } from "@/lib/stripe-entitlements";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+function getStripeTestConfig() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!secretKey || !webhookSecret) {
+    return null;
+  }
+  if (!secretKey.startsWith("sk_test_") || !webhookSecret.startsWith("whsec_")) {
+    throw new Error("Stripe webhook must use test mode secret and signing secret.");
+  }
+
+  return { secretKey, webhookSecret };
+}
+
+export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
 
-  if (!secretKey || !webhookSecret || !signature) {
+  if (!signature) {
+    return NextResponse.json({ error: "Missing Stripe signature." }, { status: 400 });
+  }
+
+  let config: { secretKey: string; webhookSecret: string } | null;
+  try {
+    config = getStripeTestConfig();
+  } catch (error) {
+    console.error("Stripe webhook configuration is invalid", error);
+    return NextResponse.json(
+      { error: "Stripe webhook is not configured for Stripe test mode." },
+      { status: 503 }
+    );
+  }
+
+  if (!config) {
     return NextResponse.json(
       { error: "Stripe webhook verification is not configured for this test environment." },
       { status: 503 }
     );
   }
 
-  const stripe = new Stripe(secretKey);
+  const stripe = new Stripe(config.secretKey);
   const payload = await request.text();
+  let event: Stripe.Event;
 
   try {
-    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    event = stripe.webhooks.constructEvent(payload, signature, config.webhookSecret);
+  } catch (error) {
+    console.error("Stripe webhook verification failed", error);
+    return NextResponse.json({ error: "Invalid Stripe webhook signature." }, { status: 400 });
+  }
 
+  try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const result = await fulfillCheckoutSession({
@@ -40,7 +73,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true, eventType: event.type });
   } catch (error) {
-    console.error("Stripe webhook verification failed", error);
-    return NextResponse.json({ error: "Invalid Stripe webhook signature." }, { status: 400 });
+    console.error("Stripe webhook fulfillment failed", {
+      stripeEventId: event.id,
+      stripeEventType: event.type,
+      error,
+    });
+    return NextResponse.json({ error: "Stripe webhook fulfillment failed." }, { status: 500 });
   }
 }
