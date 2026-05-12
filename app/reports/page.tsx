@@ -7,7 +7,7 @@ import Background from "../components/Background";
 import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
-import StripeCheckoutButton from "../components/StripeCheckoutButton";
+import { queueP0Analytics } from "@/lib/p0-analytics";
 
 type Consultation = {
   id: string;
@@ -28,7 +28,25 @@ type DailyRitualHistoryItem = {
   bestFor: string[];
   focus: string;
   savedAt: string;
+  bestHour?: string;
+  avoid?: string;
+  action?: string;
 };
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function calculateStreak(history: DailyRitualHistoryItem[]) {
+  const dates = new Set(history.map((item) => item.date));
+  let streak = 0;
+  const cursor = new Date(`${todayKey()}T00:00:00`);
+  while (dates.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -48,6 +66,12 @@ export default function ReportsPage() {
   });
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const streak = calculateStreak(dailyHistory);
+
+  useEffect(() => {
+    queueP0Analytics("reports_open", { daily_history_count: dailyHistory.length, streak, source: "reports" });
+    queueP0Analytics("streak_view", { streak, source: "reports" });
+  }, [dailyHistory.length, streak]);
 
   useEffect(() => {
     const loadConsultations = async () => {
@@ -100,12 +124,32 @@ export default function ReportsPage() {
             className="text-center py-4"
           >
             <h2 className="text-2xl font-heading font-bold text-white text-glow">
-              {t("nav.tab.reports")}
+              Daily Ritual Reports
             </h2>
             <p className="text-sm text-gray-400 mt-2">
-              {t("profile.history")}
+              Your local streak, saved timing cards, and return path for tomorrow.
             </p>
           </motion.div>
+
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+            className="rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/15 via-surface/80 to-secondary/10 p-5"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">Return hook</p>
+            <div className="mt-3 grid grid-cols-[auto_1fr] gap-4 items-center">
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4 text-center">
+                <p className="text-4xl font-heading font-bold text-white">{streak}</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400">day streak</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-heading font-bold text-white">Come back tomorrow for a new timing window.</h3>
+                <p className="mt-1 text-sm leading-6 text-gray-300">Reports are local to this device in P0. No login is required to keep a simple streak.</p>
+              </div>
+            </div>
+            <a href="/reading/start" className="mt-4 block rounded-2xl bg-white px-4 py-3 text-center text-sm font-bold text-surface">Find today’s best timing</a>
+          </motion.section>
 
           <motion.section
             initial={{ opacity: 0, y: 20 }}
@@ -152,12 +196,19 @@ export default function ReportsPage() {
                         ))}
                       </div>
                     )}
+                    {(item.bestHour || item.action || item.avoid) && (
+                      <div className="mt-3 grid gap-2 rounded-2xl bg-black/20 p-3 text-xs leading-5 text-gray-300">
+                        {item.bestHour && <p><span className="text-secondary">Best window:</span> {item.bestHour}</p>}
+                        {item.action && <p><span className="text-white">Action:</span> {item.action}</p>}
+                        {item.avoid && <p><span className="text-accent">Avoid:</span> {item.avoid}</p>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-gray-400">
-                No Daily Ritual history on this device yet. Generate and save today’s signal to start a streak.
+                No Daily Ritual history on this device yet. Generate today’s signal, save the card, and come back tomorrow to start a streak.
               </div>
             )}
           </motion.section>
@@ -180,22 +231,14 @@ export default function ReportsPage() {
                 {t("profile.history.empty")}
               </h3>
               <p className="text-xs text-gray-400 mb-4">
-                {t("trigger.consultation.note")}
+                No saved long-form readings on this device yet. P0 keeps Reports as a free history space; payments and credit purchases are intentionally hidden.
               </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <StripeCheckoutButton
-                  product="report_single"
-                  className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
-                >
-                  Full report $4.99
-                </StripeCheckoutButton>
-                <a
-                  href="/membership"
-                  className="inline-block px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-gray-300 font-semibold text-sm hover:bg-white/10 transition-colors"
-                >
-                  {t("layerC.buyMore")}
-                </a>
-              </div>
+              <a
+                href="/reading/start"
+                className="inline-block px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
+              >
+                Create today’s free signal
+              </a>
             </motion.div>
           ) : (
             <div className="space-y-4">

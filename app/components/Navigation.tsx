@@ -20,22 +20,10 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.tab.home",
   },
   {
-    key: "tools",
-    href: "/tools",
-    icon: "🔮",
-    labelKey: "nav.tab.tools",
-  },
-  {
     key: "reports",
     href: "/reports",
     icon: "📊",
     labelKey: "nav.tab.reports",
-  },
-  {
-    key: "membership",
-    href: "/membership",
-    icon: "💎",
-    labelKey: "nav.tab.membership",
   },
   {
     key: "profile",

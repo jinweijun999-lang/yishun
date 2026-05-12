@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import FiveElementsChart from "../../components/FiveElementsChart";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { queueP0Analytics } from "@/lib/p0-analytics";
 
 type PreviewData = {
   birthProfile: {
@@ -63,12 +64,13 @@ type DailyArchiveItem = {
   bestFor: string[];
   focus: string;
   savedAt: string;
+  bestHour?: string;
+  avoid?: string;
+  action?: string;
 };
 
 function track(event: string, properties: Record<string, unknown> = {}) {
-  if (typeof window === "undefined") return;
-  console.info("[YiShun funnel]", event, properties);
-  window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
+  queueP0Analytics(event, properties);
 }
 
 function todayKey() {
@@ -132,6 +134,29 @@ function toSentenceCase(value: string | null | undefined) {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
+function getSavedHistory(): DailyArchiveItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = window.localStorage.getItem("yishun:dailyRitual:history");
+    const parsed = saved ? (JSON.parse(saved) as DailyArchiveItem[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function calculateStreak(history: DailyArchiveItem[], includeToday = true) {
+  const dates = new Set(history.map((item) => item.date));
+  if (includeToday) dates.add(todayKey());
+  let streak = 0;
+  const cursor = new Date(`${todayKey()}T00:00:00`);
+  while (dates.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 export default function ReadingResultPage() {
   const router = useRouter();
   const [preview] = useState<PreviewData | null>(() => {
@@ -147,22 +172,17 @@ export default function ReadingResultPage() {
   const [savePanelOpen, setSavePanelOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [history, setHistory] = useState<DailyArchiveItem[]>(() => getSavedHistory());
 
   useEffect(() => {
     if (!preview) {
       router.replace("/reading/start");
       return;
     }
-    track("free_result_view", {
+    track("streak_view", {
+      streak: calculateStreak(getSavedHistory(), true),
       score: preview.dailySignal.score,
-      dominant_element: preview.dominantElement,
       focus: preview.focus ?? "General",
-      source: "reading_result",
-    });
-    track("daily_signal_generated", {
-      score: preview.dailySignal.score,
-      lucky_element: preview.dailySignal.luckyElement,
-      birth_time_known: preview.birthProfile.birthTimeKnown,
       source: "reading_result",
     });
   }, [preview, router]);
@@ -183,21 +203,23 @@ export default function ReadingResultPage() {
 
   function archiveToday(reminderEmail?: string) {
     if (!preview) return;
-    const existing = window.localStorage.getItem("yishun:dailyRitual:history");
-    const history = existing ? (JSON.parse(existing) as DailyArchiveItem[]) : [];
     const item: DailyArchiveItem = {
       date: todayKey(),
       score: preview.dailySignal.score,
       bestFor: preview.dailySignal.bestFor.map((item) => stripChineseText(item, "Timing")),
       focus: stripChineseText(preview.focus, "General"),
       savedAt: new Date().toISOString(),
+      bestHour: preview.dailySignal.bestHour,
+      avoid: toSentenceCase(preview.dailySignal.avoid),
+      action: toSentenceCase(preview.dailySignal.do),
     };
     const merged = [item, ...history.filter((entry) => entry.date !== item.date)].slice(0, 14);
+    setHistory(merged);
     window.localStorage.setItem("yishun:dailyRitual:history", JSON.stringify(merged));
     window.localStorage.setItem("yishun:dailyRitual:completedDate", item.date);
     window.localStorage.setItem("yishun:dailyRitual:reminderOptIn", reminderEmail ? "email" : "device_only");
     if (reminderEmail) window.localStorage.setItem("yishun:dailyRitual:email", reminderEmail);
-    track("daily_ritual_completed", { score: item.score, focus: item.focus, reminder: Boolean(reminderEmail) });
+    track("save_result", { score: item.score, focus: item.focus, reminder: Boolean(reminderEmail), streak: calculateStreak(merged, true) });
   }
 
   function handleSaveDeviceOnly() {
@@ -215,23 +237,36 @@ export default function ReadingResultPage() {
 
   async function handleShare() {
     if (!preview) return;
-    const text = `YiShun Today Signal: ${preview.dailySignal.score}/100 timing clarity. Best for ${preview.dailySignal.bestFor.map((item) => stripChineseText(item, "Timing")).join(", ")}. Do: ${toSentenceCase(preview.dailySignal.do)}`;
-    await navigator.clipboard?.writeText(text).catch(() => undefined);
+    const text = `My YiShun timing card today: ${preview.dailySignal.score}/100 clarity · Best window ${preview.dailySignal.bestHour} · Avoid ${toSentenceCase(preview.dailySignal.avoid)} · Try this: ${toSentenceCase(preview.dailySignal.do)} #DailyTiming`;
+    const shareData = { title: "YiShun Today Timing Card", text, url: window.location.origin };
+    const canSystemShare = "share" in navigator;
+    if (canSystemShare) {
+      await navigator.share(shareData).catch(() => navigator.clipboard?.writeText(text));
+    } else {
+      await navigator.clipboard?.writeText(text).catch(() => undefined);
+    }
     setShareCopied(true);
-    track("share_card_clicked", { card_type: "today_signal_card", share_method: "copy_text" });
+    track("share_card_click", { card_type: "today_signal_card", share_method: canSystemShare ? "system_share" : "copy_text" });
   }
 
-  function handleReportPreview(targetHref: "/reports" | "/membership") {
-    track("paywall_view", {
+  function handleReportPreview() {
+    track("reports_open", {
       placement: "post_free_value",
-      report_type: "full_birth_chart_report",
+      report_type: "daily_ritual_history",
       source: "reading_result",
-      target: targetHref,
+      target: "/reports",
     });
-    router.push(targetHref);
+    router.push("/reports");
   }
 
   const elementSummary = buildElementSummary(preview);
+  const streak = calculateStreak(history, true);
+  const oneLineSummary = `${stripChineseText(preview.focus, "General")} favors ${preview.dailySignal.bestFor.map((item) => stripChineseText(item, "timing")).slice(0, 2).join(" + ")} during ${preview.dailySignal.bestHour}.`;
+  const actionCard = {
+    bestWindow: preview.dailySignal.bestHour,
+    avoidWindow: toSentenceCase(preview.dailySignal.avoid),
+    action: toSentenceCase(preview.dailySignal.do),
+  };
 
   const confidenceNotes = [
     !preview.birthProfile.birthTimeKnown ? "Birth time unknown: hour-pillar and golden-hour guidance use an estimated noon chart." : null,
@@ -259,9 +294,18 @@ export default function ReadingResultPage() {
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">Free result unlocked</span>
             </div>
-            <div className="mt-5 flex items-end gap-4">
-              <span className="text-6xl font-heading font-bold text-white text-glow">{preview.dailySignal.score}</span>
-              <span className="pb-3 text-sm text-gray-400">/ 100 timing clarity</span>
+            <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base leading-7 text-white">
+              {oneLineSummary}
+            </p>
+            <div className="mt-5 grid grid-cols-[1fr_auto] items-end gap-4">
+              <div>
+                <span className="text-6xl font-heading font-bold text-white text-glow">{preview.dailySignal.score}</span>
+                <span className="pb-3 text-sm text-gray-400"> / 100 timing clarity</span>
+              </div>
+              <div className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
+                <p className="text-2xl font-heading font-bold text-white">{streak}</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-accent">day streak</p>
+              </div>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
               {preview.dailySignal.bestFor.slice(0, 3).map((item) => {
@@ -270,14 +314,21 @@ export default function ReadingResultPage() {
               })}
               <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-sm text-accent">Golden hour: {preview.dailySignal.bestHour}</span>
             </div>
-            <div className="mt-5 grid sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
-                <p className="text-xs font-bold uppercase text-secondary">Do</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{toSentenceCase(preview.dailySignal.do)}</p>
-              </div>
-              <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
-                <p className="text-xs font-bold uppercase text-accent">Avoid</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{toSentenceCase(preview.dailySignal.avoid)}</p>
+            <div className="mt-5 rounded-[2rem] border border-white/15 bg-black/25 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.25em] text-secondary/80">Action Card</p>
+              <div className="mt-4 grid sm:grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
+                  <p className="text-xs font-bold uppercase text-secondary">Best window</p>
+                  <p className="mt-2 text-lg font-heading font-bold text-white">{actionCard.bestWindow}</p>
+                </div>
+                <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
+                  <p className="text-xs font-bold uppercase text-accent">Avoid window</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{actionCard.avoidWindow}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-bold uppercase text-gray-300">One action</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{actionCard.action}</p>
+                </div>
               </div>
             </div>
             <p className="mt-5 text-sm leading-6 text-gray-300">{stripChineseText(preview.dailySignal.why, "Today’s timing signal is ready for reflection.")}</p>
@@ -288,11 +339,31 @@ export default function ReadingResultPage() {
             )}
             <div className="mt-6 grid sm:grid-cols-3 gap-3">
               <button onClick={() => setSavePanelOpen(true)} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-sm font-bold text-white">Save my profile for tomorrow</button>
-              <button onClick={handleShare} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5">{shareCopied ? "Copied card text" : "Share today’s card"}</button>
+              <button onClick={handleShare} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5">{shareCopied ? "Share text ready" : "Share today’s card"}</button>
               <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">See what changes tomorrow</Link>
             </div>
             {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
           </article>
+
+          <section className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.92),rgba(88,28,135,0.55))] p-5 sm:p-6 shadow-2xl" aria-label="Shareable YiShun timing card">
+            <div className="mx-auto max-w-sm rounded-[2rem] border border-white/20 bg-black/30 p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-[0.25em] text-accent">YiShun Timing Card</p>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs">{todayKey()}</span>
+              </div>
+              <p className="mt-5 text-5xl font-heading font-bold text-glow">{preview.dailySignal.score}</p>
+              <p className="mt-2 text-sm text-gray-300">Today’s clarity score</p>
+              <div className="mt-5 space-y-3 text-sm">
+                <p><span className="text-secondary">Best:</span> {actionCard.bestWindow}</p>
+                <p><span className="text-accent">Avoid:</span> {actionCard.avoidWindow}</p>
+                <p><span className="text-white">Try:</span> {actionCard.action}</p>
+              </div>
+              <p className="mt-5 border-t border-white/10 pt-4 text-xs text-gray-400">No birth date or private details shown. Screenshot or share this card.</p>
+            </div>
+            <div className="mt-4 flex justify-center">
+              <button onClick={handleShare} className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-surface">{shareCopied ? "Copied / shared" : "Copy or system-share card text"}</button>
+            </div>
+          </section>
 
           {savePanelOpen && (
             <section className="rounded-3xl border border-secondary/30 bg-surface/90 p-5 sm:p-6 shadow-2xl">
@@ -318,12 +389,12 @@ export default function ReadingResultPage() {
                 <p className="mt-2 text-sm leading-6 text-gray-300">Save today’s result, keep a simple streak, and compare how your best actions shift day by day.</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-3xl font-heading font-bold text-white">1</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">day started</p>
+                <p className="text-3xl font-heading font-bold text-white">{streak}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">day streak</p>
               </div>
             </div>
             <div className="mt-5 grid sm:grid-cols-3 gap-3">
-              <button onClick={handleSaveDeviceOnly} className="rounded-2xl bg-white text-surface px-4 py-3 text-sm font-bold">Save history</button>
+              <button onClick={handleSaveDeviceOnly} className="rounded-2xl bg-white text-surface px-4 py-3 text-sm font-bold">Save today’s card</button>
               <Link href="/reports" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">View saved history</Link>
               <Link href="/reading/start" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-semibold text-secondary">Return tomorrow</Link>
             </div>
@@ -375,12 +446,12 @@ export default function ReadingResultPage() {
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-surface/70 p-5 sm:p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-accent/80">Preview the full report</p>
-            <h2 className="mt-2 text-2xl font-heading font-bold text-white">Want a deeper 7-day view?</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-300">Your free Today Signal is complete. Premium can add 7-day trends, history reflection, and richer report sections later.</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent/80">Free history</p>
+            <h2 className="mt-2 text-2xl font-heading font-bold text-white">Save today and compare tomorrow.</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-300">P0 keeps the core ritual free: today’s best timing window, avoid window, and one practical action. Payments and credit purchases are intentionally not shown.</p>
             <div className="mt-5 grid sm:grid-cols-2 gap-3">
-              <button onClick={() => handleReportPreview("/reports")} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-bold text-white">Open report preview</button>
-              <button onClick={() => handleReportPreview("/membership")} className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">View membership options</button>
+              <button onClick={handleReportPreview} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-bold text-white">Open saved history</button>
+              <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">Generate tomorrow’s signal</Link>
             </div>
           </section>
 

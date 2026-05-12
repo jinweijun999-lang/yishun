@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "PREVIEW_FAILED";
-    const status = message === "INVALID_BIRTH_DATE" ? 400 : 500;
+    const status = message === "INVALID_BIRTH_DATE" || message === "INVALID_BIRTH_TIME" ? 400 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
