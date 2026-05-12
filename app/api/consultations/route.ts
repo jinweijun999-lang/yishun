@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionPayload } from "@/lib/auth";
+import { normalizeConsultationResponse } from "@/lib/consultation-response";
 import { getLocaleFromRequest, translate } from "@/lib/i18n";
 
 export async function GET(request: NextRequest) {
@@ -21,7 +22,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ consultations });
+    return NextResponse.json({
+      consultations: consultations.map((consultation) => ({
+        ...consultation,
+        response: normalizeConsultationResponse(consultation.response),
+      })),
+    });
   } catch (error) {
     console.error("Fetch Consultations Error:", error);
     return NextResponse.json(
