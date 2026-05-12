@@ -38,3 +38,16 @@ model Consultation {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model StripeWebhookEvent {
+  id                String   @id
+  stripeEventType   String
+  checkoutSessionId String?
+  userId            String?
+  product           String?
+  status            String
+  createdAt         DateTime @default(now())
+
+  @@index([checkoutSessionId])
+  @@index([userId])
+}
