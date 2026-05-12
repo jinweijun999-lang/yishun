@@ -214,7 +214,7 @@ export default function ReadingStartPage() {
                         type="text"
                         inputMode="numeric"
                         autoComplete="bday"
-                        pattern="\\d{4}-\\d{2}-\\d{2}"
+                        pattern="\d{4}-\d{2}-\d{2}"
                         placeholder="YYYY-MM-DD"
                         aria-describedby="birth-date-format"
                         value={birthDate}
@@ -229,7 +229,7 @@ export default function ReadingStartPage() {
                         disabled={!birthTimeKnown}
                         type="text"
                         inputMode="numeric"
-                        pattern="([01]\\d|2[0-3]):[0-5]\\d"
+                        pattern="([01]\d|2[0-3]):[0-5]\d"
                         placeholder="HH:MM"
                         aria-describedby="birth-time-format"
                         value={birthTime}
