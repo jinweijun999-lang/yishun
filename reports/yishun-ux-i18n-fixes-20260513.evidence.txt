@@ -1,0 +1,19 @@
+Evidence commands executed in /Users/xiajarvan/.openclaw/workspace/yishun:
+
+1) npm run lint
+Result: PASS
+
+2) npm run build
+Result: PASS
+Note: Next.js emitted existing warning: "middleware" file convention is deprecated; use "proxy" instead.
+
+3) YISHUN_BASE_URL=http://localhost:3100 npm run smoke:i18n-language
+Result: PASS
+Output: i18n language switch smoke passed { baseUrl: 'http://localhost:3100' }
+
+4) YISHUN_BASE_URL=http://localhost:3100 npm run smoke:i18n-ux
+Result: PASS
+Output: i18n UX copy smoke passed for /register, /reading/start, /reports, /tools/sample, /membership.
+
+5) git status --short
+Result: changed tracked files plus pre-existing untracked files. New file from this task: scripts/i18n-ux-copy-smoke.mjs and reports/yishun-ux-i18n-fixes-20260513.*

@@ -92,20 +92,13 @@ export default function MembershipPage() {
       name: t("membership.tier.free"),
       price: "$0",
       period: "",
-      description: isEnglish ? "Best for trying your first Daily Ritual." : "适合初步了解",
-      features: isEnglish
-        ? [
-            "Daily Ritual signal with rewarded access",
-            "One free birth-chart preview",
-            "Basic Five Elements analysis",
-            "Single consultation available at $2.99",
-          ]
-        : [
-            "每日运势信号（需观看广告）",
-            "一次免费排盘",
-            "基础五行分析",
-            "单次咨询 $2.99/次",
-          ],
+      description: t("membership.free.description"),
+      features: [
+        t("membership.free.feature1"),
+        t("membership.free.feature2"),
+        t("membership.free.feature3"),
+        t("membership.free.feature4"),
+      ],
       cta: t("nav.register"),
       ctaHref: "/register",
       highlight: false,
@@ -116,23 +109,15 @@ export default function MembershipPage() {
       name: t("membership.tier.monthly"),
       price: "$9.99",
       period: isEnglish ? "/month" : "/月",
-      description: isEnglish ? "Best for ongoing weekly reflection." : "适合持续使用",
-      features: isEnglish
-        ? [
-            "Daily Ritual signal without rewarded access",
-            "Unlimited birth-chart previews",
-            "Complete Ten Gods profile",
-            "10 structured interpretations per month",
-            "Priority support",
-          ]
-        : [
-            "每日运势信号（无需广告）",
-            "无限排盘",
-            "完整十神图谱",
-            "每月 10 次结构化解读",
-            "优先客服支持",
-          ],
-      cta: isEnglish ? "Continue to checkout" : "测试结账",
+      description: t("membership.monthly.description"),
+      features: [
+        t("membership.monthly.feature1"),
+        t("membership.monthly.feature2"),
+        t("membership.monthly.feature3"),
+        t("membership.monthly.feature4"),
+        t("membership.monthly.feature5"),
+      ],
+      cta: t("membership.checkout"),
       ctaHref: "#",
       highlight: false,
       disabled: false,
@@ -145,22 +130,14 @@ export default function MembershipPage() {
       price: "$79.99",
       period: isEnglish ? "/year" : "/年",
       description: t("membership.tier.annualValue"),
-      features: isEnglish
-        ? [
-            "Everything in Monthly Member",
-            "Daily Ritual signal without rewarded access",
-            "Unlimited structured interpretations",
-            "Full history retention",
-            "Priority support",
-          ]
-        : [
-            "月度会员全部权益",
-            "每日运势信号（无需广告）",
-            "无限次结构化解读",
-            "历史记录完整保存",
-            "优先客服支持",
-          ],
-      cta: isEnglish ? "Coming soon" : "即将推出",
+      features: [
+        t("membership.annual.feature1"),
+        t("membership.annual.feature2"),
+        t("membership.annual.feature3"),
+        t("membership.annual.feature4"),
+        t("membership.annual.feature5"),
+      ],
+      cta: t("membership.comingSoon"),
       ctaHref: "#",
       highlight: true,
       disabled: true,
@@ -204,7 +181,7 @@ export default function MembershipPage() {
               {t("nav.tab.membership")}
             </h2>
             <p className="text-sm text-gray-400 mt-2">
-              {isEnglish ? "Unlock deeper Daily Ritual guidance when you are ready." : "开启你的专业命理之旅"}
+              {t("membership.subtitle")}
             </p>
           </motion.div>
 
@@ -224,7 +201,7 @@ export default function MembershipPage() {
                 </span>
               ) : (
                 <span className="rounded-full border border-gray-600/30 bg-gray-600/10 px-2 py-0.5 text-gray-400 text-xs">
-                  {isEnglish ? "Free Member" : "免费会员"}
+                  {t("membership.tier.free")}
                 </span>
               )}
             </motion.div>
@@ -257,11 +234,11 @@ export default function MembershipPage() {
                     product="consultation_single"
                     className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
                   >
-                    {isEnglish ? "Continue to checkout $2.99" : "继续结账 $2.99"}
+                    {t("membership.singleCheckout")}
                   </StripeCheckoutButton>
                 ) : (
                   <a href={requireAuthHref} className="block w-full px-6 py-3 rounded-xl bg-secondary/80 text-center text-white font-semibold text-sm hover:bg-secondary transition-colors">
-                    {isEnglish ? "Sign in before checkout" : "登录后再结账"}
+                    {t("membership.signInBeforeCheckout")}
                   </a>
                 )}
                 <button
@@ -307,7 +284,7 @@ export default function MembershipPage() {
                         </h3>
                         {tier.highlight && (
                           <span className="rounded-full border border-secondary/30 bg-secondary/10 px-2 py-0.5 text-secondary text-xs">
-                            {isEnglish ? "Best value" : "推荐"}
+                            {t("membership.bestValue")}
                           </span>
                         )}
                       </div>
@@ -350,7 +327,7 @@ export default function MembershipPage() {
                             : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                         }`}
                       >
-                        {isEnglish ? "Sign in before checkout" : "登录后再结账"}
+                        {t("membership.signInBeforeCheckout")}
                       </a>
                     )
                   ) : (

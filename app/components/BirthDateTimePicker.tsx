@@ -73,8 +73,13 @@ export function BirthDateSelects({
   required?: boolean;
   label?: string;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const isZh = locale === "zh-CN";
+  const labels = {
+    year: t("dateTime.year"),
+    month: t("dateTime.month"),
+    day: t("dateTime.day"),
+  };
   const initial = splitDate(value);
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
@@ -98,9 +103,9 @@ export function BirthDateSelects({
     <div className="space-y-2">
       <p className="text-xs font-medium text-gray-400">{label}</p>
       <div className="grid grid-cols-3 gap-3">
-        <SelectField label={isZh ? "年" : "Year"} value={year} onChange={(next) => updateDate(next, month, day)} options={years} placeholder={isZh ? "年" : "YYYY"} required={required} />
-        <SelectField label={isZh ? "月" : "Month"} value={month} onChange={(next) => updateDate(year, next, day)} options={months} placeholder={isZh ? "月" : "MM"} required={required} />
-        <SelectField label={isZh ? "日" : "Day"} value={day} onChange={(next) => updateDate(year, month, next)} options={dayOptions} placeholder={isZh ? "日" : "DD"} required={required} />
+        <SelectField label={labels.year} value={year} onChange={(next) => updateDate(next, month, day)} options={years} placeholder={isZh ? labels.year : "YYYY"} required={required} />
+        <SelectField label={labels.month} value={month} onChange={(next) => updateDate(year, next, day)} options={months} placeholder={isZh ? labels.month : "MM"} required={required} />
+        <SelectField label={labels.day} value={day} onChange={(next) => updateDate(year, month, next)} options={dayOptions} placeholder={isZh ? labels.day : "DD"} required={required} />
       </div>
       <p className="text-xs text-gray-500">{isZh ? "直接选择年月日，不需要手输 YYYY-MM-DD。" : "Pick from menus — no YYYY-MM-DD typing required."}</p>
     </div>
@@ -118,8 +123,12 @@ export function BirthTimeSelects({
   required?: boolean;
   label?: string;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const isZh = locale === "zh-CN";
+  const labels = {
+    hour: t("dateTime.hour"),
+    minute: t("dateTime.minute"),
+  };
   const initial = splitTime(value);
   const [hour, setHour] = useState(initial.hour);
   const [minute, setMinute] = useState(initial.minute);
@@ -134,8 +143,8 @@ export function BirthTimeSelects({
     <div className="space-y-2">
       <p className="text-xs font-medium text-gray-400">{label}</p>
       <div className="grid grid-cols-2 gap-3">
-        <SelectField label={isZh ? "时" : "Hour"} value={hour} onChange={(next) => updateTime(next, minute)} options={hours} placeholder={isZh ? "时" : "HH"} required={required} />
-        <SelectField label={isZh ? "分" : "Minute"} value={minute} onChange={(next) => updateTime(hour, next)} options={minutes} placeholder={isZh ? "分" : "mm"} required={required} />
+        <SelectField label={labels.hour} value={hour} onChange={(next) => updateTime(next, minute)} options={hours} placeholder={isZh ? labels.hour : "HH"} required={required} />
+        <SelectField label={labels.minute} value={minute} onChange={(next) => updateTime(hour, next)} options={minutes} placeholder={isZh ? labels.minute : "mm"} required={required} />
       </div>
       <p className="text-xs text-gray-500">{isZh ? "分别选择小时和分钟，不需要输入冒号。" : "Select hour and minute separately — no colon typing required."}</p>
     </div>

@@ -53,28 +53,24 @@ const tenGodLabels = {
 
 export default function SamplePage() {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const isEnglish = locale === "en";
   const copy = {
-    back: isEnglish ? "Go back" : "返回",
-    chart: isEnglish ? "Sample chart" : "示例命盘",
-    title: isEnglish ? "Sample reading" : "示例解读",
-    demo: isEnglish
-      ? "{copy.demo}"
-      : "这是用于预览的演示数据。填写真实出生信息后，可生成你的个人每日信号。",
-    profile: isEnglish ? "Profile" : "资料",
-    name: isEnglish ? "Name" : "姓名",
-    gender: isEnglish ? "Gender" : "性别",
-    birthDate: isEnglish ? "Birth date" : "出生日期",
-    birthTime: isEnglish ? "Birth time" : "出生时间",
-    pillars: isEnglish ? "Four Pillars" : "四柱",
-    elements: isEnglish ? "Five Elements" : "五行",
-    tenGods: isEnglish ? "Ten Gods pattern" : "十神结构",
-    ctaTitle: isEnglish ? "Create your personal reading" : "生成你的个人解读",
-    ctaBody: isEnglish
-      ? "{copy.ctaBody}"
-      : "输入出生信息，解锁完整命盘和每日时机建议。",
-    cta: isEnglish ? "Start my free daily signal →" : "开始免费每日信号 →",
+    back: t("common.goBack"),
+    chart: t("sample.chart"),
+    title: t("sample.title"),
+    demo: t("sample.demo"),
+    profile: t("sample.profile"),
+    name: t("sample.name"),
+    gender: t("sample.gender"),
+    birthDate: t("sample.birthDate"),
+    birthTime: t("sample.birthTime"),
+    pillars: t("sample.pillars"),
+    elements: t("sample.elements"),
+    tenGods: t("sample.tenGods"),
+    ctaTitle: t("sample.ctaTitle"),
+    ctaBody: t("sample.ctaBody"),
+    cta: t("sample.cta"),
   };
 
   return (
@@ -107,7 +103,7 @@ export default function SamplePage() {
 
           <section className="rounded-2xl bg-surface/60 border border-white/10 p-5" aria-labelledby="sample-profile-heading">
             <h2 id="sample-profile-heading" className="text-lg font-heading font-bold text-white mb-4">
-              Profile
+              {copy.profile}
             </h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
@@ -131,7 +127,7 @@ export default function SamplePage() {
 
           <section className="rounded-2xl bg-surface/60 border border-white/10 p-5" aria-labelledby="sample-pillars-heading">
             <h2 id="sample-pillars-heading" className="text-lg font-heading font-bold text-white mb-4">
-              Four Pillars
+              {copy.pillars}
             </h2>
             <div className="grid grid-cols-4 gap-2">
               {pillarKeys.map((key, index) => {
@@ -152,7 +148,7 @@ export default function SamplePage() {
 
           <section className="rounded-2xl bg-surface/60 border border-white/10 p-5" aria-labelledby="sample-elements-heading">
             <h2 id="sample-elements-heading" className="text-lg font-heading font-bold text-white mb-4">
-              Five Elements
+              {copy.elements}
             </h2>
             <div className="space-y-3">
               {sampleData.elements.map((element) => (
@@ -171,7 +167,7 @@ export default function SamplePage() {
 
           <section className="rounded-2xl bg-surface/60 border border-white/10 p-5" aria-labelledby="sample-ten-gods-heading">
             <h2 id="sample-ten-gods-heading" className="text-lg font-heading font-bold text-white mb-4">
-              Ten Gods pattern
+              {copy.tenGods}
             </h2>
             <div className="grid grid-cols-4 gap-2">
               {pillarKeys.map((key, index) => {
@@ -198,7 +194,7 @@ export default function SamplePage() {
               href="/reading/start"
               className="block w-full px-4 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm text-center hover:bg-secondary transition-colors"
             >
-              Start my free daily signal →
+              {copy.cta}
             </a>
           </section>
         </div>
