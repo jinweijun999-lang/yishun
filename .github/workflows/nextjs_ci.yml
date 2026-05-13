@@ -69,9 +69,27 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
-      - name: Run local server deploy script
+      - name: Deploy locally with Prisma migrations
         run: |
-          sudo -n -u yishun /home/yishun/deploy.sh
+          sudo -n -u yishun bash -lc '
+            set -euo pipefail
+            cd /home/yishun/yishun
+            echo ">>> [1/7] Syncing latest main..."
+            git fetch origin main
+            git reset --hard origin/main
+            echo ">>> [2/7] Installing dependencies..."
+            npm ci
+            echo ">>> [3/7] Generating Prisma client..."
+            npx prisma generate
+            echo ">>> [4/7] Applying Prisma migrations before restart..."
+            npx prisma migrate deploy
+            echo ">>> [5/7] Building application..."
+            npm run build
+            echo ">>> [6/7] Restarting PM2..."
+            pm2 restart yishun-nextjs --update-env
+            echo ">>> [7/7] Saving PM2 state..."
+            pm2 save
+          '
 
       - name: Verify production health locally
         run: |
