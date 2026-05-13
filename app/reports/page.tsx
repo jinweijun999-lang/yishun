@@ -77,6 +77,10 @@ export default function ReportsPage() {
     const loadConsultations = async () => {
       try {
         const res = await fetch("/api/consultations");
+        if (res.status === 401) {
+          setConsultations([]);
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           setConsultations(data.consultations);

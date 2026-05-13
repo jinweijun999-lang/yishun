@@ -73,22 +73,19 @@ export default function ProfilePage() {
         data.profile.timezoneOffsetMinutes?.toString() ?? ""
       );
       setTimezoneName(data.profile.timezoneName ?? "");
-    };
 
-    loadProfile();
-
-    const loadConsultations = async () => {
       try {
         const res = await fetch("/api/consultations");
         if (res.ok) {
-          const data = await res.json();
-          setConsultations(data.consultations);
+          const consultationsData = await res.json();
+          setConsultations(consultationsData.consultations);
         }
       } catch (error) {
         console.error("Failed to load consultations", error);
       }
     };
-    loadConsultations();
+
+    loadProfile();
   }, [router]);
 
   const handleSave = async (e: React.FormEvent) => {
