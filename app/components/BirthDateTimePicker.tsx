@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 121 }, (_, index) => String(currentYear - index));
@@ -23,6 +23,14 @@ function splitTime(value: string) {
   return { hour, minute };
 }
 
+function formatDate(year: string, month: string, day: string) {
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
+function formatTime(hour: string, minute: string) {
+  return hour && minute ? `${hour}:${minute}` : "";
+}
+
 function SelectField({
   label,
   value,
@@ -41,12 +49,7 @@ function SelectField({
   return (
     <label className="space-y-1">
       <span className="text-xs text-gray-400">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        className="input-field min-h-[48px]"
-      >
+      <select value={value} onChange={(event) => onChange(event.target.value)} required={required} className="input-field min-h-[48px]">
         <option value="">{placeholder}</option>
         {options.map((option) => (
           <option key={option} value={option}>
@@ -69,7 +72,11 @@ export function BirthDateSelects({
   required?: boolean;
   label?: string;
 }) {
-  const { year, month, day } = splitDate(value);
+  const initial = splitDate(value);
+  const [year, setYear] = useState(initial.year);
+  const [month, setMonth] = useState(initial.month);
+  const [day, setDay] = useState(initial.day);
+
   const dayOptions = useMemo(
     () => Array.from({ length: daysInMonth(year, month) }, (_, index) => String(index + 1).padStart(2, "0")),
     [month, year]
@@ -78,7 +85,10 @@ export function BirthDateSelects({
   function updateDate(nextYear: string, nextMonth: string, nextDay: string) {
     const maxDay = daysInMonth(nextYear, nextMonth);
     const safeDay = nextDay && Number(nextDay) > maxDay ? String(maxDay).padStart(2, "0") : nextDay;
-    onChange(nextYear && nextMonth && safeDay ? `${nextYear}-${nextMonth}-${safeDay}` : "");
+    setYear(nextYear);
+    setMonth(nextMonth);
+    setDay(safeDay);
+    onChange(formatDate(nextYear, nextMonth, safeDay));
   }
 
   return (
@@ -105,10 +115,14 @@ export function BirthTimeSelects({
   required?: boolean;
   label?: string;
 }) {
-  const { hour, minute } = splitTime(value);
+  const initial = splitTime(value);
+  const [hour, setHour] = useState(initial.hour);
+  const [minute, setMinute] = useState(initial.minute);
 
   function updateTime(nextHour: string, nextMinute: string) {
-    onChange(nextHour && nextMinute ? `${nextHour}:${nextMinute}` : "");
+    setHour(nextHour);
+    setMinute(nextMinute);
+    onChange(formatTime(nextHour, nextMinute));
   }
 
   return (
@@ -142,8 +156,8 @@ export default function BirthDateTimePicker({
 }) {
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <BirthDateSelects value={birthDate} onChange={onBirthDateChange} required={required} label={birthDateLabel} />
-      <BirthTimeSelects value={birthTime} onChange={onBirthTimeChange} required={required} label={birthTimeLabel} />
+      <BirthDateSelects key={`date-${birthDate}`} value={birthDate} onChange={onBirthDateChange} required={required} label={birthDateLabel} />
+      <BirthTimeSelects key={`time-${birthTime}`} value={birthTime} onChange={onBirthTimeChange} required={required} label={birthTimeLabel} />
     </div>
   );
 }
