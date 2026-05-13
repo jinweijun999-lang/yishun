@@ -32,6 +32,11 @@ type CachedPreview = {
   focus?: string;
 };
 
+function hasSessionCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((item) => item.startsWith("fortune_session="));
+}
+
 function track(event: string, properties: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   console.info("[YiShun funnel]", event, properties);
@@ -73,6 +78,10 @@ export default function Home() {
 
   useEffect(() => {
     const loadProfile = async () => {
+      if (!hasSessionCookie()) {
+        setAuthChecked(true);
+        return;
+      }
       try {
         const response = await fetch("/api/profile");
         if (response.ok) {

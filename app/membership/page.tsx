@@ -30,6 +30,11 @@ type MembershipTier = {
   checkoutProduct?: StripeCheckoutProduct;
 };
 
+function hasSessionCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((item) => item.startsWith("fortune_session="));
+}
+
 export default function MembershipPage() {
   const router = useRouter();
   const handleBack = () => { router.back(); };
@@ -41,6 +46,7 @@ export default function MembershipPage() {
 
   useEffect(() => {
     const loadProfile = async () => {
+      if (!hasSessionCookie()) return;
       try {
         const response = await fetch("/api/profile");
         if (response.ok) {
@@ -148,7 +154,7 @@ export default function MembershipPage() {
             "Priority support",
           ]
         : [
-            "Monthly Member 全部权益",
+            "月度会员全部权益",
             "每日运势信号（无需广告）",
             "无限次结构化解读",
             "历史记录完整保存",
@@ -218,7 +224,7 @@ export default function MembershipPage() {
                 </span>
               ) : (
                 <span className="rounded-full border border-gray-600/30 bg-gray-600/10 px-2 py-0.5 text-gray-400 text-xs">
-                  Free Member
+                  {isEnglish ? "Free Member" : "免费会员"}
                 </span>
               )}
             </motion.div>

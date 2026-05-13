@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import Navigation from "../../components/Navigation";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { useI18n } from "../../components/LocaleProvider";
 
 const sampleData = {
-  name: "Sample user",
+  name: { en: "Sample user", zh: "示例用户" },
   birthDate: "1990-05-20",
   birthTime: "08:30",
-  gender: "Not specified",
+  gender: { en: "Not specified", zh: "未指定" },
   pillars: {
     year: "Ji-Si",
     month: "Yi-Chou",
@@ -31,10 +32,50 @@ const sampleData = {
   },
 };
 
-const pillarLabels = ["Year", "Month", "Day", "Hour"] as const;
+const pillarKeys = ["year", "month", "day", "hour"] as const;
+const pillarLabels = {
+  en: ["Year", "Month", "Day", "Hour"],
+  zh: ["年柱", "月柱", "日柱", "时柱"],
+} as const;
+const elementLabels = {
+  Wood: { en: "Wood", zh: "木" },
+  Fire: { en: "Fire", zh: "火" },
+  Earth: { en: "Earth", zh: "土" },
+  Metal: { en: "Metal", zh: "金" },
+  Water: { en: "Water", zh: "水" },
+} as const;
+const tenGodLabels = {
+  Authority: { en: "Authority", zh: "官杀" },
+  Peer: { en: "Peer", zh: "比劫" },
+  "Day Master": { en: "Day Master", zh: "日主" },
+  Wealth: { en: "Wealth", zh: "财星" },
+} as const;
 
 export default function SamplePage() {
   const router = useRouter();
+  const { locale } = useI18n();
+  const isEnglish = locale === "en";
+  const copy = {
+    back: isEnglish ? "Go back" : "返回",
+    chart: isEnglish ? "Sample chart" : "示例命盘",
+    title: isEnglish ? "Sample reading" : "示例解读",
+    demo: isEnglish
+      ? "{copy.demo}"
+      : "这是用于预览的演示数据。填写真实出生信息后，可生成你的个人每日信号。",
+    profile: isEnglish ? "Profile" : "资料",
+    name: isEnglish ? "Name" : "姓名",
+    gender: isEnglish ? "Gender" : "性别",
+    birthDate: isEnglish ? "Birth date" : "出生日期",
+    birthTime: isEnglish ? "Birth time" : "出生时间",
+    pillars: isEnglish ? "Four Pillars" : "四柱",
+    elements: isEnglish ? "Five Elements" : "五行",
+    tenGods: isEnglish ? "Ten Gods pattern" : "十神结构",
+    ctaTitle: isEnglish ? "Create your personal reading" : "生成你的个人解读",
+    ctaBody: isEnglish
+      ? "{copy.ctaBody}"
+      : "输入出生信息，解锁完整命盘和每日时机建议。",
+    cta: isEnglish ? "Start my free daily signal →" : "开始免费每日信号 →",
+  };
 
   return (
     <>
@@ -46,12 +87,12 @@ export default function SamplePage() {
               <button
                 onClick={() => router.back()}
                 className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label="Go back"
+                aria-label={copy.back}
               >
                 ←
               </button>
-              <span className="text-xl" role="img" aria-label="Sample chart">🔮</span>
-              <h1 className="text-lg font-heading font-bold text-white">Sample reading</h1>
+              <span className="text-xl" role="img" aria-label={copy.chart}>🔮</span>
+              <h1 className="text-lg font-heading font-bold text-white">{copy.title}</h1>
             </div>
             <LanguageSwitcher />
           </div>
@@ -60,7 +101,7 @@ export default function SamplePage() {
         <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
           <div className="rounded-2xl bg-accent/10 border border-accent/20 p-4">
             <p className="text-xs text-accent text-center">
-              This is demo data for preview only. Add your real birth details to generate a personal daily signal.
+              {copy.demo}
             </p>
           </div>
 
@@ -70,19 +111,19 @@ export default function SamplePage() {
             </h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-xs text-gray-500">Name</p>
-                <p className="text-white">{sampleData.name}</p>
+                <p className="text-xs text-gray-500">{copy.name}</p>
+                <p className="text-white">{isEnglish ? sampleData.name.en : sampleData.name.zh}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Gender</p>
-                <p className="text-white">{sampleData.gender}</p>
+                <p className="text-xs text-gray-500">{copy.gender}</p>
+                <p className="text-white">{isEnglish ? sampleData.gender.en : sampleData.gender.zh}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Birth date</p>
+                <p className="text-xs text-gray-500">{copy.birthDate}</p>
                 <p className="text-white">{sampleData.birthDate}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Birth time</p>
+                <p className="text-xs text-gray-500">{copy.birthTime}</p>
                 <p className="text-white">{sampleData.birthTime}</p>
               </div>
             </div>
@@ -93,15 +134,16 @@ export default function SamplePage() {
               Four Pillars
             </h2>
             <div className="grid grid-cols-4 gap-2">
-              {pillarLabels.map((label, index) => {
-                const value = [sampleData.pillars.year, sampleData.pillars.month, sampleData.pillars.day, sampleData.pillars.hour][index];
+              {pillarKeys.map((key, index) => {
+                const label = pillarLabels[isEnglish ? "en" : "zh"][index];
+                const value = sampleData.pillars[key];
                 const color = ["bg-accent/10", "bg-secondary/10", "bg-primary/10", "bg-green-500/10"][index];
                 const textColor = ["text-accent", "text-secondary", "text-primary", "text-green-500"][index];
                 return (
-                  <div key={label} className={`text-center p-3 rounded-xl ${color}`}>
+                  <div key={key} className={`text-center p-3 rounded-xl ${color}`}>
                     <p className={`text-xs mb-1 ${textColor}`}>{label}</p>
                     <p className="text-lg font-bold text-white">{value}</p>
-                    {label === "Day" && <p className="text-xs text-gray-500 mt-1">Day Master</p>}
+                    {key === "day" && <p className="text-xs text-gray-500 mt-1">{isEnglish ? "Day Master" : "日主"}</p>}
                   </div>
                 );
               })}
@@ -116,7 +158,7 @@ export default function SamplePage() {
               {sampleData.elements.map((element) => (
                 <div key={element.label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-400">{element.label}</span>
+                    <span className="text-gray-400">{elementLabels[element.label as keyof typeof elementLabels][isEnglish ? "en" : "zh"]}</span>
                     <span className="text-gray-400">{element.value}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-white/5">
@@ -132,14 +174,15 @@ export default function SamplePage() {
               Ten Gods pattern
             </h2>
             <div className="grid grid-cols-4 gap-2">
-              {pillarLabels.map((label, index) => {
+              {pillarKeys.map((key, index) => {
+                const label = pillarLabels[isEnglish ? "en" : "zh"][index];
                 const value = [sampleData.tenGods.year, sampleData.tenGods.month, sampleData.tenGods.day, sampleData.tenGods.hour][index];
                 const color = ["bg-accent/10", "bg-secondary/10", "bg-primary/10", "bg-green-500/10"][index];
                 const textColor = ["text-accent", "text-secondary", "text-primary", "text-green-500"][index];
                 return (
-                  <div key={label} className={`text-center p-3 rounded-xl ${color}`}>
+                  <div key={key} className={`text-center p-3 rounded-xl ${color}`}>
                     <p className={`text-xs mb-1 ${textColor}`}>{label}</p>
-                    <p className="text-sm font-bold text-white">{value}</p>
+                    <p className="text-sm font-bold text-white">{tenGodLabels[value as keyof typeof tenGodLabels][isEnglish ? "en" : "zh"]}</p>
                   </div>
                 );
               })}
@@ -147,9 +190,9 @@ export default function SamplePage() {
           </section>
 
           <section className="rounded-2xl bg-gradient-to-br from-secondary/10 to-accent/5 border border-secondary/20 p-5">
-            <h3 className="text-lg font-heading font-bold text-white mb-2">Create your personal reading</h3>
+            <h3 className="text-lg font-heading font-bold text-white mb-2">{copy.ctaTitle}</h3>
             <p className="text-xs text-gray-400 mb-4">
-              Enter your birth details to unlock a complete chart and daily timing guidance.
+              {copy.ctaBody}
             </p>
             <a
               href="/reading/start"

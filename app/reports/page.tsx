@@ -37,6 +37,11 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function hasSessionCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((item) => item.startsWith("fortune_session="));
+}
+
 function calculateStreak(history: DailyRitualHistoryItem[]) {
   const dates = new Set(history.map((item) => item.date));
   let streak = 0;
@@ -75,6 +80,11 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const loadConsultations = async () => {
+      if (!hasSessionCookie()) {
+        setConsultations([]);
+        setIsLoading(false);
+        return;
+      }
       try {
         const res = await fetch("/api/consultations");
         if (res.status === 401) {
@@ -128,10 +138,10 @@ export default function ReportsPage() {
             className="text-center py-4"
           >
             <h2 className="text-2xl font-heading font-bold text-white text-glow">
-              Daily Ritual Reports
+              {isEnglish ? "Daily Ritual Reports" : "每日仪式报告"}
             </h2>
             <p className="text-sm text-gray-400 mt-2">
-              Your local streak, saved timing cards, and return path for tomorrow.
+              {isEnglish ? "Your local streak, saved timing cards, and return path for tomorrow." : "你的本地连续记录、已保存时机卡片和明日回访入口。"}
             </p>
           </motion.div>
 
@@ -141,18 +151,18 @@ export default function ReportsPage() {
             transition={{ delay: 0.06 }}
             className="rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/15 via-surface/80 to-secondary/10 p-5"
           >
-            <p className="text-xs uppercase tracking-[0.25em] text-accent">Return hook</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">{isEnglish ? "Return hook" : "回访提醒"}</p>
             <div className="mt-3 grid grid-cols-[auto_1fr] gap-4 items-center">
               <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4 text-center">
                 <p className="text-4xl font-heading font-bold text-white">{streak}</p>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400">day streak</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400">{isEnglish ? "day streak" : "连续天数"}</p>
               </div>
               <div>
-                <h3 className="text-lg font-heading font-bold text-white">Come back tomorrow for a new timing window.</h3>
-                <p className="mt-1 text-sm leading-6 text-gray-300">Reports are local to this device in P0. No login is required to keep a simple streak.</p>
+                <h3 className="text-lg font-heading font-bold text-white">{isEnglish ? "Come back tomorrow for a new timing window." : "明天回来查看新的顺势窗口。"}</h3>
+                <p className="mt-1 text-sm leading-6 text-gray-300">{isEnglish ? "Reports are local to this device in P0. No login is required to keep a simple streak." : "P0 阶段报告保存在本设备；无需登录也能保留简单连续记录。"}</p>
               </div>
             </div>
-            <a href="/reading/start" className="mt-4 block rounded-2xl bg-white px-4 py-3 text-center text-sm font-bold text-surface">Find today’s best timing</a>
+            <a href="/reading/start" className="mt-4 block rounded-2xl bg-white px-4 py-3 text-center text-sm font-bold text-surface">{isEnglish ? "Find today’s best timing" : "查看今日最佳时机"}</a>
           </motion.section>
 
           <motion.section
@@ -163,11 +173,11 @@ export default function ReportsPage() {
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-secondary/80">Daily Ritual history</p>
-                <h3 className="mt-1 text-lg font-heading font-bold text-white">Your recent timing signals</h3>
+                <p className="text-xs uppercase tracking-[0.24em] text-secondary/80">{isEnglish ? "Daily Ritual history" : "每日仪式历史"}</p>
+                <h3 className="mt-1 text-lg font-heading font-bold text-white">{isEnglish ? "Your recent timing signals" : "你最近的时机信号"}</h3>
               </div>
               <a href="/reading/start" className="rounded-full border border-secondary/30 px-3 py-1 text-xs font-semibold text-secondary hover:bg-secondary/10">
-                New signal
+                {isEnglish ? "New signal" : "新的信号"}
               </a>
             </div>
 
@@ -178,17 +188,17 @@ export default function ReportsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs text-gray-500">
-                          {new Date(`${item.date}T00:00:00`).toLocaleDateString("en-US", {
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString(isEnglish ? "en-US" : "zh-CN", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
                           })}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-white">{item.focus || "General"}</p>
+                        <p className="mt-1 text-sm font-semibold text-white">{item.focus || (isEnglish ? "General" : "综合")}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-heading font-bold text-secondary">{item.score}</p>
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">clarity</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{isEnglish ? "clarity" : "清晰度"}</p>
                       </div>
                     </div>
                     {item.bestFor?.length > 0 && (
@@ -202,9 +212,9 @@ export default function ReportsPage() {
                     )}
                     {(item.bestHour || item.action || item.avoid) && (
                       <div className="mt-3 grid gap-2 rounded-2xl bg-black/20 p-3 text-xs leading-5 text-gray-300">
-                        {item.bestHour && <p><span className="text-secondary">Best window:</span> {item.bestHour}</p>}
-                        {item.action && <p><span className="text-white">Action:</span> {item.action}</p>}
-                        {item.avoid && <p><span className="text-accent">Avoid:</span> {item.avoid}</p>}
+                        {item.bestHour && <p><span className="text-secondary">{isEnglish ? "Best window:" : "最佳窗口："}</span> {item.bestHour}</p>}
+                        {item.action && <p><span className="text-white">{isEnglish ? "Action:" : "行动："}</span> {item.action}</p>}
+                        {item.avoid && <p><span className="text-accent">{isEnglish ? "Avoid:" : "避免："}</span> {item.avoid}</p>}
                       </div>
                     )}
                   </div>
@@ -212,7 +222,7 @@ export default function ReportsPage() {
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-gray-400">
-                No Daily Ritual history on this device yet. Generate today’s signal, save the card, and come back tomorrow to start a streak.
+                No {isEnglish ? "Daily Ritual history" : "每日仪式历史"} on this device yet. Generate today’s signal, save the card, and come back tomorrow to start a streak.
               </div>
             )}
           </motion.section>

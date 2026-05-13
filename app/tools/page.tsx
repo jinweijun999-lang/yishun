@@ -17,6 +17,11 @@ type ProfileData = {
   consultationCredits?: number | null;
 };
 
+function hasSessionCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((item) => item.startsWith("fortune_session="));
+}
+
 export default function ToolsPage() {
   const router = useRouter();
   const { t } = useI18n();
@@ -24,6 +29,7 @@ export default function ToolsPage() {
 
   useEffect(() => {
     const loadProfile = async () => {
+      if (!hasSessionCookie()) return;
       try {
         const response = await fetch("/api/profile");
         if (response.ok) {
