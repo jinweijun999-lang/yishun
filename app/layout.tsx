@@ -50,9 +50,9 @@ function getMetadata(locale: Locale): Metadata {
   }
 
   return {
-    title: "今日运势 | Fortune Teller",
-    description: "输入您的出生日期和时间，获取今日运势预测",
-    keywords: ["运势", "算命", "星座", "今日运势", "AI算命"],
+    title: "易顺｜东方时机决策信号",
+    description: "输入出生信息，获取基于八字、五行与真太阳时的每日时机参考。",
+    keywords: ["八字", "五行", "真太阳时", "今日时机", "易顺"],
   };
 }
 
