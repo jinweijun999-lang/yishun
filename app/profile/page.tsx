@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
+import BirthDateTimePicker from "../components/BirthDateTimePicker";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
 import { normalizeMembershipTier } from "@/lib/membership";
@@ -227,22 +228,15 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <div className="glass card p-8 sm:p-10">
               <form onSubmit={handleSave} className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                  <input
-                    type="time"
-                    value={birthTime}
-                    onChange={(e) => setBirthTime(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                </div>
+                <BirthDateTimePicker
+                  birthDate={birthDate}
+                  birthTime={birthTime}
+                  onBirthDateChange={setBirthDate}
+                  onBirthTimeChange={setBirthTime}
+                  birthDateLabel={t("register.birthDate") || "Birth date"}
+                  birthTimeLabel={t("register.birthTime") || "Birth time"}
+                  required
+                />
 
                 <select
                   value={gender}
