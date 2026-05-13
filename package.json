@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "smoke:stripe-webhook": "node scripts/stripe-webhook-entitlement-smoke.mjs"
+    "smoke:stripe-webhook": "node scripts/stripe-webhook-entitlement-smoke.mjs",
+    "smoke:i18n-language": "node scripts/i18n-language-switch-smoke.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

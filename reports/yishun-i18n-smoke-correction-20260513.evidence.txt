@@ -1,0 +1,32 @@
+Repository: /Users/xiajarvan/.openclaw/workspace/yishun
+
+1) Repository state before correction:
+- git status --short --branch showed branch main and no i18n smoke script/package entry.
+- git log -5 showed HEAD commits: e1b0265, 3fc569f, f2fa079, bc5b551, 5c08e9e.
+
+2) Commit check:
+git log --oneline origin/main..HEAD --stat
+Result: 5 ahead commits. Localization-related commits include:
+- bc5b551 fix: localize core acquisition flow
+- e1b0265 fix: close product UX localization gaps
+
+3) Correction:
+- Wrote scripts/i18n-language-switch-smoke.mjs
+- Added package.json script: smoke:i18n-language
+
+4) i18n smoke:
+Command: YISHUN_BASE_URL=http://localhost:3133 npm run smoke:i18n-language
+Result: i18n language switch smoke passed { baseUrl: 'http://localhost:3133' }
+Covered:
+- initial English home title
+- en -> zh title and CTA
+- zh persists after refresh
+- zh -> en title
+- en persists after refresh
+
+5) Lint/build:
+Command: npm run lint && npm run build
+Result: lint passed; build compiled successfully; TypeScript finished; static pages generated 50/50.
+
+6) Safety:
+No git push, no deployment, no external write performed.
