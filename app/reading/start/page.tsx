@@ -28,6 +28,52 @@ const loadingSteps = [
   "Turning it into one clear action…",
 ];
 
+const currentYear = new Date().getFullYear();
+const birthYears = Array.from({ length: 121 }, (_, index) => String(currentYear - index));
+const months = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
+const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+const minutes = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
+
+function daysInMonth(year: string, month: string) {
+  if (!year || !month) return 31;
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="space-y-2 text-sm text-gray-300">
+      <span>{label}</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="input-field min-h-[52px] disabled:opacity-50"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function track(event: string, properties: Record<string, unknown> = {}) {
   queueP0Analytics(event, properties);
 }
@@ -42,8 +88,11 @@ export default function ReadingStartPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
-  const [birthDate, setBirthDate] = useState("");
-  const [birthTime, setBirthTime] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [birthHour, setBirthHour] = useState("");
+  const [birthMinute, setBirthMinute] = useState("");
   const [birthTimeKnown, setBirthTimeKnown] = useState(true);
   const [birthPlaceText, setBirthPlaceText] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -63,6 +112,22 @@ export default function ReadingStartPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const dayOptions = useMemo(() => {
+    const total = daysInMonth(birthYear, birthMonth);
+    return Array.from({ length: total }, (_, index) => String(index + 1).padStart(2, "0"));
+  }, [birthMonth, birthYear]);
+
+  const birthDate = useMemo(() => {
+    if (!birthYear || !birthMonth || !birthDay) return "";
+    if (!dayOptions.includes(birthDay)) return "";
+    return `${birthYear}-${birthMonth}-${birthDay}`;
+  }, [birthDay, birthMonth, birthYear, dayOptions]);
+
+  const birthTime = useMemo(() => {
+    if (!birthTimeKnown || !birthHour || !birthMinute) return "";
+    return `${birthHour}:${birthMinute}`;
+  }, [birthHour, birthMinute, birthTimeKnown]);
 
   useEffect(() => {
     if (!isSubmitting) return;
@@ -221,38 +286,33 @@ export default function ReadingStartPage() {
                     <h2 className="text-xl font-heading font-bold text-white">First, your birth moment.</h2>
                     <p className="mt-2 text-sm text-gray-400">This sets your personal rhythm. If you do not know the time, we will still give a useful daily signal.</p>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <label className="space-y-2 text-sm text-gray-300">
-                      <span>Birth date</span>
-                      <input
-                        required
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="bday"
-                        pattern="\d{4}-\d{2}-\d{2}"
-                        placeholder="YYYY-MM-DD"
-                        aria-describedby="birth-date-format"
-                        value={birthDate}
-                        onChange={(e) => setBirthDate(e.target.value)}
-                        className="input-field"
-                      />
-                      <span id="birth-date-format" className="text-xs text-gray-500">Use YYYY-MM-DD, for example 1990-05-20.</span>
-                    </label>
-                    <label className="space-y-2 text-sm text-gray-300">
-                      <span>Birth time</span>
-                      <input
-                        disabled={!birthTimeKnown}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="([01]\d|2[0-3]):[0-5]\d"
-                        placeholder="HH:MM"
-                        aria-describedby="birth-time-format"
-                        value={birthTime}
-                        onChange={(e) => setBirthTime(e.target.value)}
-                        className="input-field disabled:opacity-50"
-                      />
-                      <span id="birth-time-format" className="text-xs text-gray-500">Use 24-hour time, for example 08:30.</span>
-                    </label>
+                  <div className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Birth date</h3>
+                        <p className="mt-1 text-xs text-gray-500">Pick from menus — no format typing required.</p>
+                      </div>
+                      {birthDate && <span className="rounded-full bg-secondary/15 px-3 py-1 text-xs text-secondary">{birthDate}</span>}
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <SelectField label="Year" value={birthYear} onChange={(value) => { setBirthYear(value); if (birthMonth && birthDay && Number(birthDay) > daysInMonth(value, birthMonth)) setBirthDay(""); }} options={birthYears} placeholder="Year" />
+                      <SelectField label="Month" value={birthMonth} onChange={(value) => { setBirthMonth(value); if (birthYear && birthDay && Number(birthDay) > daysInMonth(birthYear, value)) setBirthDay(""); }} options={months} placeholder="Month" />
+                      <SelectField label="Day" value={birthDay} onChange={setBirthDay} options={dayOptions} placeholder="Day" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Birth time</h3>
+                        <p className="mt-1 text-xs text-gray-500">Select hour and minute separately — no colon needed.</p>
+                      </div>
+                      {birthTimeKnown && birthTime && <span className="rounded-full bg-accent/15 px-3 py-1 text-xs text-accent">{birthTime}</span>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <SelectField label="Hour" value={birthHour} onChange={setBirthHour} options={hours} placeholder="Hour" disabled={!birthTimeKnown} />
+                      <SelectField label="Minute" value={birthMinute} onChange={setBirthMinute} options={minutes} placeholder="Minute" disabled={!birthTimeKnown} />
+                    </div>
                   </div>
                   <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                     <input type="checkbox" checked={!birthTimeKnown} onChange={(e) => setBirthTimeKnown(!e.target.checked)} />

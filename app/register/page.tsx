@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
+import BirthDateTimePicker from "../components/BirthDateTimePicker";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
 
@@ -104,28 +105,15 @@ export default function RegisterPage() {
               required
               className="input-field"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400">{t("register.birthDate") || "出生日期"}</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  required
-                  className="input-field"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400">{t("register.birthTime") || "出生时辰"}</label>
-                <input
-                  type="time"
-                  value={birthTime}
-                  onChange={(e) => setBirthTime(e.target.value)}
-                  required
-                  className="input-field"
-                />
-              </div>
-            </div>
+            <BirthDateTimePicker
+              birthDate={birthDate}
+              birthTime={birthTime}
+              onBirthDateChange={setBirthDate}
+              onBirthTimeChange={setBirthTime}
+              birthDateLabel={t("register.birthDate") || "出生日期"}
+              birthTimeLabel={t("register.birthTime") || "出生时辰"}
+              required
+            />
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}
