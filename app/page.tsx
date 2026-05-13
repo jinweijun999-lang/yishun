@@ -53,7 +53,8 @@ const sampleSignal: CachedPreview = {
 };
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale === "zh-CN";
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [cachedPreview] = useState<CachedPreview | null>(() => {
@@ -138,13 +139,13 @@ export default function Home() {
               className="rounded-3xl border border-secondary/20 bg-gradient-to-br from-secondary/15 via-surface/80 to-accent/10 p-6 shadow-2xl"
             >
               <p className="text-[10px] uppercase tracking-[0.28em] text-accent/80">
-                60-second Eastern timing ritual
+                {isZh ? "60 秒东方时机仪式" : "60-second Eastern timing ritual"}
               </p>
               <h2 className="mt-3 text-3xl font-heading font-bold text-white text-glow">
-                What should you lean into today?
+                {isZh ? "今天适合顺势推进什么？" : "What should you lean into today?"}
               </h2>
               <p className="mt-3 text-sm leading-6 text-gray-300">
-                YiShun turns your birth moment into a daily decision signal: what to push, what to pause, and why — without fear-based predictions.
+                {isZh ? "易顺把你的出生信息转成今日决策信号：什么适合推进、什么适合暂停，以及背后的原因——不制造恐惧式预测。" : "YiShun turns your birth moment into a daily decision signal: what to push, what to pause, and why — without fear-based predictions."}
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <Link
@@ -152,18 +153,18 @@ export default function Home() {
                   onClick={() => track(hasSavedRitual ? "open_today_ritual_click" : "start_daily_signal_click", { source: "home" })}
                   className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg hover:opacity-95"
                 >
-                  {hasSavedRitual ? "Open today’s ritual" : "Start my free daily signal"}
+                  {hasSavedRitual ? (isZh ? "打开今日仪式" : "Open today’s ritual") : (isZh ? "开始免费今日信号" : "Start my free daily signal")}
                 </Link>
                 <Link
                   href="/tools/sample"
                   onClick={() => track("sample_result_click", { source: "home" })}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/20 px-5 py-4 text-sm font-semibold text-gray-200 hover:bg-white/5"
                 >
-                  See sample result
+                  {isZh ? "查看示例结果" : "See sample result"}
                 </Link>
               </div>
               <p className="mt-3 text-[11px] text-gray-500">
-                Entertainment and self-reflection only. No medical, legal, financial, or life-critical advice.
+                {isZh ? "仅供娱乐和自我反思；不提供医疗、法律、金融或重大人生决策建议。" : "Entertainment and self-reflection only. No medical, legal, financial, or life-critical advice."}
               </p>
             </motion.section>
 
@@ -180,48 +181,48 @@ export default function Home() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.25em] text-secondary/80">
-                    {hasSavedRitual ? "Your Daily Ritual" : "Sample Daily Ritual"}
+                    {hasSavedRitual ? (isZh ? "你的今日仪式" : "Your Daily Ritual") : (isZh ? "示例今日仪式" : "Sample Daily Ritual")}
                   </p>
                   <h3 className="mt-2 text-2xl font-heading font-bold text-white">
                     {activeSignal.dailySignal.score} / 100 timing clarity
                   </h3>
                 </div>
                 <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
-                  {completedToday ? "Completed today" : activeSignal.focus ?? "General"}
+                  {completedToday ? (isZh ? "今日已完成" : "Completed today") : activeSignal.focus ?? (isZh ? "综合" : "General")}
                 </span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">Best for</p>
+                  <p className="text-xs text-gray-500">{isZh ? "适合" : "Best for"}</p>
                   <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.bestFor.slice(0, 2).join(" · ")}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">Golden hour</p>
+                  <p className="text-xs text-gray-500">{isZh ? "黄金时段" : "Golden hour"}</p>
                   <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.bestHour}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">Element</p>
+                  <p className="text-xs text-gray-500">{isZh ? "五行" : "Element"}</p>
                   <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.luckyElement}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">Direction</p>
+                  <p className="text-xs text-gray-500">{isZh ? "方向" : "Direction"}</p>
                   <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.luckyDirection}</p>
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
-                <p className="text-xs font-bold uppercase text-secondary">Do</p>
+                <p className="text-xs font-bold uppercase text-secondary">{isZh ? "宜" : "Do"}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-200">{activeSignal.dailySignal.do}</p>
               </div>
               <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/10 p-4">
-                <p className="text-xs font-bold uppercase text-accent">Avoid</p>
+                <p className="text-xs font-bold uppercase text-accent">{isZh ? "忌" : "Avoid"}</p>
                 <p className="mt-2 text-sm leading-6 text-gray-200">{activeSignal.dailySignal.avoid}</p>
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link href={hasSavedRitual ? "/reading/result" : "/reading/start"} className="rounded-xl bg-secondary/80 px-4 py-3 text-sm font-semibold text-white hover:bg-secondary">
-                  {hasSavedRitual ? "Open Today’s Ritual" : "Create your signal"}
+                  {hasSavedRitual ? (isZh ? "打开今日仪式" : "Open Today’s Ritual") : (isZh ? "生成我的信号" : "Create your signal")}
                 </Link>
                 <Link href="/reports" className="rounded-xl border border-white/20 px-4 py-3 text-sm text-gray-300 hover:bg-white/5">
-                  View history
+                  {isZh ? "查看历史" : "View history"}
                 </Link>
               </div>
             </motion.section>
@@ -237,13 +238,13 @@ export default function Home() {
                   <span className="text-lg" role="img" aria-hidden="true">📚</span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-wider text-accent/80 mb-1">BA ZI BASICS</p>
-                  <h3 className="text-base font-heading font-bold text-white">Why a daily ritual?</h3>
+                  <p className="text-[10px] uppercase tracking-wider text-accent/80 mb-1">{isZh ? "八字基础" : "BA ZI BASICS"}</p>
+                  <h3 className="text-base font-heading font-bold text-white">{isZh ? "为什么需要每日仪式？" : "Why a daily ritual?"}</h3>
                   <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                    YiShun combines your Four Pillars, Five Elements, true solar time, and today’s cycle into practical reflection prompts.
+                    {isZh ? "易顺结合四柱、五行、真太阳时与今日节律，给出可执行的反思提示。" : "YiShun combines your Four Pillars, Five Elements, true solar time, and today’s cycle into practical reflection prompts."}
                   </p>
                   <a href="/learn/bazi-basics" className="inline-block mt-3 text-xs text-secondary hover:text-secondary/80 transition-colors">
-                    Learn more →
+                    {isZh ? "了解更多 →" : "Learn more →"}
                   </a>
                 </div>
               </div>
