@@ -105,3 +105,18 @@ jobs:
           done
           sudo -n -u yishun pm2 logs yishun-nextjs --lines 80 --nostream
           exit 1
+
+      - name: Smoke share landing API locally
+        run: |
+          set -euo pipefail
+          payload='{"anonymous_id":"ci-smoke","source_screen":"daily_card","card_type":"daily_luck","template_id":"mystic","locale":"en-US","payload":{"title":"CI Smoke Timing Card","theme":"Daily timing","summary":"A safe public share-card smoke test.","best_window":"09:00-11:00","action":"Open YiShun and create your own timing card."},"utm":{"source":"github_actions","medium":"ci","campaign":"share_landing_smoke"}}'
+          response=$(curl -fsS --max-time 10 -X POST http://127.0.0.1:3001/api/v1/shares \
+            -H 'content-type: application/json' \
+            --data "$payload")
+          share_id=$(node -e 'const r=JSON.parse(process.argv[1]); if (!r.share_id || !r.share_url) process.exit(1); console.log(r.share_id)' "$response")
+          curl -fsS --max-time 10 "http://127.0.0.1:3001/api/v1/shares/${share_id}" \
+            | node -e 'let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{const r=JSON.parse(s); if(r.share_id!==process.argv[1] || !r.public_payload?.title) process.exit(1);})' "$share_id"
+          curl -fsS --max-time 10 -X POST "http://127.0.0.1:3001/api/v1/shares/${share_id}/cta" \
+            | node -e 'let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{const r=JSON.parse(s); if(r.ok!==true) process.exit(1);})'
+          curl -fsS --max-time 10 "http://127.0.0.1:3001/s/${share_id}" >/dev/null
+          echo "share landing smoke passed: ${share_id}"
