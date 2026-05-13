@@ -54,7 +54,13 @@ export default function MembershipPage() {
     loadProfile();
   }, []);
 
+  const requireAuthHref = `/login?returnTo=${encodeURIComponent("/membership")}`;
+
   const handleBuyCredit = async () => {
+    if (!profile) {
+      router.push(requireAuthHref);
+      return;
+    }
     setIsBuying(true);
     setBuySuccess("");
     try {
@@ -240,12 +246,18 @@ export default function MembershipPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <StripeCheckoutButton
-                  product="consultation_single"
-                  className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
-                >
-                  Continue to checkout $2.99
-                </StripeCheckoutButton>
+                {profile ? (
+                  <StripeCheckoutButton
+                    product="consultation_single"
+                    className="w-full px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
+                  >
+                    {isEnglish ? "Continue to checkout $2.99" : "继续结账 $2.99"}
+                  </StripeCheckoutButton>
+                ) : (
+                  <a href={requireAuthHref} className="block w-full px-6 py-3 rounded-xl bg-secondary/80 text-center text-white font-semibold text-sm hover:bg-secondary transition-colors">
+                    {isEnglish ? "Sign in before checkout" : "登录后再结账"}
+                  </a>
+                )}
                 <button
                   onClick={handleBuyCredit}
                   disabled={isBuying}
@@ -311,17 +323,30 @@ export default function MembershipPage() {
                   </ul>
 
                   {tier.checkoutProduct ? (
-                    <StripeCheckoutButton
-                      product={tier.checkoutProduct}
-                      disabled={tier.disabled}
-                      className={`block w-full text-center px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
-                        tier.highlight
-                          ? "bg-secondary/80 text-white hover:bg-secondary"
-                          : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
-                      }`}
-                    >
-                      {tier.cta}
-                    </StripeCheckoutButton>
+                    profile ? (
+                      <StripeCheckoutButton
+                        product={tier.checkoutProduct}
+                        disabled={tier.disabled}
+                        className={`block w-full text-center px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                          tier.highlight
+                            ? "bg-secondary/80 text-white hover:bg-secondary"
+                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        }`}
+                      >
+                        {tier.cta}
+                      </StripeCheckoutButton>
+                    ) : (
+                      <a
+                        href={requireAuthHref}
+                        className={`block w-full text-center px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                          tier.highlight
+                            ? "bg-secondary/80 text-white hover:bg-secondary"
+                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        }`}
+                      >
+                        {isEnglish ? "Sign in before checkout" : "登录后再结账"}
+                      </a>
+                    )
                   ) : (
                     <a
                       href={tier.ctaHref}
