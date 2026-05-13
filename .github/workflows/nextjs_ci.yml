@@ -63,31 +63,27 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, yishun-prod]
     timeout-minutes: 20
     needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
-      - name: Prepare SSH key
+      - name: Run local server deploy script
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.YISHUN_SSH_KEY }}" > ~/.ssh/yishun_deploy_key
-          chmod 600 ~/.ssh/yishun_deploy_key
-          printf '%s\n' "${{ secrets.YISHUN_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          sudo -n -u yishun /home/yishun/deploy.sh
 
-      - name: Run server deploy script
+      - name: Verify production health locally
         run: |
-          ssh -i ~/.ssh/yishun_deploy_key \
-            -p "${{ secrets.YISHUN_SSH_PORT }}" \
-            -o BatchMode=yes \
-            "${{ secrets.YISHUN_SSH_USER }}@${{ secrets.YISHUN_SSH_HOST }}" \
-            'sudo -n -u yishun /home/yishun/deploy.sh'
-
-      - name: Verify production health
-        run: |
-          ssh -i ~/.ssh/yishun_deploy_key \
-            -p "${{ secrets.YISHUN_SSH_PORT }}" \
-            -o BatchMode=yes \
-            "${{ secrets.YISHUN_SSH_USER }}@${{ secrets.YISHUN_SSH_HOST }}" \
-            'set -e; for i in $(seq 1 30); do curl -fsS --max-time 10 http://127.0.0.1:3001/ >/dev/null && curl -fsS --max-time 10 http://127.0.0.1:3001/api/kanban/status >/dev/null && sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null && exit 0; echo "waiting for app health attempt=$i"; sleep 2; done; sudo -n -u yishun pm2 logs yishun-nextjs --lines 80 --nostream; exit 1'
+          set -e
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 http://127.0.0.1:3001/ >/dev/null \
+              && curl -fsS --max-time 10 http://127.0.0.1:3001/api/kanban/status >/dev/null \
+              && sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null; then
+              exit 0
+            fi
+            echo "waiting for app health attempt=$i"
+            sleep 2
+          done
+          sudo -n -u yishun pm2 logs yishun-nextjs --lines 80 --nostream
+          exit 1
