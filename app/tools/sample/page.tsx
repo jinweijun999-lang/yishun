@@ -12,10 +12,10 @@ const sampleData = {
   birthTime: "08:30",
   gender: { en: "Not specified", zh: "未指定" },
   pillars: {
-    year: "Ji-Si",
-    month: "Yi-Chou",
-    day: "Wu-Zi",
-    hour: "Ren-Zi",
+    year: { en: "Ji-Si", zh: "己巳" },
+    month: { en: "Yi-Chou", zh: "乙丑" },
+    day: { en: "Wu-Zi", zh: "戊子" },
+    hour: { en: "Ren-Zi", zh: "壬子" },
   },
   elements: [
     { label: "Wood", value: 20, color: "bg-green-500" },
@@ -132,7 +132,7 @@ export default function SamplePage() {
             <div className="grid grid-cols-4 gap-2">
               {pillarKeys.map((key, index) => {
                 const label = pillarLabels[isEnglish ? "en" : "zh"][index];
-                const value = sampleData.pillars[key];
+                const value = sampleData.pillars[key][isEnglish ? "en" : "zh"];
                 const color = ["bg-accent/10", "bg-secondary/10", "bg-primary/10", "bg-green-500/10"][index];
                 const textColor = ["text-accent", "text-secondary", "text-primary", "text-green-500"][index];
                 return (

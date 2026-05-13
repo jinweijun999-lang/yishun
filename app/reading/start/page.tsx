@@ -31,11 +31,18 @@ const focusLabels: Record<string, { en: string; zh: string }> = {
   Creativity: { en: "Creativity", zh: "创造力" },
   General: { en: "General", zh: "综合" },
 };
-const loadingSteps = [
-  "Finding today’s best timing…",
-  "Checking your solar-time rhythm…",
-  "Turning it into one clear action…",
-];
+const loadingSteps = {
+  en: [
+    "Finding today’s best timing…",
+    "Checking your solar-time rhythm…",
+    "Turning it into one clear action…",
+  ],
+  zh: [
+    "正在寻找今天的最佳时机…",
+    "正在校准你的真太阳时节律…",
+    "正在整理成一项清晰行动…",
+  ],
+};
 
 const zh = {
   heroLabel: "每日回访入口",
@@ -182,7 +189,7 @@ export default function ReadingStartPage() {
   useEffect(() => {
     if (!isSubmitting) return;
     const timer = window.setInterval(() => {
-      setLoadingStep((current) => Math.min(current + 1, loadingSteps.length - 1));
+      setLoadingStep((current) => Math.min(current + 1, loadingSteps.en.length - 1));
     }, 900);
     return () => window.clearInterval(timer);
   }, [isSubmitting]);
@@ -193,8 +200,9 @@ export default function ReadingStartPage() {
     if (!Number.isFinite(lon) || !Number.isFinite(tz)) return null;
     const timezoneMeridian = (-tz / 60) * 15;
     const longitudeCorrection = (timezoneMeridian - lon) * 4;
+    if (isZh) return `${longitudeCorrection >= 0 ? "+" : ""}${longitudeCorrection.toFixed(1)} 分钟经度修正，之后再叠加时间方程校准`;
     return `${longitudeCorrection >= 0 ? "+" : ""}${longitudeCorrection.toFixed(1)} min longitude correction before equation-of-time adjustment`;
-  }, [longitude, timezoneOffsetMinutes]);
+  }, [isZh, longitude, timezoneOffsetMinutes]);
 
   function trackFormStart() {
     if (hasTrackedStart) return;
@@ -206,7 +214,7 @@ export default function ReadingStartPage() {
 
   function nextStep(next: number) {
     if (step === 1 && !birthDate) {
-      setError("Please add your birth date to generate the core chart.");
+      setError(isZh ? "请先选择出生日期，才能生成核心命盘。" : "Please add your birth date to generate the core chart.");
       track("birth_form_error", { step: 1, reason: "missing_birth_date" });
       return;
     }
@@ -217,7 +225,7 @@ export default function ReadingStartPage() {
 
   async function submitReading() {
     if (!birthDate) {
-      setError("Please add your birth date to generate the core chart.");
+      setError(isZh ? "请先选择出生日期，才能生成核心命盘。" : "Please add your birth date to generate the core chart.");
       return;
     }
     setError(null);
@@ -255,7 +263,7 @@ export default function ReadingStartPage() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "We couldn’t generate your signal. Your information is safe — please try again.");
+      if (!response.ok) throw new Error(data.error ?? (isZh ? "暂时无法生成你的信号。你的资料是安全的，请稍后重试。" : "We couldn’t generate your signal. Your information is safe — please try again."));
       localStorage.setItem("yishun:p0BirthProfile", JSON.stringify(payload));
       localStorage.setItem("yishun:p0Preview", JSON.stringify({ ...data, focus }));
       localStorage.setItem("yishun:dailyRitual:lastGeneratedAt", new Date().toISOString());
@@ -277,7 +285,7 @@ export default function ReadingStartPage() {
       const remaining = Math.max(0, 950 - (Date.now() - startedAt));
       window.setTimeout(() => router.push("/reading/result"), remaining);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn’t generate your signal. Your information is safe — please try again.");
+      setError(err instanceof Error ? err.message : (isZh ? "暂时无法生成你的信号。你的资料是安全的，请稍后重试。" : "We couldn’t generate your signal. Your information is safe — please try again."));
       track("birth_form_error", { step, reason: err instanceof Error ? err.message : "unknown" });
       setIsSubmitting(false);
     }
@@ -308,7 +316,7 @@ export default function ReadingStartPage() {
           {isSubmitting ? (
             <div className="glass card p-6 text-center space-y-4">
               <div className="mx-auto h-16 w-16 animate-pulse rounded-full border border-secondary/40 bg-secondary/10" />
-              <p className="text-lg font-heading font-bold text-white">{loadingSteps[loadingStep]}</p>
+              <p className="text-lg font-heading font-bold text-white">{(isZh ? loadingSteps.zh : loadingSteps.en)[loadingStep]}</p>
               <p className="text-sm text-gray-400">{isZh ? zh.loadingNote : "YiShun explains patterns for reflection — not fixed destiny."}</p>
             </div>
           ) : (
@@ -389,11 +397,11 @@ export default function ReadingStartPage() {
                     <div className="grid sm:grid-cols-2 gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
                       <label className="space-y-2 text-sm text-gray-300">
                         <span>{isZh ? zh.longitude : "Longitude"}</span>
-                        <input type="number" step="0.01" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Optional" className="input-field" />
+                        <input type="number" step="0.01" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder={isZh ? "可选" : "Optional"} className="input-field" />
                       </label>
                       <label className="space-y-2 text-sm text-gray-300">
                         <span>{isZh ? zh.latitude : "Latitude"}</span>
-                        <input type="number" step="0.01" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Optional" className="input-field" />
+                        <input type="number" step="0.01" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder={isZh ? "可选" : "Optional"} className="input-field" />
                       </label>
                       <label className="space-y-2 text-sm text-gray-300">
                         <span>{isZh ? zh.timezone : "Timezone"}</span>
@@ -403,7 +411,7 @@ export default function ReadingStartPage() {
                         <span>{isZh ? zh.timezoneOffset : "Timezone offset minutes"}</span>
                         <input type="number" value={timezoneOffsetMinutes} onChange={(e) => setTimezoneOffsetMinutes(e.target.value)} className="input-field" />
                       </label>
-                      {trueSolarPreview && <p className="sm:col-span-2 text-xs text-gray-400">{trueSolarPreview}. Offset uses JS Date.getTimezoneOffset semantics.</p>}
+                      {trueSolarPreview && <p className="sm:col-span-2 text-xs text-gray-400">{trueSolarPreview}. {isZh ? "偏移采用 JS Date.getTimezoneOffset 语义。" : "Offset uses JS Date.getTimezoneOffset semantics."}</p>}
                     </div>
                   )}
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">

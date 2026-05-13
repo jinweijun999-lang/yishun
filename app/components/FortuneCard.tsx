@@ -82,7 +82,7 @@ interface FortuneCardProps {
 
 function InterpretationSection({ bazi }: { bazi: FourPillarsResult }) {
   const { t, locale } = useI18n();
-  const interpretation = generateInterpretation(bazi);
+  const interpretation = locale === "zh-CN" ? generateInterpretation(bazi, "zh") : generateInterpretation(bazi, "en");
 
   return (
     <motion.div
@@ -96,22 +96,22 @@ function InterpretationSection({ bazi }: { bazi: FourPillarsResult }) {
       </div>
       
       <div className="space-y-2">
-        <h4 className="text-white font-medium">Day Master</h4>
+        <h4 className="text-white font-medium">{t("fortuneCard.dayMasterAnalysis")}</h4>
         <p className="text-gray-400 text-xs">{interpretation.dayMasterDescription}</p>
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-white font-medium">Season</h4>
+        <h4 className="text-white font-medium">{t("fortuneCard.seasonAnalysis")}</h4>
         <p className="text-gray-400 text-xs">{interpretation.monthSeasonDescription}</p>
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-white font-medium">Strength</h4>
+        <h4 className="text-white font-medium">{t("fortuneCard.strengthAnalysis")}</h4>
         <p className="text-gray-400 text-xs">{interpretation.strengthAnalysis}</p>
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-white font-medium">Favorable Elements</h4>
+        <h4 className="text-white font-medium">{t("fortuneCard.favorableElements")}</h4>
         <div className="flex gap-2 flex-wrap">
           {interpretation.favorableElements.map(el => (
             <span key={el} className="px-2 py-1 bg-white/5 rounded text-xs text-secondary border border-white/10">
@@ -336,15 +336,15 @@ export default function FortuneCard({ fortune, bazi, onReset }: FortuneCardProps
             {bazi.trueSolarTime && (
               <div className="mt-4 pt-4 border-t border-white/5 text-xs text-gray-500">
                 <div className="flex justify-between">
-                  <span>True Solar Time:</span>
+                  <span>{t("baziChart.field.trueSolarTime")}:</span>
                   <span className="text-gray-300">{bazi.trueSolarTime.time}</span>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span>Eq. of Time:</span>
+                  <span>{t("baziChart.equationOfTime")}:</span>
                   <span>{bazi.trueSolarTime.equationOfTimeMinutes}m</span>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span>Lon. Correction:</span>
+                  <span>{t("baziChart.longitudeCorrection")}:</span>
                   <span>{bazi.trueSolarTime.longitudeCorrectionMinutes}m</span>
                 </div>
               </div>

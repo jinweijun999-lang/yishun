@@ -472,85 +472,67 @@ export interface BaziInterpretation {
   favorableElements: string[];
 }
 
-export function generateInterpretation(bazi: FourPillarsResult): BaziInterpretation {
+export function generateInterpretation(bazi: FourPillarsResult, locale: "en" | "zh" = "en"): BaziInterpretation {
   const dayMaster = bazi.fourPillars.day.stem;
   const monthBranch = bazi.fourPillars.month.branch;
   const balance = computeElementBalance(bazi);
 
-  // 1. Day Master Description
-  const dmDescMap: Record<string, string> = {
-    "Jia": "Jia Wood (Yang): Like a towering tree, sturdy and upright. Growth-oriented, benevolent, and straightforward.",
-    "Yi": "Yi Wood (Yin): Like flowers or vines, flexible and adaptable. Gentle, expressive, and tactful.",
-    "Bing": "Bing Fire (Yang): Like the sun, radiant and generous. Passionate, charismatic, but can be impulsive.",
-    "Ding": "Ding Fire (Yin): Like a candle flame, focused and meticulous. Warm, insightful, and self-sacrificing.",
-    "Wu": "Wu Earth (Yang): Like a mountain, stable and trustworthy. Solid, grounded, but can be stubborn.",
-    "Ji": "Ji Earth (Yin): Like garden soil, nurturing and productive. Tolerant, resourceful, and detail-oriented.",
-    "Geng": "Geng Metal (Yang): Like a sword or raw iron, tough and decisive. Just, loyal, and altruistic.",
-    "Xin": "Xin Metal (Yin): Like jewelry or a dagger, elegant and sharp. Sentimental, precise, and values reputation.",
-    "Ren": "Ren Water (Yang): Like an ocean or river, dynamic and wise. Adaptable, energetic, and sometimes restless.",
-    "Gui": "Gui Water (Yin): Like rain or mist, gentle and penetrating. Intuitive, imaginative, and somewhat mysterious.",
+  const dmDescMap: Record<string, { en: string; zh: string }> = {
+    "Jia": { en: "Jia Wood (Yang): Like a towering tree, sturdy and upright. Growth-oriented, benevolent, and straightforward.", zh: "甲木（阳）：如参天大树，稳固直立。成长导向，仁慈，直率。" },
+    "Yi": { en: "Yi Wood (Yin): Like flowers or vines, flexible and adaptable. Gentle, expressive, and tactful.", zh: "乙木（阴）：如花草藤蔓，灵活适应。温柔，善于表达，有策略。" },
+    "Bing": { en: "Bing Fire (Yang): Like the sun, radiant and generous. Passionate, charismatic, but can be impulsive.", zh: "丙火（阳）：如太阳，光芒四射且慷慨。热情，有魅力，但可能冲动。" },
+    "Ding": { en: "Ding Fire (Yin): Like a candle flame, focused and meticulous. Warm, insightful, and self-sacrificing.", zh: "丁火（阴）：如烛火，专注而细致。温暖，有洞察力，乐于奉献。" },
+    "Wu": { en: "Wu Earth (Yang): Like a mountain, stable and trustworthy. Solid, grounded, but can be stubborn.", zh: "戊土（阳）：如高山，稳定可信。坚实，踏实，但可能固执。" },
+    "Ji": { en: "Ji Earth (Yin): Like garden soil, nurturing and productive. Tolerant, resourceful, and detail-oriented.", zh: "己土（阴）：如田园之土，滋养万物。宽容，足智多谋，注重细节。" },
+    "Geng": { en: "Geng Metal (Yang): Like a sword or raw iron, tough and decisive. Just, loyal, and altruistic.", zh: "庚金（阳）：如刀剑原矿，刚毅果断。公正，忠诚，利他。" },
+    "Xin": { en: "Xin Metal (Yin): Like jewelry or a dagger, elegant and sharp. Sentimental, precise, and values reputation.", zh: "辛金（阴）：如珠宝匕首，优雅锋利。重感情，精准，重声誉。" },
+    "Ren": { en: "Ren Water (Yang): Like an ocean or river, dynamic and wise. Adaptable, energetic, and sometimes restless.", zh: "壬水（阳）：如江河海洋，动态且睿智。适应性强，精力充沛，偶尔不安。" },
+    "Gui": { en: "Gui Water (Yin): Like rain or mist, gentle and penetrating. Intuitive, imaginative, and somewhat mysterious.", zh: "癸水（阴）：如雨露薄雾，温柔渗透。直觉敏锐，富于想象，略带神秘。" },
   };
-  const dayMasterDescription = dmDescMap[dayMaster.name] || `Day Master is ${dayMaster.name} ${dayMaster.element}.`;
+  const dayMasterDescription = (dmDescMap[dayMaster.name] || { en: `Day Master is ${dayMaster.name} ${dayMaster.element}.`, zh: `日主是${dayMaster.name}${dayMaster.element}。` })[locale];
 
-  // 2. Month Season Analysis (Simplified)
-  // In northern hemisphere:
-  // Yin/Mao/Chen = Spring (Wood)
-  // Si/Wu/Wei = Summer (Fire)
-  // Shen/You/Xu = Autumn (Metal)
-  // Hai/Zi/Chou = Winter (Water)
-  // Chen/Xu/Chou/Wei are also Earth transitions.
-  
-  let season = "";
+  let season = { en: "Transition", zh: "转换" };
   const mName = monthBranch.name;
-  if (["Yin", "Mao", "Chen"].includes(mName)) season = "Spring (Wood prosperous)";
-  else if (["Si", "Wu", "Wei"].includes(mName)) season = "Summer (Fire prosperous)";
-  else if (["Shen", "You", "Xu"].includes(mName)) season = "Autumn (Metal prosperous)";
-  else if (["Hai", "Zi", "Chou"].includes(mName)) season = "Winter (Water prosperous)";
-  
-  const monthSeasonDescription = `Born in ${monthBranch.name} month (${season}).`;
+  if (["Yin", "Mao", "Chen"].includes(mName)) season = { en: "Spring (Wood prosperous)", zh: "春季（木旺）" };
+  else if (["Si", "Wu", "Wei"].includes(mName)) season = { en: "Summer (Fire prosperous)", zh: "夏季（火旺）" };
+  else if (["Shen", "You", "Xu"].includes(mName)) season = { en: "Autumn (Metal prosperous)", zh: "秋季（金旺）" };
+  else if (["Hai", "Zi", "Chou"].includes(mName)) season = { en: "Winter (Water prosperous)", zh: "冬季（水旺）" };
+  const monthSeasonDescription = locale === "zh" ? `生于${monthBranch.name}月（${season.zh}）。` : `Born in ${monthBranch.name} month (${season.en}).`;
 
-  // 3. Strength Analysis (Very Basic)
-  // Compare Day Master element with Balance
   const selfElement = ELEMENT_KEY[dayMaster.element];
-  const selfCount = balance[selfElement];
-  // Resource produces Self
   const resourceMap: Record<string, string> = { wood: "water", fire: "wood", earth: "fire", metal: "earth", water: "metal" };
   const resourceElement = resourceMap[selfElement as string] as keyof ElementBalance;
+  const selfCount = balance[selfElement];
   const resourceCount = balance[resourceElement];
-  
   const selfStrengthScore = selfCount + resourceCount;
-  let strengthAnalysis = "";
-  if (selfStrengthScore >= 5) strengthAnalysis = "Day Master appears Strong (supported by many same/resource elements).";
-  else if (selfStrengthScore <= 2) strengthAnalysis = "Day Master appears Weak (few same/resource elements).";
-  else strengthAnalysis = "Day Master appears Balanced.";
+  
+  let strengthAnalysis = locale === "zh" ? "日主状态平衡。" : "Day Master appears Balanced.";
+  if (selfStrengthScore >= 5) strengthAnalysis = locale === "zh" ? "日主偏旺（得到同类或生助元素较多）。" : "Day Master appears Strong (supported by many same/resource elements).";
+  else if (selfStrengthScore <= 2) strengthAnalysis = locale === "zh" ? "日主偏弱（缺少同类或生助元素）。" : "Day Master appears Weak (few same/resource elements).";
 
-  // 4. Favorable Elements (Simplified)
-  // If Strong -> Output (Child), Wealth (Control), Officer (Controlled by)
-  // If Weak -> Resource (Mother), Self (Friend)
   let favorableElements: string[] = [];
+  const elementCycles: Record<string, { output: string, wealth: string, officer: string, resource: string, self: string }> = {
+    wood: { output: "Fire", wealth: "Earth", officer: "Metal", resource: "Water", self: "Wood" },
+    fire: { output: "Earth", wealth: "Metal", officer: "Water", resource: "Wood", self: "Fire" },
+    earth: { output: "Metal", wealth: "Water", officer: "Wood", resource: "Fire", self: "Earth" },
+    metal: { output: "Water", wealth: "Wood", officer: "Fire", resource: "Earth", self: "Metal" },
+    water: { output: "Wood", wealth: "Fire", officer: "Earth", resource: "Metal", self: "Water" },
+  };
+  const cycles = elementCycles[selfElement as keyof typeof elementCycles];
+
   if (selfStrengthScore >= 4) {
-     // Suppress
-     // Wood -> Fire (Output), Earth (Wealth), Metal (Officer)
-     if (selfElement === "wood") favorableElements = ["Fire", "Earth", "Metal"];
-     if (selfElement === "fire") favorableElements = ["Earth", "Metal", "Water"];
-     if (selfElement === "earth") favorableElements = ["Metal", "Water", "Wood"];
-     if (selfElement === "metal") favorableElements = ["Water", "Wood", "Fire"];
-     if (selfElement === "water") favorableElements = ["Wood", "Fire", "Earth"];
+    favorableElements = [cycles.output, cycles.wealth, cycles.officer];
   } else {
-     // Support
-     // Wood -> Water (Resource), Wood (Self)
-     if (selfElement === "wood") favorableElements = ["Water", "Wood"];
-     if (selfElement === "fire") favorableElements = ["Wood", "Fire"];
-     if (selfElement === "earth") favorableElements = ["Fire", "Earth"];
-     if (selfElement === "metal") favorableElements = ["Earth", "Metal"];
-     if (selfElement === "water") favorableElements = ["Metal", "Water"];
+    favorableElements = [cycles.resource, cycles.self];
   }
+  
+  const elementZh: Record<string, string> = { Wood: "木", Fire: "火", Earth: "土", Metal: "金", Water: "水" };
 
   return {
     dayMasterDescription,
     monthSeasonDescription,
     strengthAnalysis,
-    favorableElements
+    favorableElements: locale === 'zh' ? favorableElements.map(el => elementZh[el] ?? el) : favorableElements,
   };
 }
 

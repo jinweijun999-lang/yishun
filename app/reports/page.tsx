@@ -53,6 +53,60 @@ function calculateStreak(history: DailyRitualHistoryItem[]) {
   return streak;
 }
 
+const zhValueMap: Record<string, string> = {
+  General: "综合",
+  Work: "事业",
+  Money: "财务",
+  Love: "情感",
+  Energy: "能量",
+  Creativity: "创意",
+  Wood: "木",
+  Fire: "火",
+  Earth: "土",
+  Metal: "金",
+  Water: "水",
+  planning: "规划",
+  learning: "学习",
+  "slow decisions": "慢决策",
+  presenting: "表达展示",
+  "creative momentum": "创意推进",
+  "warm outreach": "温和沟通",
+  "reviewing details": "复核细节",
+  budgeting: "预算安排",
+  "stable commitments": "稳定承诺",
+  prioritizing: "确定优先级",
+  "negotiating boundaries": "协商边界",
+  "focused execution": "专注执行",
+  research: "调研",
+  reflection: "反思",
+  "sensitive conversations": "敏感沟通",
+  "focused outreach": "专注沟通",
+  "calm decisions": "冷静决策",
+};
+
+const zhActionMap: Record<string, string> = {
+  "Borrow Wood energy: write the next step before making a commitment.": "借用木的能量：先写下下一步，再做承诺。",
+  "Borrow Fire energy: share one clear message instead of over-explaining.": "借用火的能量：清楚表达一个重点，不要过度解释。",
+  "Borrow Earth energy: choose the stable option and confirm the details.": "借用土的能量：选择更稳定的方案，并确认关键细节。",
+  "Borrow Metal energy: cut one unnecessary task before starting something new.": "借用金的能量：开始新事前，先砍掉一个不必要任务。",
+  "Borrow Water energy: pause for ten minutes before replying to important messages.": "借用水的能量：回复重要消息前，先暂停十分钟。",
+  "forcing a final answer before the options have room to grow": "选项还没充分展开前，不要强迫自己立刻定案。",
+  "reacting quickly just to keep the energy high": "不要为了维持热度而仓促反应。",
+  "saying yes to vague plans without confirming the ground rules": "规则没确认前，不要答应模糊计划。",
+  "cutting off a useful option because it is not perfect yet": "不要因为还不完美就砍掉有用选项。",
+  "over-reading signals without choosing one small next step": "不要过度解读信号，却不选择一个小行动。",
+};
+
+function localizeSavedValue(value: string | undefined, isZh: boolean) {
+  if (!value) return isZh ? "综合" : "General";
+  return isZh ? zhValueMap[value] ?? value : value;
+}
+
+function localizeSavedAction(value: string | undefined, isZh: boolean) {
+  if (!value) return "";
+  return isZh ? zhActionMap[value] ?? value : value;
+}
+
 export default function ReportsPage() {
   const router = useRouter();
   const handleBack = () => { router.back(); };
@@ -194,7 +248,7 @@ export default function ReportsPage() {
                             year: "numeric",
                           })}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-white">{item.focus || t("reports.general")}</p>
+                        <p className="mt-1 text-sm font-semibold text-white">{localizeSavedValue(item.focus, !isEnglish) || t("reports.general")}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-heading font-bold text-secondary">{item.score}</p>
@@ -205,7 +259,7 @@ export default function ReportsPage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         {item.bestFor.slice(0, 3).map((tag) => (
                           <span key={tag} className="rounded-full bg-secondary/10 px-2.5 py-1 text-xs text-secondary">
-                            {tag}
+                            {localizeSavedValue(tag, !isEnglish)}
                           </span>
                         ))}
                       </div>
@@ -213,8 +267,8 @@ export default function ReportsPage() {
                     {(item.bestHour || item.action || item.avoid) && (
                       <div className="mt-3 grid gap-2 rounded-2xl bg-black/20 p-3 text-xs leading-5 text-gray-300">
                         {item.bestHour && <p><span className="text-secondary">{t("reports.bestWindow")}</span> {item.bestHour}</p>}
-                        {item.action && <p><span className="text-white">{t("reports.action")}</span> {item.action}</p>}
-                        {item.avoid && <p><span className="text-accent">{t("reports.avoid")}</span> {item.avoid}</p>}
+                        {item.action && <p><span className="text-white">{t("reports.action")}</span> {localizeSavedAction(item.action, !isEnglish)}</p>}
+                        {item.avoid && <p><span className="text-accent">{t("reports.avoid")}</span> {localizeSavedAction(item.avoid, !isEnglish)}</p>}
                       </div>
                     )}
                   </div>

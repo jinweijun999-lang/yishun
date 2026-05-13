@@ -43,6 +43,80 @@ function track(event: string, properties: Record<string, unknown> = {}) {
   window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
 }
 
+
+const zhValueMap: Record<string, string> = {
+  General: "综合",
+  Work: "事业",
+  Money: "财务",
+  Love: "情感",
+  Energy: "能量",
+  Creativity: "创意",
+  Wood: "木",
+  Fire: "火",
+  Earth: "土",
+  Metal: "金",
+  Water: "水",
+  East: "东方",
+  South: "南方",
+  "Center / Northeast": "中宫 / 东北",
+  West: "西方",
+  North: "北方",
+  planning: "规划",
+  learning: "学习",
+  "slow decisions": "慢决策",
+  presenting: "表达展示",
+  "creative momentum": "创意推进",
+  "warm outreach": "温和沟通",
+  "reviewing details": "复核细节",
+  budgeting: "预算安排",
+  "stable commitments": "稳定承诺",
+  prioritizing: "确定优先级",
+  "negotiating boundaries": "协商边界",
+  "focused execution": "专注执行",
+  research: "调研",
+  reflection: "反思",
+  "sensitive conversations": "敏感沟通",
+  "focused outreach": "专注沟通",
+  "calm decisions": "冷静决策",
+  "planning · focused outreach": "规划 · 专注沟通",
+  "Choose one meaningful push and write the next step before you commit.": "选择一个最重要的推进点，并在承诺前写下下一步。",
+  "Do not force a final answer before the options are clear.": "选项还不清楚前，不要强行给出最终答案。",
+};
+
+function localizeValue(value: string | undefined, isZh: boolean) {
+  if (!value) return isZh ? "综合" : "General";
+  if (!isZh) return value;
+  return zhValueMap[value] ?? value;
+}
+
+function localizeList(values: string[], isZh: boolean) {
+  return values.map((value) => localizeValue(value, isZh));
+}
+
+function localizeActionText(value: string, isZh: boolean) {
+  if (!isZh) return value;
+  if (zhValueMap[value]) return zhValueMap[value];
+  const element = Object.keys(zhValueMap).find((key) => value.includes(`Borrow ${key} energy`));
+  if (element) {
+    const actionMap: Record<string, string> = {
+      Wood: "借用木的能量：先写下下一步，再做承诺。",
+      Fire: "借用火的能量：清楚表达一个重点，不要过度解释。",
+      Earth: "借用土的能量：选择更稳定的方案，并确认关键细节。",
+      Metal: "借用金的能量：开始新事前，先砍掉一个不必要任务。",
+      Water: "借用水的能量：回复重要消息前，先暂停十分钟。",
+    };
+    return actionMap[element] ?? value;
+  }
+  const avoidMap: Record<string, string> = {
+    "forcing a final answer before the options have room to grow": "选项还没充分展开前，不要强迫自己立刻定案。",
+    "reacting quickly just to keep the energy high": "不要为了维持热度而仓促反应。",
+    "saying yes to vague plans without confirming the ground rules": "规则没确认前，不要答应模糊计划。",
+    "cutting off a useful option because it is not perfect yet": "不要因为还不完美就砍掉有用选项。",
+    "over-reading signals without choosing one small next step": "不要过度解读信号，却不选择一个小行动。",
+  };
+  return avoidMap[value] ?? value;
+}
+
 const sampleSignal: CachedPreview = {
   focus: "General",
   dominantElement: "Wood",
@@ -62,21 +136,20 @@ export default function Home() {
   const isZh = locale === "zh-CN";
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [cachedPreview] = useState<CachedPreview | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const cached = window.localStorage.getItem("yishun:p0Preview");
-      return cached ? (JSON.parse(cached) as CachedPreview) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [completedDate] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem("yishun:dailyRitual:completedDate");
-  });
+  const [cachedPreview, setCachedPreview] = useState<CachedPreview | null>(null);
+  const [completedDate, setCompletedDate] = useState<string | null>(null);
 
   useEffect(() => {
+    window.setTimeout(() => {
+      try {
+        const cached = window.localStorage.getItem("yishun:p0Preview");
+        setCachedPreview(cached ? (JSON.parse(cached) as CachedPreview) : null);
+        setCompletedDate(window.localStorage.getItem("yishun:dailyRitual:completedDate"));
+      } catch {
+        setCachedPreview(null);
+      }
+    }, 0);
+
     const loadProfile = async () => {
       if (!hasSessionCookie()) {
         setAuthChecked(true);
@@ -98,6 +171,14 @@ export default function Home() {
 
   const isLoggedIn = !!profile;
   const activeSignal = cachedPreview ?? sampleSignal;
+  const displaySignal = {
+    focus: localizeValue(activeSignal.focus, isZh),
+    bestFor: localizeList(activeSignal.dailySignal.bestFor, isZh),
+    luckyElement: localizeValue(activeSignal.dailySignal.luckyElement, isZh),
+    luckyDirection: localizeValue(activeSignal.dailySignal.luckyDirection, isZh),
+    do: localizeActionText(activeSignal.dailySignal.do, isZh),
+    avoid: localizeActionText(activeSignal.dailySignal.avoid, isZh),
+  };
   const hasSavedRitual = Boolean(cachedPreview);
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = completedDate === today;
@@ -111,7 +192,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="text-xl" role="img" aria-hidden="true">🔮</span>
               <h1 className="text-lg font-heading font-bold text-white">
-                YiShun <span className="text-accent text-sm">易顺</span>
+                YiShun <span className="text-accent text-sm">{isZh ? "易顺" : ""}</span>
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -148,13 +229,13 @@ export default function Home() {
               className="rounded-3xl border border-secondary/20 bg-gradient-to-br from-secondary/15 via-surface/80 to-accent/10 p-6 shadow-2xl"
             >
               <p className="text-[10px] uppercase tracking-[0.28em] text-accent/80">
-                {isZh ? "60 秒东方时机仪式" : "60-second Eastern timing ritual"}
+                {t("home.ritual.subtitle")}
               </p>
               <h2 className="mt-3 text-3xl font-heading font-bold text-white text-glow">
-                {isZh ? "今天适合顺势推进什么？" : "What should you lean into today?"}
+                {t("home.ritual.title")}
               </h2>
               <p className="mt-3 text-sm leading-6 text-gray-300">
-                {isZh ? "易顺把你的出生信息转成今日决策信号：什么适合推进、什么适合暂停，以及背后的原因——不制造恐惧式预测。" : "YiShun turns your birth moment into a daily decision signal: what to push, what to pause, and why — without fear-based predictions."}
+                {t("home.ritual.description")}
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <Link
@@ -162,18 +243,18 @@ export default function Home() {
                   onClick={() => track(hasSavedRitual ? "open_today_ritual_click" : "start_daily_signal_click", { source: "home" })}
                   className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg hover:opacity-95"
                 >
-                  {hasSavedRitual ? (isZh ? "打开今日仪式" : "Open today’s ritual") : (isZh ? "开始免费今日信号" : "Start my free daily signal")}
+                  {hasSavedRitual ? t("home.ritual.open") : t("home.ritual.start")}
                 </Link>
                 <Link
                   href="/tools/sample"
                   onClick={() => track("sample_result_click", { source: "home" })}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/20 px-5 py-4 text-sm font-semibold text-gray-200 hover:bg-white/5"
                 >
-                  {isZh ? "查看示例结果" : "See sample result"}
+                  {t("home.ritual.sample")}
                 </Link>
               </div>
               <p className="mt-3 text-[11px] text-gray-500">
-                {isZh ? "仅供娱乐和自我反思；不提供医疗、法律、金融或重大人生决策建议。" : "Entertainment and self-reflection only. No medical, legal, financial, or life-critical advice."}
+                {t("home.ritual.disclaimer")}
               </p>
             </motion.section>
 
@@ -190,48 +271,48 @@ export default function Home() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.25em] text-secondary/80">
-                    {hasSavedRitual ? (isZh ? "你的今日仪式" : "Your Daily Ritual") : (isZh ? "示例今日仪式" : "Sample Daily Ritual")}
+                    {hasSavedRitual ? t("home.ritual.yourRitual") : t("home.ritual.sampleRitual")}
                   </p>
                   <h3 className="mt-2 text-2xl font-heading font-bold text-white">
-                    {activeSignal.dailySignal.score} / 100 timing clarity
+                    {activeSignal.dailySignal.score} / 100 {t("home.ritual.timingClarity")}
                   </h3>
                 </div>
                 <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
-                  {completedToday ? (isZh ? "今日已完成" : "Completed today") : activeSignal.focus ?? (isZh ? "综合" : "General")}
+                  {completedToday ? t("todayFortune.completed") : displaySignal.focus}
                 </span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{isZh ? "适合" : "Best for"}</p>
-                  <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.bestFor.slice(0, 2).join(" · ")}</p>
+                  <p className="text-xs text-gray-500">{t("home.ritual.bestFor")}</p>
+                  <p className="mt-1 text-white font-semibold">{displaySignal.bestFor.slice(0, 2).join(" · ")}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{isZh ? "黄金时段" : "Golden hour"}</p>
+                  <p className="text-xs text-gray-500">{t("home.ritual.goldenHour")}</p>
                   <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.bestHour}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{isZh ? "五行" : "Element"}</p>
-                  <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.luckyElement}</p>
+                  <p className="text-xs text-gray-500">{t("home.ritual.luckyElement")}</p>
+                  <p className="mt-1 text-white font-semibold">{displaySignal.luckyElement}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{isZh ? "方向" : "Direction"}</p>
-                  <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.luckyDirection}</p>
+                  <p className="text-xs text-gray-500">{t("home.ritual.luckyDirection")}</p>
+                  <p className="mt-1 text-white font-semibold">{displaySignal.luckyDirection}</p>
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
-                <p className="text-xs font-bold uppercase text-secondary">{isZh ? "宜" : "Do"}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{activeSignal.dailySignal.do}</p>
+                <p className="text-xs font-bold uppercase text-secondary">{t("home.ritual.do")}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-200">{displaySignal.do}</p>
               </div>
               <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/10 p-4">
-                <p className="text-xs font-bold uppercase text-accent">{isZh ? "忌" : "Avoid"}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{activeSignal.dailySignal.avoid}</p>
+                <p className="text-xs font-bold uppercase text-accent">{t("home.ritual.avoid")}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-200">{displaySignal.avoid}</p>
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link href={hasSavedRitual ? "/reading/result" : "/reading/start"} className="rounded-xl bg-secondary/80 px-4 py-3 text-sm font-semibold text-white hover:bg-secondary">
-                  {hasSavedRitual ? (isZh ? "打开今日仪式" : "Open Today’s Ritual") : (isZh ? "生成我的信号" : "Create your signal")}
+                  {hasSavedRitual ? t("home.ritual.open") : t("home.ritual.create")}
                 </Link>
                 <Link href="/reports" className="rounded-xl border border-white/20 px-4 py-3 text-sm text-gray-300 hover:bg-white/5">
-                  {isZh ? "查看历史" : "View history"}
+                  {t("home.ritual.viewHistory")}
                 </Link>
               </div>
             </motion.section>
@@ -247,13 +328,13 @@ export default function Home() {
                   <span className="text-lg" role="img" aria-hidden="true">📚</span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-wider text-accent/80 mb-1">{isZh ? "八字基础" : "BA ZI BASICS"}</p>
-                  <h3 className="text-base font-heading font-bold text-white">{isZh ? "为什么需要每日仪式？" : "Why a daily ritual?"}</h3>
+                  <p className="text-[10px] uppercase tracking-wider text-accent/80 mb-1">{t("home.baziBasics.sectionTitle")}</p>
+                  <h3 className="text-base font-heading font-bold text-white">{t("home.baziBasics.title")}</h3>
                   <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                    {isZh ? "易顺结合四柱、五行、真太阳时与今日节律，给出可执行的反思提示。" : "YiShun combines your Four Pillars, Five Elements, true solar time, and today’s cycle into practical reflection prompts."}
+                    {t("home.baziBasics.description")}
                   </p>
                   <a href="/learn/bazi-basics" className="inline-block mt-3 text-xs text-secondary hover:text-secondary/80 transition-colors">
-                    {isZh ? "了解更多 →" : "Learn more →"}
+                    {t("home.baziBasics.link")}
                   </a>
                 </div>
               </div>

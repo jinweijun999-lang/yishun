@@ -90,7 +90,7 @@ export default function FiveElementsChart({
             {t("fiveElements.title")}
           </h3>
         </div>
-        <span className="text-xs text-gray-500">Five Elements</span>
+        <span className="text-xs text-gray-500">{locale === "en" ? "Five Elements" : "五行"}</span>
       </div>
 
       {/* Bar Chart - Horizontal */}
@@ -104,9 +104,9 @@ export default function FiveElementsChart({
               {/* Element Identity: symbol + color + label */}
               <div
                 className={`w-10 h-10 rounded-lg ${element.bgClass} border ${element.borderClass} flex items-center justify-center flex-shrink-0`}
-                title={locale === "en" ? element.label : `${element.label} (${element.zh})`}
+                title={locale === "en" ? element.label : element.zh}
                 role="img"
-                aria-label={`${element.label} element`}
+                aria-label={locale === "en" ? `${element.label} element` : `${element.zh}元素`}
               >
                 <span
                   className="text-lg"
@@ -120,13 +120,8 @@ export default function FiveElementsChart({
               {/* Label */}
               <div className="w-16 flex-shrink-0">
                 <span className="block text-sm font-semibold" style={{ color: element.color }}>
-                  {element.label}
+                  {locale === "en" ? element.label : element.zh}
                 </span>
-                {locale !== "en" && (
-                  <span className="block text-[10px] text-gray-500" title={`${element.label} in Chinese`}>
-                    {element.zh}
-                  </span>
-                )}
               </div>
 
               {/* Bar */}
@@ -142,7 +137,7 @@ export default function FiveElementsChart({
                   aria-valuenow={percent}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-label={`${element.label} ${percent}%`}
+                  aria-label={locale === "en" ? `${element.label} ${percent}%` : `${element.zh} ${percent}%`}
                 />
               </div>
 
@@ -216,11 +211,11 @@ function AnalysisHint({
               <span className="font-medium" style={{ color: dominantElement?.color }}>
                 {dominantElement?.zh}
               </span>{" "}
-              ({dominantElement?.label}) 较旺，建议补充{" "}
+              较旺，建议补充{" "}
               <span className="font-medium" style={{ color: weakElement?.color }}>
                 {weakElement?.zh}
               </span>{" "}
-              ({weakElement?.label}) 能量。
+              能量。
             </>
           )}
         </p>

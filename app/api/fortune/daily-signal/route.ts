@@ -34,11 +34,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const input = normalizeBirthProfileInput(body.birthProfile ?? body);
+    const input = normalizeBirthProfileInput({
+      ...(body.birthProfile ?? body),
+      locale: body.birthProfile?.locale ?? body.locale,
+    });
     const preview = buildPreviewChart(input);
     return NextResponse.json({
       depth: body.depth === "unlocked" ? "unlocked" : "free",
-      dailySignal: generateDailySignal(preview.chart, input.birthTimeKnown),
+      dailySignal: generateDailySignal(preview.chart, input.birthTimeKnown, input.locale),
       lockedInsight: {
         title: "Your deeper pattern today",
         unlockMethod: "rewarded_ad",

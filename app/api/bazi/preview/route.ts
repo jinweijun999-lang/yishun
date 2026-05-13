@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const input = normalizeBirthProfileInput(body);
     const preview = buildPreviewChart(input);
-    const dailySignal = generateDailySignal(preview.chart, input.birthTimeKnown);
+    const dailySignal = generateDailySignal(preview.chart, input.birthTimeKnown, input.locale);
 
     return NextResponse.json({
       birthProfile: {
