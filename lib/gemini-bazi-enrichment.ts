@@ -23,6 +23,18 @@ export const aiBaziInterpretationSchema = z.strictObject({
   terminologyNote: z.string().min(20).max(300),
 });
 
+const geminiResponseSchema = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    signalsUsed: { type: "ARRAY", items: { type: "STRING" } },
+    actionSuggestions: { type: "ARRAY", items: { type: "STRING" } },
+    reflectionQuestion: { type: "STRING" },
+    terminologyNote: { type: "STRING" },
+  },
+  required: ["summary", "signalsUsed", "actionSuggestions", "reflectionQuestion", "terminologyNote"],
+};
+
 export type AiBaziInterpretation = z.infer<typeof aiBaziInterpretationSchema>;
 
 export type AiBaziField =
@@ -97,6 +109,7 @@ Hard constraints:
 - Use accurate terminology: BaZi (八字), Four Pillars (四柱), Day Master (日主 / Day Heavenly Stem), Five Elements (五行: Wood, Fire, Earth, Metal, Water), Ten Gods (十神), true solar time (真太阳时).
 - Explain technical terms in plain language; avoid fatalistic claims and avoid medical, financial, legal, or life-critical advice.
 - Do not include fields outside this JSON shape: {"summary": string, "signalsUsed": string[], "actionSuggestions": string[3], "reflectionQuestion": string, "terminologyNote": string}.
+- Keep summary under 140 words, each action under 28 words, and terminologyNote under 45 words so the JSON is never truncated.
 - ${languageRule}
 
 Provided structured signals:
@@ -196,9 +209,10 @@ export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, fact
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.25,
+            temperature: 0.15,
             maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
             responseMimeType: "application/json",
+            responseSchema: geminiResponseSchema,
           },
         }),
       });
@@ -214,14 +228,19 @@ export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, fact
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       modelErrors.push(`${model}: ${message}`);
-      if (message === "validation_failed") return fallback("validation_failed");
-      if (message === "invalid_json" || error instanceof SyntaxError) return fallback("invalid_json");
       if (message === "AbortError" || (error instanceof DOMException && error.name === "AbortError")) return fallback("timeout");
+      // Gemini can occasionally return malformed/truncated JSON for one model even with
+      // responseMimeType enabled. Try the next configured model before falling back so
+      // production smoke tests do not fail on a single transient generation issue.
+      if (message === "validation_failed" || message === "invalid_json" || error instanceof SyntaxError) continue;
     } finally {
       clearTimeout(timeout);
     }
   }
 
   if (modelErrors.some((item) => item.includes("AbortError"))) return fallback("timeout");
+  if (modelErrors.length > 0 && modelErrors.every((item) => item.includes("invalid_json") || item.includes("validation_failed"))) {
+    return fallback(modelErrors.some((item) => item.includes("validation_failed")) ? "validation_failed" : "invalid_json");
+  }
   return fallback("api_error");
 }
