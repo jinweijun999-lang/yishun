@@ -1,11 +1,16 @@
 import { z } from "zod";
+import { checkGeminiCostGuard, GEMINI_MAX_OUTPUT_TOKENS, rememberGeminiResult } from "@/lib/gemini-cost-guard";
 import type { BirthProfileInput, DailySignal } from "@/lib/p0-astrology";
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GEMINI_API_KEY_YISHUN
+  ?? process.env.GOOGLE_API_KEY
+  ?? process.env.GEMINI_API_KEY
+  ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 const GEMINI_TIMEOUT_MS = Number(process.env.YISHUN_GEMINI_TIMEOUT_MS ?? 4500);
 const GOOGLE_MODELS = [
   process.env.GOOGLE_MODEL,
-  "gemini-2.0-flash-exp",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
   "gemini-1.5-flash-002",
   "gemini-1.5-flash",
 ].filter((model): model is string => Boolean(model));
@@ -31,7 +36,7 @@ export type AiBaziField =
   | {
       status: "fallback";
       provider: "rules";
-      reason: "disabled" | "missing_api_key" | "timeout" | "api_error" | "invalid_json" | "validation_failed";
+      reason: "disabled" | "missing_api_key" | "timeout" | "api_error" | "invalid_json" | "validation_failed" | "budget_exceeded" | "sampled_out";
       attribution: string;
       interpretationBasis: string;
     };
@@ -149,7 +154,8 @@ function mockResponse(mode: NonNullable<EnrichmentOptions["mockMode"]>, locale: 
 }
 
 export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, facts: PreviewFacts, options: EnrichmentOptions = {}): Promise<AiBaziField> {
-  if (options.enabled === false) return fallback("disabled");
+  if (options.enabled !== true) return fallback("disabled");
+  if (process.env.YISHUN_GEMINI_SERVER_ENABLED === "0") return fallback("disabled");
   if (options.mockMode) {
     try {
       return await mockResponse(options.mockMode, input.locale);
@@ -159,6 +165,21 @@ export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, fact
     }
   }
   if (!GOOGLE_API_KEY) return fallback("missing_api_key");
+
+  const guard = checkGeminiCostGuard("bazi-preview", {
+    locale: input.locale,
+    birthTimeKnown: input.birthTimeKnown,
+    timezoneName: input.timezoneName,
+    trueSolarTime: facts.trueSolarTime,
+    fourPillars: facts.fourPillars,
+    dayMaster: facts.dayMaster,
+    elementsBalance: facts.elementsBalance,
+    tenGodPattern: facts.tenGodPattern,
+    dailySignal: facts.dailySignal,
+    focus: facts.focus ?? "General",
+  });
+  if (!guard.allowed) return fallback(guard.reason);
+  if (guard.cached) return guard.cached as AiBaziField;
 
   const fetcher = options.fetchImpl ?? fetch;
   const prompt = buildPrompt(input, facts);
@@ -175,7 +196,8 @@ export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, fact
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.35,
+            temperature: 0.25,
+            maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
             responseMimeType: "application/json",
           },
         }),
@@ -186,7 +208,9 @@ export async function enrichBaziPreviewWithGemini(input: BirthProfileInput, fact
       if (typeof text !== "string" || !text.trim()) throw new Error("invalid_json");
       const parsed = aiBaziInterpretationSchema.safeParse(parseGeminiText(text));
       if (!parsed.success) throw new Error("validation_failed");
-      return { status: "ok", provider: "gemini", model, attribution, interpretationBasis, ...parsed.data };
+      const result = { status: "ok" as const, provider: "gemini" as const, model, attribution, interpretationBasis, ...parsed.data };
+      rememberGeminiResult(guard.key, result);
+      return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       modelErrors.push(`${model}: ${message}`);

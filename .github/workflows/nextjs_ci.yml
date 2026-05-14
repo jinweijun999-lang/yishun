@@ -67,11 +67,29 @@ jobs:
     timeout-minutes: 20
     needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    env:
+      GEMINI_API_KEY_YISHUN: ${{ secrets.GEMINI_API_KEY_YISHUN }}
+      YISHUN_GEMINI_SERVER_ENABLED: "1"
+      YISHUN_GEMINI_DAILY_LIMIT: "100"
+      YISHUN_GEMINI_SAMPLE_RATE: "0.25"
+      YISHUN_GEMINI_MAX_OUTPUT_TOKENS: "500"
+      YISHUN_GEMINI_CACHE_TTL_MS: "86400000"
 
     steps:
       - name: Deploy locally with Prisma migrations
         run: |
-          sudo -n -u yishun bash -lc '
+          if [ -z "${GEMINI_API_KEY_YISHUN:-}" ]; then
+            echo "GEMINI_API_KEY_YISHUN secret is missing"
+            exit 1
+          fi
+          sudo -n -u yishun env \
+            GEMINI_API_KEY_YISHUN="$GEMINI_API_KEY_YISHUN" \
+            YISHUN_GEMINI_SERVER_ENABLED="$YISHUN_GEMINI_SERVER_ENABLED" \
+            YISHUN_GEMINI_DAILY_LIMIT="$YISHUN_GEMINI_DAILY_LIMIT" \
+            YISHUN_GEMINI_SAMPLE_RATE="$YISHUN_GEMINI_SAMPLE_RATE" \
+            YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS" \
+            YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS" \
+            bash -lc '
             set -euo pipefail
             cd /home/yishun/yishun
             echo ">>> [1/7] Syncing latest main..."
@@ -85,7 +103,7 @@ jobs:
             npx prisma migrate deploy
             echo ">>> [5/7] Building application..."
             npm run build
-            echo ">>> [6/7] Restarting PM2..."
+            echo ">>> [6/7] Restarting PM2 with Gemini cost guard env..."
             pm2 restart yishun-nextjs --update-env
             echo ">>> [7/7] Saving PM2 state..."
             pm2 save
@@ -120,3 +138,11 @@ jobs:
             | node -e 'let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{const r=JSON.parse(s); if(r.ok!==true) process.exit(1);})'
           curl -fsS --max-time 10 "http://127.0.0.1:3001/s/${share_id}" >/dev/null
           echo "share landing smoke passed: ${share_id}"
+
+      - name: Smoke Gemini paid enrichment locally
+        run: |
+          set -euo pipefail
+          response=$(curl -fsS --max-time 15 -X POST http://127.0.0.1:3001/api/bazi/preview \
+            -H 'content-type: application/json' \
+            --data '{"birthDate":"1990-01-01","birthTime":"17:08","birthTimeKnown":true,"birthPlaceText":"Beijing, China","longitude":116.4,"latitude":39.9,"timezoneOffsetMinutes":-480,"timezoneName":"Asia/Shanghai","gender":"female","locale":"en","focus":"General","enableAi":true}')
+          node -e 'const r=JSON.parse(process.argv[1]); if(r.ai?.status!=="ok") { console.error(JSON.stringify(r.ai)); process.exit(1); } if(!r.dailySignal?.score || !r.fourPillars || !Array.isArray(r.ai.actionSuggestions)) process.exit(1); console.log("gemini paid enrichment smoke passed")' "$response"

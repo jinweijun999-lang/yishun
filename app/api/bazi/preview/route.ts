@@ -59,11 +59,12 @@ export async function POST(request: NextRequest) {
       dailySignal,
       focus: typeof body.focus === "string" ? body.focus : undefined,
     };
-    const debugGeminiMock = process.env.NODE_ENV !== "production"
+    const debugGeminiMock = process.env.YISHUN_ENABLE_GEMINI_MOCKS === "1"
       ? request.headers.get("x-yishun-gemini-mock") as "success" | "invalid-json" | "timeout" | "failure" | null
       : null;
     const ai = await enrichBaziPreviewWithGemini(input, responsePayload, {
-      enabled: body.enableAi !== false,
+      // Cost control: callers must explicitly opt in. Missing/false enableAi uses rules fallback.
+      enabled: body.enableAi === true,
       mockMode: debugGeminiMock,
     });
 

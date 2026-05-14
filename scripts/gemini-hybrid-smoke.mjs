@@ -58,28 +58,39 @@ function assertFallback(data, reason, label) {
 
 async function main() {
   ensureDir(EVIDENCE_DIR);
-  const disabled = await callPreview("gemini-disabled", {}, { ...requestBody, enableAi: false });
-  assertFallback(disabled, "disabled", "disabled");
+  const defaultDisabled = await callPreview("gemini-default-disabled");
+  assertFallback(defaultDisabled, "disabled", "default-disabled");
 
-  const success = await callPreview("gemini-mock-success", { "x-yishun-gemini-mock": "success" });
+  const disabled = await callPreview("gemini-explicit-disabled", {}, { ...requestBody, enableAi: false });
+  assertFallback(disabled, "disabled", "explicit-disabled");
+  assertCoreFactsStable(defaultDisabled, disabled, "explicit-disabled");
+
+  const success = await callPreview("gemini-mock-success", { "x-yishun-gemini-mock": "success" }, { ...requestBody, enableAi: true });
   assertAiOk(success, "success");
   assertCoreFactsStable(disabled, success, "success");
 
-  const invalid = await callPreview("gemini-mock-invalid-json", { "x-yishun-gemini-mock": "invalid-json" });
+  const invalid = await callPreview("gemini-mock-invalid-json", { "x-yishun-gemini-mock": "invalid-json" }, { ...requestBody, enableAi: true });
   assertFallback(invalid, "invalid_json", "invalid-json");
   assertCoreFactsStable(disabled, invalid, "invalid-json");
 
-  const failure = await callPreview("gemini-mock-failure", { "x-yishun-gemini-mock": "failure" });
+  const failure = await callPreview("gemini-mock-failure", { "x-yishun-gemini-mock": "failure" }, { ...requestBody, enableAi: true });
   assertFallback(failure, "api_error", "failure");
   assertCoreFactsStable(disabled, failure, "failure");
 
-  const timeout = await callPreview("gemini-mock-timeout", { "x-yishun-gemini-mock": "timeout" });
+  const timeout = await callPreview("gemini-mock-timeout", { "x-yishun-gemini-mock": "timeout" }, { ...requestBody, enableAi: true });
   assertFallback(timeout, "timeout", "timeout");
   assertCoreFactsStable(disabled, timeout, "timeout");
 
+  const guardReason = process.env.EXPECT_GEMINI_GUARD_REASON;
+  if (guardReason) {
+    const guarded = await callPreview(`gemini-guard-${guardReason}`, {}, { ...requestBody, enableAi: true, focus: `Guard ${guardReason}` });
+    assertFallback(guarded, guardReason, `guard-${guardReason}`);
+    assertCoreFactsStable(disabled, guarded, `guard-${guardReason}`);
+  }
+
   const summary = {
     base: BASE,
-    checks: ["mock Gemini success", "invalid JSON fallback", "timeout fallback", "API failure fallback", "core facts stable", "enableAi=false fallback"],
+    checks: ["default enableAi omitted fallback", "enableAi=false fallback", "mock Gemini success", "invalid JSON fallback", "timeout fallback", "API failure fallback", "core facts stable", ...(guardReason ? [`cost guard ${guardReason}`] : [])],
     evidenceDir: EVIDENCE_DIR,
     generatedAt: new Date().toISOString(),
   };
