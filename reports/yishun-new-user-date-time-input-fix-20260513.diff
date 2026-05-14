@@ -1,0 +1,102 @@
+diff --git a/app/profile/page.tsx b/app/profile/page.tsx
+index cbea1ca..52d371c 100644
+--- a/app/profile/page.tsx
++++ b/app/profile/page.tsx
+@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
+ import { useRouter } from "next/navigation";
+ import { motion } from "framer-motion";
+ import Background from "../components/Background";
++import BirthDateTimePicker from "../components/BirthDateTimePicker";
+ import LanguageSwitcher from "../components/LanguageSwitcher";
+ import { useI18n } from "../components/LocaleProvider";
+ import { normalizeMembershipTier } from "@/lib/membership";
+@@ -227,22 +228,15 @@ export default function ProfilePage() {
+           <div className="space-y-6">
+             <div className="glass card p-8 sm:p-10">
+               <form onSubmit={handleSave} className="space-y-5">
+-                <div className="grid grid-cols-2 gap-3">
+-                  <input
+-                    type="date"
+-                    value={birthDate}
+-                    onChange={(e) => setBirthDate(e.target.value)}
+-                    className="input-field"
+-                    required
+-                  />
+-                  <input
+-                    type="time"
+-                    value={birthTime}
+-                    onChange={(e) => setBirthTime(e.target.value)}
+-                    className="input-field"
+-                    required
+-                  />
+-                </div>
++                <BirthDateTimePicker
++                  birthDate={birthDate}
++                  birthTime={birthTime}
++                  onBirthDateChange={setBirthDate}
++                  onBirthTimeChange={setBirthTime}
++                  birthDateLabel={t("register.birthDate") || "Birth date"}
++                  birthTimeLabel={t("register.birthTime") || "Birth time"}
++                  required
++                />
+ 
+                 <select
+                   value={gender}
+diff --git a/app/register/page.tsx b/app/register/page.tsx
+index dfeba6b..0e96e74 100644
+--- a/app/register/page.tsx
++++ b/app/register/page.tsx
+@@ -4,6 +4,7 @@ import { useState } from "react";
+ import { useRouter, useSearchParams } from "next/navigation";
+ import { motion } from "framer-motion";
+ import Background from "../components/Background";
++import BirthDateTimePicker from "../components/BirthDateTimePicker";
+ import LanguageSwitcher from "../components/LanguageSwitcher";
+ import { useI18n } from "../components/LocaleProvider";
+ 
+@@ -104,28 +105,15 @@ export default function RegisterPage() {
+               required
+               className="input-field"
+             />
+-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+-              <div className="space-y-1">
+-                <label className="text-xs text-gray-400">{t("register.birthDate") || "出生日期"}</label>
+-                <input
+-                  type="date"
+-                  value={birthDate}
+-                  onChange={(e) => setBirthDate(e.target.value)}
+-                  required
+-                  className="input-field"
+-                />
+-              </div>
+-              <div className="space-y-1">
+-                <label className="text-xs text-gray-400">{t("register.birthTime") || "出生时辰"}</label>
+-                <input
+-                  type="time"
+-                  value={birthTime}
+-                  onChange={(e) => setBirthTime(e.target.value)}
+-                  required
+-                  className="input-field"
+-                />
+-              </div>
+-            </div>
++            <BirthDateTimePicker
++              birthDate={birthDate}
++              birthTime={birthTime}
++              onBirthDateChange={setBirthDate}
++              onBirthTimeChange={setBirthTime}
++              birthDateLabel={t("register.birthDate") || "出生日期"}
++              birthTimeLabel={t("register.birthTime") || "出生时辰"}
++              required
++            />
+             <select
+               value={gender}
+               onChange={(e) => setGender(e.target.value)}
+
+--- status ---
+ M app/profile/page.tsx
+ M app/reading/start/page.tsx
+ M app/register/page.tsx
+?? app/components/BirthDateTimePicker.tsx
+?? reports/yishun-new-user-date-time-input-fix-20260513.diff
+?? reports/yishun-new-user-date-time-input-fix-20260513.md
