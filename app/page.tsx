@@ -134,7 +134,7 @@ const copy = {
     proofTitle: "Built for overseas users who need clarity, not superstition",
     proof: ["Explainable signal", "Mobile-first ritual", "Privacy boundary", "Clear disclaimer"],
     learn: "Learn the BaZi basics",
-    powered: "Powered by Google Gemini · for reflection only",
+    powered: "Structured BaZi timing engine · for reflection only",
   },
   zh: {
     eyebrow: "东方时机智能 · 可解释的每日决策信号",
@@ -171,7 +171,7 @@ const copy = {
     proofTitle: "面向海外用户：要清晰，不要迷信感",
     proof: ["信号可解释", "移动端优先", "隐私边界", "清晰边界声明"],
     learn: "了解八字基础",
-    powered: "由 Google Gemini 驱动 · 仅供自我反思",
+    powered: "结构化八字时机引擎 · 仅供自我反思",
   },
 };
 

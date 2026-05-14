@@ -29,7 +29,7 @@ export interface Project {
 export const currentProject: Project = {
   id: 'fortune-app',
   name: 'Fortune Teller App',
-  description: 'AI-powered Eastern decision guidance platform',
+  description: 'Structured Eastern decision guidance platform',
   status: 'active',
   startDate: '2026-01-24',
   tasks: [
