@@ -1,0 +1,17 @@
+
+> fortune-app@0.1.0 smoke:i18n-ux
+> node scripts/i18n-ux-copy-smoke.mjs
+
+i18n UX copy smoke passed {
+  baseUrl: 'http://127.0.0.1:3204',
+  pages: [
+    '/',
+    '/reading/result',
+    '/register',
+    '/reading/start',
+    '/reports',
+    '/tools/sample',
+    '/s/not-a-real-share-id',
+    '/membership'
+  ]
+}

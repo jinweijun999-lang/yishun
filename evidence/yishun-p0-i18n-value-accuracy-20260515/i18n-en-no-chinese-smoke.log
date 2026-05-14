@@ -1,0 +1,15 @@
+
+> fortune-app@0.1.0 smoke:i18n-en-no-chinese
+> node scripts/i18n-en-no-chinese-smoke.mjs
+
+{
+  "ok": true,
+  "baseUrl": "http://127.0.0.1:3201",
+  "checked": [
+    "/",
+    "/reports",
+    "/reading/start",
+    "/reading/result"
+  ],
+  "evidenceDir": "/Users/xiajarvan/.openclaw/workspace/yishun/evidence/yishun-p0-i18n-value-accuracy-20260515"
+}

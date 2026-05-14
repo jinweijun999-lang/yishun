@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import FiveElementsChart from "../../components/FiveElementsChart";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import AppBackLink from "../../components/AppBackLink";
 import { useI18n } from "../../components/LocaleProvider";
 import StripeCheckoutButton from "../../components/StripeCheckoutButton";
 import { queueP0Analytics } from "@/lib/p0-analytics";
@@ -561,14 +562,38 @@ export default function ReadingResultPage() {
     !preview.birthProfile.birthPlaceText ? (isZh ? "出生地缺失：添加城市或坐标后，真太阳时精度会更高。" : "Birthplace missing: true solar time precision is lower until you add a city or advanced coordinates.") : null,
     !preview.trueSolarTime ? (isZh ? "由于位置信息不完整，真太阳时尚未完全校正。" : "True solar time was not fully adjusted because location details are incomplete.") : null,
   ].filter(Boolean);
+  const aiSummary = preview.ai?.status === "ok"
+    ? (isZh ? preview.ai.summary : stripChineseText(preview.ai.summary, oneLineSummary))
+    : oneLineSummary;
+  const aiActionSuggestions = preview.ai?.status === "ok"
+    ? preview.ai.actionSuggestions.map((item) => isZh ? item : stripChineseText(item, "Use the timing signal as a reflection prompt."))
+    : [];
+  const aiReflectionQuestion = preview.ai?.status === "ok"
+    ? (isZh ? preview.ai.reflectionQuestion : stripChineseText(preview.ai.reflectionQuestion, "What one action fits this timing window today?"))
+    : "";
+  const aiTerminologyNote = preview.ai?.status === "ok"
+    ? (isZh ? preview.ai.terminologyNote : stripChineseText(preview.ai.terminologyNote, "Terms are explained from the structured timing signal."))
+    : "";
+  const aiAttribution = preview.ai?.status === "ok"
+    ? (isZh ? preview.ai.attribution : stripChineseText(preview.ai.attribution, "Gemini explains the rules-engine signal; it does not decide chart facts."))
+    : "";
+  const ruleEvidenceItems = [
+    [isZh ? "出生资料" : "Birth profile", isZh ? "用于建立个人时机基准；分享卡不会展示隐私资料。" : "Used to set the personal timing baseline; private birth details stay off share cards."],
+    [isZh ? "真太阳时" : "True solar time", preview.trueSolarTime ? localizedTrueSolarOffset(preview.trueSolarTime.offsetMinutes, isZh) : (isZh ? "当前缺少完整位置，因此使用可用资料估算。" : "Location is incomplete, so the result uses the available profile estimate.")],
+    [isZh ? "四柱" : "Four Pillars", isZh ? "年柱、月柱、日柱、时柱由规则引擎计算，用作长期结构背景。" : "Year, month, day, and hour pillars are computed by the rules engine as structural context."],
+    [isZh ? "日主" : "Day Master", isZh ? `${localizedDayMaster(preview.dayMaster, true)} 用于判断今日信号与个人结构的配合。` : `${localizedDayMaster(preview.dayMaster, false)} anchors how today's signal fits your profile.`],
+    [isZh ? "五行" : "Five Elements", elementSummary || (isZh ? "五行分布已计算。" : "Element balance is calculated.")],
+    [isZh ? "今日信号" : "Today’s signal", isZh ? `清晰度 ${preview.dailySignal.score}/100；有利窗口 ${preview.dailySignal.bestHour}。` : `Clarity ${preview.dailySignal.score}/100; best window ${preview.dailySignal.bestHour}.`],
+    [isZh ? "最佳窗口" : "Best window", isZh ? "由今日节律、五行提示和行动边界共同生成。" : "Generated from today’s cycle, element hint, and action boundaries."],
+  ];
 
   return (
     <>
       <Background />
       <main className="ys-shell relative z-10 min-h-screen pb-16">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <Link href="/reading/start" className="text-sm text-gray-300 hover:text-white">{isZh ? "← 修改出生资料" : "← Edit birth profile"}</Link>
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+            <AppBackLink href="/reading/start" label={isZh ? "修改出生资料" : "Edit birth profile"} context={isZh ? "返回" : "Back"} />
             <LanguageSwitcher />
           </div>
         </header>
@@ -583,7 +608,7 @@ export default function ReadingResultPage() {
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">{isZh ? "免费结果已解锁" : "Free result unlocked"}</span>
             </div>
             <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base leading-7 text-white">
-              {preview.ai?.status === "ok" ? preview.ai.summary : oneLineSummary}
+              {aiSummary}
             </p>
             {preview.ai?.status === "ok" && (
               <div className="mt-4 rounded-[1.5rem] border border-[#e0bd72]/25 bg-[#e0bd72]/10 p-4">
@@ -602,21 +627,34 @@ export default function ReadingResultPage() {
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
                     <p className="text-xs text-gray-400">{isZh ? "AI 行动建议" : "AI action suggestions"}</p>
                     <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-white">
-                      {preview.ai.actionSuggestions.map((item) => <li key={item}>{item}</li>)}
+                      {aiActionSuggestions.map((item) => <li key={item}>{item}</li>)}
                     </ol>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
                     <p className="text-xs text-gray-400">{isZh ? "依据与术语" : "Basis and terminology"}</p>
-                    <p className="mt-2 text-sm leading-6 text-gray-100">{preview.ai.reflectionQuestion}</p>
-                    <p className="mt-2 text-xs leading-5 text-gray-300">{preview.ai.terminologyNote}</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-100">{aiReflectionQuestion}</p>
+                    <p className="mt-2 text-xs leading-5 text-gray-300">{aiTerminologyNote}</p>
                   </div>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-gray-500">{preview.ai.attribution}</p>
+                <p className="mt-3 text-[11px] leading-5 text-gray-500">{aiAttribution}</p>
               </div>
             )}
-            <div className="mt-5 grid grid-cols-[1fr_auto] items-end gap-4">
+            <div className="mt-4 rounded-[1.5rem] border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a8d8bd]">{isZh ? "准确性说明" : "Accuracy / evidence"}</p>
+                <span className="rounded-full bg-black/25 px-3 py-1 text-[11px] font-bold text-[#d7f0e2]">{isZh ? "规则计算，AI 不改事实" : "Rules compute; AI cannot alter facts"}</span>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs leading-5 text-gray-200 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "出生资料已标准化" : "Birth profile normalized"}</div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{preview.trueSolarTime ? (isZh ? `真太阳时 ${preview.trueSolarTime.time}` : `True solar time ${preview.trueSolarTime.time}`) : (isZh ? "真太阳时待补充地点" : "True solar time needs location")}</div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "四柱/五行由规则引擎生成" : "Four Pillars / elements from rules"}</div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "建议仅用于反思和择时" : "Use for reflection and timing only"}</div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
               <div>
-                <span className="text-6xl font-heading font-bold text-white text-glow">{preview.dailySignal.score}</span>
+                <span className="text-5xl font-heading font-bold text-white text-glow sm:text-6xl">{preview.dailySignal.score}</span>
                 <span className="pb-3 text-sm text-gray-400"> / 100 {isZh ? "时机清晰度" : "timing clarity"}</span>
               </div>
               <div className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
@@ -661,6 +699,33 @@ export default function ReadingResultPage() {
                 </div>
               </div>
             </div>
+
+            <section className="mt-5 rounded-[2rem] border border-secondary/25 bg-secondary/10 p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-secondary/90">{isZh ? "结果依据" : "Why this result?"}</p>
+                  <h2 className="mt-2 text-2xl font-heading font-bold text-white">
+                    {isZh ? "这些规则让准确性可感知。" : "The signal is traceable, not a black box."}
+                  </h2>
+                </div>
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-gray-300">
+                  {isZh ? "Gemini 只解释，不决定事实" : "Gemini explains; it does not decide facts"}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-gray-300">
+                {isZh
+                  ? "出生资料、真太阳时、四柱、日主、五行和今日信号由 YiShun 规则引擎计算；Gemini 只把这些已计算事实转成更容易理解的个性化说明。"
+                  : "Birth data, true solar time, Four Pillars, Day Master, Five Elements, today’s signal, and the best window are computed by YiShun’s rules engine. Gemini only turns those facts into a personalized explanation."}
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {ruleEvidenceItems.map(([label, body]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary">{label}</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-100">{body}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#e0bd72]/30 bg-gradient-to-br from-[#e0bd72]/15 via-white/[0.04] to-secondary/10 p-5">
               <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
@@ -719,7 +784,10 @@ export default function ReadingResultPage() {
             )}
             <div className="mt-6 grid sm:grid-cols-3 gap-3">
               <button onClick={() => setSavePanelOpen(true)} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-sm font-bold text-white">{isZh ? "保存资料供明天使用" : "Save my profile for tomorrow"}</button>
-              <button onClick={handleShare} disabled={shareBusy} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-60">{shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "分享链接已就绪" : "Share link ready") : (isZh ? "分享今日卡片" : "Share today’s card")}</button>
+              <button onClick={handleShare} disabled={shareBusy} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-3 text-sm font-extrabold text-gray-100 transition hover:-translate-y-0.5 hover:border-[#e0bd72]/45 hover:bg-white/[0.08] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                {shareBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
+                {shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "分享链接已就绪" : "Share link ready") : (isZh ? "分享今日卡片" : "Share today’s card")}
+              </button>
               <Link href="/samples" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "查看样例报告" : "View sample reports"}</Link>
             </div>
             {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
@@ -741,7 +809,10 @@ export default function ReadingResultPage() {
               <p className="mt-5 border-t border-white/10 pt-4 text-xs text-gray-400">{isZh ? "不会展示出生日期或隐私细节。你可以截图或分享这张卡。" : "No birth date or private details shown. Screenshot or share this card."}</p>
             </div>
             <div className="mt-4 flex justify-center">
-              <button onClick={handleShare} disabled={shareBusy} className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-surface disabled:opacity-60">{shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "已复制 / 已分享" : "Copied / shared") : (isZh ? "复制或系统分享卡片文字" : "Copy or system-share card text")}</button>
+              <button onClick={handleShare} disabled={shareBusy} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-surface shadow-[0_16px_45px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-[#f5efe1] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                {shareBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-surface/30 border-t-surface" aria-hidden="true" />}
+                {shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "已复制 / 已分享" : "Copied / shared") : (isZh ? "复制或系统分享卡片文字" : "Copy or system-share card text")}
+              </button>
             </div>
           </section>
 
@@ -774,7 +845,7 @@ export default function ReadingResultPage() {
               </div>
             </div>
             <div className="mt-5 grid sm:grid-cols-3 gap-3">
-              <button onClick={handleSaveDeviceOnly} className="rounded-2xl bg-white text-surface px-4 py-3 text-sm font-bold">{isZh ? "保存今日卡片" : "Save today’s card"}</button>
+              <button onClick={handleSaveDeviceOnly} className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-black text-surface shadow-[0_16px_45px_rgba(255,255,255,0.14)] transition hover:-translate-y-0.5 hover:bg-[#f5efe1] active:translate-y-0">{isZh ? "保存今日卡片" : "Save today’s card"}</button>
               <Link href="/reports" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "查看保存历史" : "View saved history"}</Link>
               <Link href="/reading/start" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-semibold text-secondary">{isZh ? "明天再来" : "Return tomorrow"}</Link>
             </div>

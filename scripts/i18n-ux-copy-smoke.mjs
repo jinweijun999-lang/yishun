@@ -18,9 +18,9 @@ const previewRequest = {
 const cases = [
   {
     path: "/",
-    zhExpected: ["示例今日仪式", "综合", "适合", "规划", "专注沟通", "幸运五行", "木", "贵人方向", "东方", "宜", "忌", "中文"],
-    zhForbidden: ["Sample Daily Ritual", "General", "Best for", "planning · focused outreach", "Lucky Element", "Wood", "Lucky Direction", "East", "Choose one meaningful push", "Do not force a final answer"],
-    enExpected: ["Sample Daily Ritual", "General", "Best for", "planning", "Lucky Element", "Wood", "Lucky Direction", "East"],
+    zhExpected: ["今日决策简报", "适合", "规划", "专注沟通", "五行", "木", "方向", "东方", "宜行动", "避开", "中文", "产品亮点", "准确性如何处理"],
+    zhForbidden: ["Today’s Decision Brief", "Best for", "planning · focused outreach", "Element", "Wood", "Direction", "East", "Choose one meaningful push", "Do not force a final answer"],
+    enExpected: ["Today’s Decision Brief", "Best for", "planning", "Element", "Wood", "Direction", "East", "Trusted Eastern timing rules", "Gemini explanation"],
   },
   {
     path: "/reading/result",
@@ -37,16 +37,16 @@ const cases = [
   },
   {
     path: "/reading/start",
-    zhExpected: ["每日回访入口", "出生日期", "出生时间", "年", "月", "日", "时", "分"],
-    zhForbidden: ["Daily Return Hook", "Year", "Month", "Day", "Hour", "Minute", "Finding today", "Checking your", "Turning it"],
-    enExpected: ["Daily Return Hook", "Year", "Month", "Day", "Hour", "Minute"],
+    zhExpected: ["每日决策引导", "出生日期", "出生时间", "年", "月", "日", "时", "分"],
+    zhForbidden: ["Daily decision guide", "Year", "Month", "Day", "Hour", "Minute", "Finding today", "Checking your", "Turning it"],
+    enExpected: ["Daily decision guide", "Year", "Month", "Day", "Hour", "Minute"],
   },
   {
     path: "/reports",
     seedHistory: true,
-    zhExpected: ["每日仪式报告", "回访提醒", "连续天数", "每日仪式历史", "综合", "复核细节", "借用土的能量"],
+    zhExpected: ["个人节奏中心", "回访提醒", "连续天数", "每日仪式历史", "综合", "复核细节", "借用土的能量"],
     zhForbidden: ["Daily Ritual Reports", "RETURN HOOK", "DAY STREAK", "DAILY RITUAL HISTORY", "Come back tomorrow", "General", "reviewing details", "Borrow Earth energy", "saying yes to vague plans"],
-    enExpected: ["Daily Ritual Reports", "Return hook", "day streak", "Daily Ritual history"],
+    enExpected: ["Personal rhythm center", "Return hook", "day streak", "Daily Ritual history"],
   },
   {
     path: "/tools/sample",

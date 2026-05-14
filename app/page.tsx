@@ -95,10 +95,10 @@ const sampleSignal: CachedPreview = {
 
 const copy = {
   en: {
-    eyebrow: "Eastern timing intelligence · explainable daily decisions",
-    title: "Stop asking “What will happen?” Start knowing when to move.",
+    eyebrow: "Trusted Eastern timing rules · BaZi + Five Elements · Gemini explanation",
+    title: "Know today’s best timing in 5 seconds — then see why it fits you.",
     subtitle:
-      "YiShun turns BaZi and five-element timing into a calm daily decision system: what to push, what to delay, and what evidence the signal is based on.",
+      "YiShun combines trusted Eastern timing rules, your BaZi/Five Elements profile, and Gemini-personalized explanations so you can save, share, or unlock a premium report with confidence.",
     primary: "Start my free daily signal",
     open: "Open today’s signal",
     sample: "View sample reports",
@@ -116,23 +116,31 @@ const copy = {
     avoid: "Avoid",
     saved: "Saved signal",
     sampleSignal: "Live sample",
-    mechanism: "Why it feels different",
+    mechanism: "Product highlights",
     mechanisms: [
-      ["01", "Evidence-backed signal", "Every recommendation is shown with timing, element balance, and clear action boundaries."],
-      ["02", "Daily ritual loop", "Generate, save, revisit tomorrow. The product builds continuity instead of one-off entertainment."],
-      ["03", "Decision-first copy", "The app answers “what should I do today?” before showing charts or mystical language."],
+      ["01", "Action, not vague fortune text", "Every result gives one best window, one avoid boundary, and one next step you can actually use today."],
+      ["02", "Explainable calculation layer", "The app shows which structured signals were used: birth profile, Four Pillars, Five Elements balance, true solar time, and daily timing score."],
+      ["03", "Retention and monetization built in", "Save history, build a streak, share a public card, then upgrade only when a full 7-day report is useful."],
+    ],
+    accuracyLabel: "How accuracy is handled",
+    accuracyTitle: "Not a black-box AI answer. Rules compute; AI explains.",
+    accuracyPoints: [
+      "Birth date/time and timezone are normalized before chart generation.",
+      "True solar time correction is shown when location data is available.",
+      "Four Pillars, Day Master, Five Elements, Ten Gods, score, and timing window come from the rules engine.",
+      "Gemini may personalize wording, but cannot change the core facts.",
     ],
     journeyLabel: "Product flow",
     journeyTitle: "From birth data to a daily operating brief",
     journey: [
       "Enter birth profile once",
-      "Receive today’s timing signal",
-      "Save the card and track streak",
-      "Return tomorrow for a fresh window",
+      "Rules engine reads BaZi + Five Elements",
+      "Gemini explains the personalized why",
+      "Save, share, or unlock a premium report",
     ],
     proofLabel: "Trust layer",
     proofTitle: "Built for overseas users who need clarity, not superstition",
-    proof: ["Explainable signal", "Mobile-first ritual", "Privacy boundary", "Clear disclaimer"],
+    proof: ["Trusted Eastern timing rules", "BaZi + Five Elements", "Gemini explanation", "Save/share/premium report"],
     learn: "Learn the BaZi basics",
     powered: "Structured BaZi timing engine · for reflection only",
   },
@@ -158,11 +166,19 @@ const copy = {
     avoid: "避开",
     saved: "已保存信号",
     sampleSignal: "实时示例",
-    mechanism: "为什么它不一样",
+    mechanism: "产品亮点",
     mechanisms: [
       ["01", "有依据的信号", "每条建议都呈现时段、五行平衡和行动边界，而不是一句玄学结论。"],
       ["02", "每日仪式闭环", "生成、保存、明日回访；产品建立连续记录，而不是一次性娱乐。"],
       ["03", "决策优先文案", "先回答“今天该怎么做”，再展示命盘和解释。"],
+    ],
+    accuracyLabel: "准确性如何处理",
+    accuracyTitle: "不是黑盒 AI 答案：规则负责计算，AI 只负责解释。",
+    accuracyPoints: [
+      "出生日期、时间和时区会先标准化。",
+      "有地点信息时会展示真太阳时校正。",
+      "四柱、日主、五行、十神、分数和时段由规则引擎生成。",
+      "Gemini 只能个性化表达，不能改动核心命盘事实。",
     ],
     journeyLabel: "产品流程",
     journeyTitle: "从出生信息到每日行动简报",
@@ -237,7 +253,7 @@ export default function Home() {
         <header className="sticky top-0 z-40 border-b border-[#e8d7aa]/10 bg-[#080b09]/70 px-4 py-3 backdrop-blur-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3" aria-label="YiShun home">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-[#c2a067]/30 bg-[#c2a067]/10 text-xl shadow-[0_0_40px_rgba(194,160,103,0.18)]">易</span>
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-[#c2a067]/30 bg-[#c2a067]/10 text-sm font-black tracking-[-0.08em] shadow-[0_0_40px_rgba(194,160,103,0.18)]">{isZh ? "易" : "YS"}</span>
               <div>
                 <p className="font-heading text-lg font-bold tracking-wide text-white">YiShun</p>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-[#c2a067]/70">Decision Ritual</p>
@@ -341,6 +357,12 @@ export default function Home() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-6">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <p className="ys-kicker">{c.mechanism}</p>
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] text-white">{isZh ? "用户为什么愿意留下来？" : "Why would users stay?"}</h2>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
             {c.mechanisms.map(([num, title, body], index) => (
               <motion.article
@@ -356,6 +378,26 @@ export default function Home() {
                 <p className="mt-3 text-sm leading-6 text-[#aaa292]">{body}</p>
               </motion.article>
             ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-6">
+          <div className="ys-panel grid gap-5 rounded-[2rem] border border-[#7aa48c]/20 p-5 md:grid-cols-[0.85fr_1.15fr] md:p-6">
+            <div>
+              <p className="ys-kicker">{c.accuracyLabel}</p>
+              <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">{c.accuracyTitle}</h2>
+              <p className="mt-3 text-sm leading-6 text-[#aaa292]">
+                {isZh ? "我们把“准确性”拆成可检查的输入、算法和表达边界，而不是让用户相信一句玄学结论。" : "Accuracy is treated as a checkable pipeline: input normalization, deterministic calculation, visible evidence, then bounded explanation."}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {c.accuracyPoints.map((item, index) => (
+                <div key={item} className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-xs font-black text-[#7aa48c]">0{index + 1}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#ede6d6]">{item}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

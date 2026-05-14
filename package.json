@@ -15,7 +15,8 @@
     "smoke:p1-growth": "node scripts/p1-growth-smoke.mjs",
     "smoke:wrong-second-60": "node scripts/wrong-second-60-smoke.mjs",
     "smoke:gemini-hybrid": "node scripts/gemini-hybrid-smoke.mjs",
-    "smoke:yishun-v3-gaps": "node scripts/yishun-v3-gap-smoke.mjs"
+    "smoke:yishun-v3-gaps": "node scripts/yishun-v3-gap-smoke.mjs",
+    "smoke:i18n-en-no-chinese": "node scripts/i18n-en-no-chinese-smoke.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
