@@ -122,7 +122,7 @@ export default function ToolsPage() {
               <AppBackLink label={t("common.goBack")} context="YiShun" />
               <span className="text-xl" role="img" aria-hidden="true">🔮</span>
               <h1 className="text-lg font-heading font-bold text-white">
-                YiShun <span className="text-accent text-sm">易顺</span>
+                YiShun
               </h1>
             </div>
             <div className="flex items-center gap-3">

@@ -79,6 +79,11 @@ const sampleHistory = [{
 const pages = [
   { path: "/", name: "home", expect: ["Trusted Eastern timing rules", "BaZi + Five Elements", "Gemini explanation", "Save, share, or unlock a premium report"] },
   { path: "/reports", name: "reports", seedHistory: true, expect: ["Your saved signals", "Daily Ritual history", "Best window"] },
+  { path: "/samples?lang=en", name: "samples", expect: ["Sample reports are product proof", "English samples", "Premium turns a sample signal into a plan users can keep"] },
+  { path: "/samples/en-career-pivot?lang=en", name: "sample-en-career-pivot", expect: ["Career pivot timing sample", "Why this result", "Rules engine vs Gemini", "Premium value", "Retention path"] },
+  { path: "/samples/zh-founder-launch?lang=en", name: "sample-zh-founder-launch-en", expect: ["Localized sample unavailable", "English mode does not render Chinese report text", "Open career sample"] },
+  { path: "/tools?lang=en", name: "tools", expect: ["YiShun", "Tools"] },
+  { path: "/tools/sample?lang=en", name: "tools-sample", expect: ["Consumer-grade upgrade", "rules engine vs Gemini", "tomorrow reminder"] },
   { path: "/reading/start", name: "reading-start", expect: ["Find today’s best timing", "Birth date", "Birth time"] },
   { path: "/reading/result", name: "reading-result", seedPreview: true, expect: ["Why this result?", "Birth profile", "True solar time", "Four Pillars", "Day Master", "Five Elements", "Today’s signal", "Best window", "Gemini explains; it does not decide facts"] },
 ];

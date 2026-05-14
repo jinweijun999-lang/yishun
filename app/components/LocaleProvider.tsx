@@ -42,6 +42,12 @@ function readLocaleCookie(): Locale | null {
 }
 
 function detectClientLocale(): Locale {
+  if (typeof window !== "undefined") {
+    const queryLocale = normalizeLocale(new URLSearchParams(window.location.search).get("lang"));
+    if (queryLocale) {
+      return queryLocale;
+    }
+  }
   const cookieLocale = readLocaleCookie();
   if (cookieLocale) {
     return cookieLocale;

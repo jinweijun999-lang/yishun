@@ -1,0 +1,20 @@
+
+> fortune-app@0.1.0 smoke:i18n-en-no-chinese
+> node scripts/i18n-en-no-chinese-smoke.mjs
+
+{
+  "ok": true,
+  "baseUrl": "http://127.0.0.1:3000",
+  "checked": [
+    "/",
+    "/reports",
+    "/samples?lang=en",
+    "/samples/en-career-pivot?lang=en",
+    "/samples/zh-founder-launch?lang=en",
+    "/tools?lang=en",
+    "/tools/sample?lang=en",
+    "/reading/start",
+    "/reading/result"
+  ],
+  "evidenceDir": "evidence/yishun-p0-i18n-samples-tools-consumer-20260515"
+}

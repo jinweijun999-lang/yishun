@@ -9,10 +9,14 @@ export const metadata = {
   description: "Browse Chinese and English YiShun sample timing reports without personal data.",
 };
 
-export default function SamplesPage() {
+type PageProps = { searchParams?: Promise<{ lang?: string }> };
+
+export default async function SamplesPage({ searchParams }: PageProps) {
+  const { lang } = (await searchParams) ?? {};
+  const isEnglish = lang === "en";
   const groups = [
-    { label: "中文样例", note: "适合出海产品里的中文用户验证", items: SAMPLE_REPORTS.filter((sample) => sample.locale === "zh-CN") },
     { label: "English samples", note: "Public-card quality for overseas acquisition", items: SAMPLE_REPORTS.filter((sample) => sample.locale === "en") },
+    ...(isEnglish ? [] : [{ label: "中文样例", note: "适合出海产品里的中文用户验证", items: SAMPLE_REPORTS.filter((sample) => sample.locale === "zh-CN") }]),
   ];
 
   return (
@@ -29,16 +33,16 @@ export default function SamplesPage() {
             <p className="ys-kicker">No personal data required</p>
             <div className="mt-4 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
               <div>
-                <h1 className="font-heading text-4xl font-black tracking-[-0.06em] text-white md:text-6xl">样例不是测试页，是可分享的产品橱窗。</h1>
+                <h1 className="font-heading text-4xl font-black tracking-[-0.06em] text-white md:text-6xl">Sample reports are product proof, not test pages.</h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-300">
                   Before asking for birth data, YiShun shows the exact value shape: rhythm, insight, action, boundary, and a clean CTA.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                {["今日节奏", "关键洞察", "分享卡 CTA"].map((item) => (
+                {["Today rhythm", "Key insight", "Share-card CTA"].map((item) => (
                   <div key={item} className="ys-panel-soft rounded-3xl p-4">
                     <p className="text-xs font-black text-[#e0bd72]">{item}</p>
-                    <p className="mt-3 text-xs leading-5 text-gray-400">报告结构固定，内容因主题变化。</p>
+                    <p className="mt-3 text-xs leading-5 text-gray-400">Same report structure, adapted by user intent.</p>
                   </div>
                 ))}
               </div>
@@ -55,7 +59,7 @@ export default function SamplesPage() {
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {group.items.map((sample) => (
-                  <Link key={sample.id} href={`/samples/${sample.id}`} className="ys-share-card group rounded-[2rem] p-5 transition hover:-translate-y-0.5">
+                  <Link key={sample.id} href={`/samples/${sample.id}${isEnglish ? "?lang=en" : ""}`} className="ys-share-card group rounded-[2rem] p-5 transition hover:-translate-y-0.5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-[#e0bd72]">{sample.persona}</p>
@@ -79,6 +83,18 @@ export default function SamplesPage() {
               </div>
             </section>
           ))}
+
+          <section className="ys-panel mt-8 rounded-3xl p-5">
+            <p className="ys-kicker">Why upgrade</p>
+            <h2 className="mt-2 text-2xl font-heading font-bold text-white">Premium turns a sample signal into a plan users can keep.</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {[
+                "Deep report with PDF/share-image export",
+                "Transparent rules-engine evidence and Gemini boundary",
+                "Tomorrow reminder, important-date reminder, and streak incentive",
+              ].map((item) => <div key={item} className="ys-panel-soft rounded-2xl p-4 text-sm leading-6 text-gray-200">{item}</div>)}
+            </div>
+          </section>
         </section>
         <Navigation />
       </main>

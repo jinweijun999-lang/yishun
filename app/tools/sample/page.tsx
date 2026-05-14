@@ -191,6 +191,27 @@ export default function SamplePage() {
               {copy.cta}
             </a>
           </section>
+
+          <section className="rounded-2xl bg-surface/60 border border-white/10 p-5">
+            <p className="text-xs uppercase tracking-[0.22em] text-accent/80">{isEnglish ? "Consumer-grade upgrade" : "消费级升级"}</p>
+            <h2 className="mt-2 text-lg font-heading font-bold text-white">
+              {isEnglish ? "Show value, trust, and return paths before asking users to pay." : "先展示价值、可信度和回访路径，再请求付费。"}
+            </h2>
+            <div className="mt-4 grid gap-3 text-xs leading-5 text-gray-300">
+              {(isEnglish
+                ? [
+                    "Premium: deep report, PDF/share image, action checklist, and a 30-day plan.",
+                    "Trust: why this result, why this time, rules engine vs Gemini, and a clear disclaimer.",
+                    "Retention: tomorrow reminder, important-date reminder, and streak incentive.",
+                  ]
+                : [
+                    "付费：深度报告、PDF/长图、行动清单和 30 天计划。",
+                    "可信：解释为什么是这个结果/时段，区分规则引擎与 Gemini，并展示免责声明。",
+                    "留存：明日提醒、重要日期提醒和连续天数激励。",
+                  ]
+              ).map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/20 p-3">{item}</div>)}
+            </div>
+          </section>
         </div>
 
         <Navigation />
