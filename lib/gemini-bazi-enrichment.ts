@@ -6,7 +6,7 @@ const GOOGLE_API_KEY = process.env.GEMINI_API_KEY_YISHUN
   ?? process.env.GOOGLE_API_KEY
   ?? process.env.GEMINI_API_KEY
   ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-const GEMINI_TIMEOUT_MS = Number(process.env.YISHUN_GEMINI_TIMEOUT_MS ?? 4500);
+const GEMINI_TIMEOUT_MS = Number(process.env.YISHUN_GEMINI_TIMEOUT_MS ?? 9000);
 const GOOGLE_MODELS = [
   process.env.GOOGLE_MODEL,
   "gemini-2.5-flash",

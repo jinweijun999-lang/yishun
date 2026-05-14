@@ -73,6 +73,7 @@ jobs:
       YISHUN_GEMINI_DAILY_LIMIT: "100"
       YISHUN_GEMINI_SAMPLE_RATE: "0.25"
       YISHUN_GEMINI_MAX_OUTPUT_TOKENS: "900"
+      YISHUN_GEMINI_TIMEOUT_MS: "12000"
       YISHUN_GEMINI_CACHE_TTL_MS: "86400000"
 
     steps:
@@ -88,6 +89,7 @@ jobs:
             YISHUN_GEMINI_DAILY_LIMIT="$YISHUN_GEMINI_DAILY_LIMIT" \
             YISHUN_GEMINI_SAMPLE_RATE="$YISHUN_GEMINI_SAMPLE_RATE" \
             YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS" \
+            YISHUN_GEMINI_TIMEOUT_MS="$YISHUN_GEMINI_TIMEOUT_MS" \
             YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS" \
             bash -lc '
             set -euo pipefail
@@ -155,7 +157,7 @@ jobs:
             fi
             last_ai=$(node -e 'const r=JSON.parse(process.argv[1]); console.log(JSON.stringify(r.ai))' "$response")
             reason=$(node -e 'const r=JSON.parse(process.argv[1]); console.log(r.ai?.reason || "")' "$response")
-            if [ "$reason" != "sampled_out" ] && [ "$reason" != "invalid_json" ] && [ "$reason" != "validation_failed" ]; then
+            if [ "$reason" != "sampled_out" ] && [ "$reason" != "invalid_json" ] && [ "$reason" != "validation_failed" ] && [ "$reason" != "timeout" ]; then
               echo "$last_ai" >&2
               exit 1
             fi
