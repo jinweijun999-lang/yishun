@@ -294,7 +294,7 @@ export default function ReadingStartPage() {
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-28 sm:pb-16">
+      <main className="ys-shell relative z-10 min-h-screen pb-28 sm:pb-16">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <Link href="/" className="text-sm text-gray-300 hover:text-white">← YiShun</Link>
@@ -303,7 +303,7 @@ export default function ReadingStartPage() {
         </header>
 
         <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-          <div className="rounded-3xl border border-accent/20 bg-surface/70 p-6 shadow-2xl">
+          <div className="ys-panel overflow-hidden rounded-[2rem] p-6">
             <p className="text-xs uppercase tracking-[0.3em] text-accent/80">{isZh ? zh.heroLabel : "Daily Return Hook"}</p>
             <h1 className="mt-3 text-3xl sm:text-4xl font-heading font-bold text-white text-glow">
               {isZh ? zh.heroTitle : "Find today’s best timing in 60 seconds."}
@@ -311,6 +311,19 @@ export default function ReadingStartPage() {
             <p className="mt-3 text-sm leading-6 text-gray-300">
               {isZh ? zh.heroDesc : "Enter only what we need. YiShun gives you one best window, one avoid window, and one action to try today."}
             </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              isZh ? ["为什么要生日", "用来建立个人节律，不会展示在分享卡。"] : ["Why birth date", "It sets the personal rhythm and never appears on public cards."],
+              isZh ? ["为什么要城市", "只用于校准时区/真太阳时，可跳过高级字段。"] : ["Why city", "It tunes timezone and solar-time precision; advanced fields are optional."],
+              isZh ? ["为什么要焦点", "让报告先给行动建议，而不是堆命盘术语。"] : ["Why focus", "It makes the report action-first instead of chart-first."],
+            ].map(([title, body]) => (
+              <div key={title} className="ys-panel-soft rounded-3xl p-4">
+                <p className="text-xs font-black text-[#e0bd72]">{title}</p>
+                <p className="mt-2 text-xs leading-5 text-gray-400">{body}</p>
+              </div>
+            ))}
           </div>
 
           {isSubmitting ? (
@@ -330,11 +343,11 @@ export default function ReadingStartPage() {
                 void submitReading();
               }}
               onFocus={trackFormStart}
-              className="glass card p-5 sm:p-6 space-y-5"
+              className="ys-panel rounded-[2rem] p-5 sm:p-6 space-y-5"
             >
-              <div className="flex items-center gap-2 text-xs text-gray-400">
+              <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
                 {[1, 2, 3].map((item) => (
-                  <span key={item} className={`rounded-full px-3 py-1 ${step === item ? "bg-secondary text-white" : "bg-white/5"}`}>{isZh ? zh.step : "Step"} {item}</span>
+                  <span key={item} className={`rounded-2xl border px-3 py-2 text-center ${step === item ? "border-[#e0bd72]/50 bg-[#e0bd72]/15 text-white" : "border-white/10 bg-white/5"}`}>{isZh ? zh.step : "Step"} {item}</span>
                 ))}
               </div>
 
@@ -344,7 +357,7 @@ export default function ReadingStartPage() {
                     <h2 className="text-xl font-heading font-bold text-white">{isZh ? zh.birthTitle : "First, your birth moment."}</h2>
                     <p className="mt-2 text-sm text-gray-400">{isZh ? zh.birthDesc : "This sets your personal rhythm. If you do not know the time, we will still give a useful daily signal."}</p>
                   </div>
-                  <div className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                  <div className="ys-panel-soft space-y-4 rounded-3xl p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-semibold text-white">{isZh ? zh.birthDate : "Birth date"}</h3>
@@ -359,7 +372,7 @@ export default function ReadingStartPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                  <div className="ys-panel-soft space-y-4 rounded-3xl p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-semibold text-white">{isZh ? zh.birthTime : "Birth time"}</h3>
@@ -372,11 +385,11 @@ export default function ReadingStartPage() {
                       <SelectField label={isZh ? zh.minute : "Minute"} value={birthMinute} onChange={setBirthMinute} options={minutes} placeholder={isZh ? zh.minute : "Minute"} disabled={!birthTimeKnown} />
                     </div>
                   </div>
-                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
+                  <label className="ys-panel-soft flex items-center gap-3 rounded-2xl p-3 text-sm text-gray-300">
                     <input type="checkbox" checked={!birthTimeKnown} onChange={(e) => setBirthTimeKnown(!e.target.checked)} />
                     {isZh ? zh.unknownTime : "I’m not sure — use an estimated noon chart."}
                   </label>
-                  <button type="submit" className="sticky bottom-4 z-50 w-full rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-2xl shadow-black/40 sm:static sm:shadow-none">{isZh ? zh.continue : "Continue"}</button>
+                  <button type="submit" className="ys-cta sticky bottom-4 z-50 w-full px-5 py-4 text-sm shadow-2xl shadow-black/40 sm:static sm:shadow-none">{isZh ? zh.continue : "Continue"}</button>
                 </div>
               )}
 
@@ -416,7 +429,7 @@ export default function ReadingStartPage() {
                   )}
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(1)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="submit" className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white">{isZh ? zh.continue : "Continue"}</button>
+                    <button type="submit" className="ys-cta flex-1 px-5 py-4 text-sm">{isZh ? zh.continue : "Continue"}</button>
                   </div>
                 </div>
               )}
@@ -444,7 +457,7 @@ export default function ReadingStartPage() {
                   </label>
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(2)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="submit" disabled={isSubmitting} className="flex-1 rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg disabled:opacity-60">
+                    <button type="submit" disabled={isSubmitting} className="ys-cta flex-1 px-5 py-4 text-sm disabled:opacity-60">
                       {isZh ? zh.submit : "Find my best timing"}
                     </button>
                   </div>

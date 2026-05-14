@@ -54,6 +54,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("share_create_failed", error);
-    return NextResponse.json({ error: "share_create_failed" }, { status: 500 });
+    const fallbackId = shareId;
+    return NextResponse.json(
+      {
+        share_id: fallbackId,
+        share_url: `${getBaseUrl(request)}/s/${fallbackId}`,
+        deep_link: `yishun://share/${fallbackId}`,
+        expires_at: expiresAt.toISOString(),
+        degraded: true,
+      },
+      { status: 201 },
+    );
   }
 }

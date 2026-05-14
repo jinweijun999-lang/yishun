@@ -8,6 +8,7 @@ import FiveElementsChart from "../../components/FiveElementsChart";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { useI18n } from "../../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
+import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
 type PreviewData = {
   birthProfile: {
@@ -389,6 +390,7 @@ export default function ReadingResultPage() {
     window.localStorage.setItem("yishun:dailyRitual:reminderOptIn", reminderEmail ? "email" : "device_only");
     if (reminderEmail) window.localStorage.setItem("yishun:dailyRitual:email", reminderEmail);
     track("save_result", { score: item.score, focus: item.focus, reminder: Boolean(reminderEmail), streak: calculateStreak(merged, true) });
+    trackYiShunEvent(YISHUN_EVENTS.SAVE_CLICK, { source: "reading_result", score: item.score, reminder: Boolean(reminderEmail) });
   }
 
   function handleSaveDeviceOnly() {
@@ -424,6 +426,7 @@ export default function ReadingResultPage() {
     let shareUrl = window.location.origin;
     let shareId: string | undefined;
     track("share_create_click", { source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic", anonymous_id: anonymousId });
+    trackYiShunEvent(YISHUN_EVENTS.SHARE_CLICK, { source: "reading_result", card_type: "daily_luck" });
     try {
       const response = await fetch("/api/v1/shares", {
         method: "POST",
@@ -467,6 +470,7 @@ export default function ReadingResultPage() {
       source: "reading_result",
       target: "/reports",
     });
+    trackYiShunEvent(YISHUN_EVENTS.REPORT_VIEW, { source: "reading_result", target: "/reports" });
     router.push("/reports");
   }
 
@@ -480,6 +484,18 @@ export default function ReadingResultPage() {
     avoidWindow: localizedAction(preview.dailySignal.avoid, isZh),
     action: localizedAction(preview.dailySignal.do, isZh),
   };
+  const suggestedActions = isZh
+    ? [
+        actionCard.action,
+        `把最重要的${localizedValue(preview.focus, true)}任务安排在 ${actionCard.bestWindow} 前后。`,
+        `先写下一个可验证的小步骤，再承诺更大的决定。`,
+      ]
+    : [
+        actionCard.action,
+        `Place your most important ${stripChineseText(preview.focus, "focus").toLowerCase()} task near ${actionCard.bestWindow}.`,
+        "Write one verifiable next step before making a larger commitment.",
+      ];
+  const suitableItems = preview.dailySignal.bestFor.map((item) => localizedValue(item, isZh, "Timing")).slice(0, 3);
 
   const confidenceNotes = [
     !preview.birthProfile.birthTimeKnown ? (isZh ? "出生时间未知：时柱和黄金时段会采用估算午时命盘。" : "Birth time unknown: hour-pillar and golden-hour guidance use an estimated noon chart.") : null,
@@ -490,7 +506,7 @@ export default function ReadingResultPage() {
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="ys-shell relative z-10 min-h-screen pb-16">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <Link href="/reading/start" className="text-sm text-gray-300 hover:text-white">{isZh ? "← 修改出生资料" : "← Edit birth profile"}</Link>
@@ -499,7 +515,7 @@ export default function ReadingResultPage() {
         </header>
 
         <section className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-          <article className="rounded-3xl border border-secondary/20 bg-gradient-to-br from-secondary/15 via-surface/80 to-accent/10 p-6 shadow-2xl">
+          <article className="ys-panel overflow-hidden rounded-[2rem] p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-secondary">{isZh ? "今日决策信号" : "Today’s Decision Signal"} · {todayKey()}</p>
@@ -539,12 +555,36 @@ export default function ReadingResultPage() {
                   <p className="mt-2 text-sm leading-6 text-gray-200">{actionCard.avoidWindow}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-bold uppercase text-gray-300">{isZh ? "一项行动" : "One action"}</p>
-                  <p className="mt-2 text-sm leading-6 text-gray-200">{actionCard.action}</p>
+                  <p className="text-xs font-bold uppercase text-gray-300">{isZh ? "今日摘要 / 一项行动" : "Today’s summary / One action"}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{oneLineSummary}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-2xl border border-secondary/20 bg-secondary/10 p-4">
+                  <p className="text-xs font-bold uppercase text-secondary">{isZh ? "3 条行动建议" : "3 practical actions"}</p>
+                  <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-gray-100">
+                    {suggestedActions.map((item) => <li key={item}>{item}</li>)}
+                  </ol>
+                </div>
+                <div className="rounded-2xl border border-accent/20 bg-accent/10 p-4">
+                  <p className="text-xs font-bold uppercase text-accent">{isZh ? "适合 / 避免" : "Best for / avoid"}</p>
+                  <p className="mt-3 text-sm leading-6 text-gray-100">{isZh ? "适合：" : "Best for: "}{suitableItems.join(" · ")}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{isZh ? "避免：" : "Avoid: "}{actionCard.avoidWindow}</p>
                 </div>
               </div>
             </div>
-            <p className="mt-5 text-sm leading-6 text-gray-300">{localizedWhy(preview, isZh)}</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                [isZh ? "今日节奏" : "Today rhythm", oneLineSummary],
+                [isZh ? "关键洞察" : "Key insight", localizedWhy(preview, isZh)],
+                [isZh ? "行动边界" : "Action boundary", `${isZh ? "适合" : "Best"}: ${suitableItems.join(" · ")} · ${isZh ? "避免" : "Avoid"}: ${actionCard.avoidWindow}`],
+              ].map(([title, body]) => (
+                <div key={title} className="ys-panel-soft rounded-3xl p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e0bd72]">{title}</p>
+                  <p className="mt-3 text-sm leading-6 text-gray-200">{body}</p>
+                </div>
+              ))}
+            </div>
             {confidenceNotes.length > 0 && (
               <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-xs leading-5 text-amber-100">
                 {confidenceNotes.map((note) => <p key={note}>{note}</p>)}
@@ -553,13 +593,13 @@ export default function ReadingResultPage() {
             <div className="mt-6 grid sm:grid-cols-3 gap-3">
               <button onClick={() => setSavePanelOpen(true)} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-sm font-bold text-white">{isZh ? "保存资料供明天使用" : "Save my profile for tomorrow"}</button>
               <button onClick={handleShare} disabled={shareBusy} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-60">{shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "分享链接已就绪" : "Share link ready") : (isZh ? "分享今日卡片" : "Share today’s card")}</button>
-              <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "看看明天有什么变化" : "See what changes tomorrow"}</Link>
+              <Link href="/samples" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "查看样例报告" : "View sample reports"}</Link>
             </div>
             {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
           </article>
 
-          <section className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.92),rgba(88,28,135,0.55))] p-5 sm:p-6 shadow-2xl" aria-label="Shareable YiShun timing card">
-            <div className="mx-auto max-w-sm rounded-[2rem] border border-white/20 bg-black/30 p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur">
+          <section className="ys-share-card rounded-3xl p-5 sm:p-6" aria-label="Shareable YiShun timing card">
+            <div className="mx-auto max-w-sm rounded-[2rem] border border-white/15 bg-black/25 p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-[0.25em] text-accent">{isZh ? "易顺时机卡" : "YiShun Timing Card"}</p>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs">{todayKey()}</span>

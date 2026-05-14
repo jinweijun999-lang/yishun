@@ -8,6 +8,7 @@ import LanguageSwitcher from "./components/LanguageSwitcher";
 import Navigation from "./components/Navigation";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import { useI18n } from "./components/LocaleProvider";
+import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
 type ProfileData = {
   email: string;
@@ -43,7 +44,6 @@ function track(event: string, properties: Record<string, unknown> = {}) {
   window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
 }
 
-
 const zhValueMap: Record<string, string> = {
   General: "综合",
   Work: "事业",
@@ -63,22 +63,8 @@ const zhValueMap: Record<string, string> = {
   North: "北方",
   planning: "规划",
   learning: "学习",
-  "slow decisions": "慢决策",
-  presenting: "表达展示",
-  "creative momentum": "创意推进",
-  "warm outreach": "温和沟通",
-  "reviewing details": "复核细节",
-  budgeting: "预算安排",
-  "stable commitments": "稳定承诺",
-  prioritizing: "确定优先级",
-  "negotiating boundaries": "协商边界",
-  "focused execution": "专注执行",
-  research: "调研",
-  reflection: "反思",
-  "sensitive conversations": "敏感沟通",
   "focused outreach": "专注沟通",
   "calm decisions": "冷静决策",
-  "planning · focused outreach": "规划 · 专注沟通",
   "Choose one meaningful push and write the next step before you commit.": "选择一个最重要的推进点，并在承诺前写下下一步。",
   "Do not force a final answer before the options are clear.": "选项还不清楚前，不要强行给出最终答案。",
 };
@@ -91,30 +77,6 @@ function localizeValue(value: string | undefined, isZh: boolean) {
 
 function localizeList(values: string[], isZh: boolean) {
   return values.map((value) => localizeValue(value, isZh));
-}
-
-function localizeActionText(value: string, isZh: boolean) {
-  if (!isZh) return value;
-  if (zhValueMap[value]) return zhValueMap[value];
-  const element = Object.keys(zhValueMap).find((key) => value.includes(`Borrow ${key} energy`));
-  if (element) {
-    const actionMap: Record<string, string> = {
-      Wood: "借用木的能量：先写下下一步，再做承诺。",
-      Fire: "借用火的能量：清楚表达一个重点，不要过度解释。",
-      Earth: "借用土的能量：选择更稳定的方案，并确认关键细节。",
-      Metal: "借用金的能量：开始新事前，先砍掉一个不必要任务。",
-      Water: "借用水的能量：回复重要消息前，先暂停十分钟。",
-    };
-    return actionMap[element] ?? value;
-  }
-  const avoidMap: Record<string, string> = {
-    "forcing a final answer before the options have room to grow": "选项还没充分展开前，不要强迫自己立刻定案。",
-    "reacting quickly just to keep the energy high": "不要为了维持热度而仓促反应。",
-    "saying yes to vague plans without confirming the ground rules": "规则没确认前，不要答应模糊计划。",
-    "cutting off a useful option because it is not perfect yet": "不要因为还不完美就砍掉有用选项。",
-    "over-reading signals without choosing one small next step": "不要过度解读信号，却不选择一个小行动。",
-  };
-  return avoidMap[value] ?? value;
 }
 
 const sampleSignal: CachedPreview = {
@@ -131,15 +93,99 @@ const sampleSignal: CachedPreview = {
   },
 };
 
+const copy = {
+  en: {
+    eyebrow: "Eastern timing intelligence · explainable daily decisions",
+    title: "Stop asking “What will happen?” Start knowing when to move.",
+    subtitle:
+      "YiShun turns BaZi and five-element timing into a calm daily decision system: what to push, what to delay, and what evidence the signal is based on.",
+    primary: "Start my free daily signal",
+    open: "Open today’s signal",
+    sample: "View sample reports",
+    profile: "Account",
+    login: "Sign in",
+    signedIn: "Signed in",
+    trust: "Privacy boundary: public cards never show birth date, birth place, email, or private chart details. Not fortune-telling — a structured reflection tool for timing, priorities, and decisions.",
+    heroCardLabel: "Today’s Decision Brief",
+    clarity: "Timing clarity",
+    bestFor: "Best for",
+    bestHour: "Best window",
+    element: "Element",
+    direction: "Direction",
+    do: "Move",
+    avoid: "Avoid",
+    saved: "Saved signal",
+    sampleSignal: "Live sample",
+    mechanism: "Why it feels different",
+    mechanisms: [
+      ["01", "Evidence-backed signal", "Every recommendation is shown with timing, element balance, and clear action boundaries."],
+      ["02", "Daily ritual loop", "Generate, save, revisit tomorrow. The product builds continuity instead of one-off entertainment."],
+      ["03", "Decision-first copy", "The app answers “what should I do today?” before showing charts or mystical language."],
+    ],
+    journeyLabel: "Product flow",
+    journeyTitle: "From birth data to a daily operating brief",
+    journey: [
+      "Enter birth profile once",
+      "Receive today’s timing signal",
+      "Save the card and track streak",
+      "Return tomorrow for a fresh window",
+    ],
+    proofLabel: "Trust layer",
+    proofTitle: "Built for overseas users who need clarity, not superstition",
+    proof: ["Explainable signal", "Mobile-first ritual", "Privacy boundary", "Clear disclaimer"],
+    learn: "Learn the BaZi basics",
+    powered: "Powered by Google Gemini · for reflection only",
+  },
+  zh: {
+    eyebrow: "东方时机智能 · 可解释的每日决策信号",
+    title: "别再问“会发生什么”，开始判断“现在该不该行动”。",
+    subtitle:
+      "易顺把八字与五行时机转成清晰的每日决策系统：今天该推进什么、延后什么，以及这个信号的依据是什么。",
+    primary: "开始免费今日信号",
+    open: "打开今日信号",
+    sample: "查看示例报告",
+    profile: "账户",
+    login: "登录",
+    signedIn: "已登录",
+    trust: "隐私边界：公开卡不展示出生日期、出生地、邮箱或私人命盘细节。易顺不是算命，而是用于时机、优先级和决策复盘的结构化工具。",
+    heroCardLabel: "今日决策简报",
+    clarity: "时机清晰度",
+    bestFor: "适合",
+    bestHour: "黄金窗口",
+    element: "五行",
+    direction: "方向",
+    do: "宜行动",
+    avoid: "避开",
+    saved: "已保存信号",
+    sampleSignal: "实时示例",
+    mechanism: "为什么它不一样",
+    mechanisms: [
+      ["01", "有依据的信号", "每条建议都呈现时段、五行平衡和行动边界，而不是一句玄学结论。"],
+      ["02", "每日仪式闭环", "生成、保存、明日回访；产品建立连续记录，而不是一次性娱乐。"],
+      ["03", "决策优先文案", "先回答“今天该怎么做”，再展示命盘和解释。"],
+    ],
+    journeyLabel: "产品流程",
+    journeyTitle: "从出生信息到每日行动简报",
+    journey: ["一次填写出生档案", "获得今日时机信号", "保存卡片并记录连续天数", "明天回访新的行动窗口"],
+    proofLabel: "信任层",
+    proofTitle: "面向海外用户：要清晰，不要迷信感",
+    proof: ["信号可解释", "移动端优先", "隐私边界", "清晰边界声明"],
+    learn: "了解八字基础",
+    powered: "由 Google Gemini 驱动 · 仅供自我反思",
+  },
+};
+
 export default function Home() {
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const isZh = locale === "zh-CN";
+  const c = isZh ? copy.zh : copy.en;
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [cachedPreview, setCachedPreview] = useState<CachedPreview | null>(null);
   const [completedDate, setCompletedDate] = useState<string | null>(null);
 
   useEffect(() => {
+    trackYiShunEvent(YISHUN_EVENTS.HOME_VIEW, { source: "home_redesign" });
     window.setTimeout(() => {
       try {
         const cached = window.localStorage.getItem("yishun:p0Preview");
@@ -166,190 +212,213 @@ export default function Home() {
       }
     };
     loadProfile();
-
   }, []);
 
-  const isLoggedIn = !!profile;
   const activeSignal = cachedPreview ?? sampleSignal;
+  const hasSavedRitual = Boolean(cachedPreview);
+  const today = new Date().toISOString().slice(0, 10);
+  const completedToday = completedDate === today;
   const displaySignal = {
     focus: localizeValue(activeSignal.focus, isZh),
     bestFor: localizeList(activeSignal.dailySignal.bestFor, isZh),
     luckyElement: localizeValue(activeSignal.dailySignal.luckyElement, isZh),
     luckyDirection: localizeValue(activeSignal.dailySignal.luckyDirection, isZh),
-    do: localizeActionText(activeSignal.dailySignal.do, isZh),
-    avoid: localizeActionText(activeSignal.dailySignal.avoid, isZh),
+    do: localizeValue(activeSignal.dailySignal.do, isZh),
+    avoid: localizeValue(activeSignal.dailySignal.avoid, isZh),
   };
-  const hasSavedRitual = Boolean(cachedPreview);
-  const today = new Date().toISOString().slice(0, 10);
-  const completedToday = completedDate === today;
 
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-24">
-        <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl" role="img" aria-hidden="true">🔮</span>
-              <h1 className="text-lg font-heading font-bold text-white">
-                YiShun <span className="text-accent text-sm">{isZh ? "易顺" : ""}</span>
-              </h1>
-            </div>
+      <main className="ys-shell relative z-10 min-h-screen overflow-hidden pb-28 text-[#f5efe1]">
+        <div className="pointer-events-none absolute left-1/2 top-[-18rem] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-[#c2a067]/10 blur-3xl" />
+        <div className="pointer-events-none absolute right-[-14rem] top-40 h-[32rem] w-[32rem] rounded-full bg-[#5e8a72]/20 blur-3xl" />
+
+        <header className="sticky top-0 z-40 border-b border-[#e8d7aa]/10 bg-[#080b09]/70 px-4 py-3 backdrop-blur-2xl">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-3" aria-label="YiShun home">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-[#c2a067]/30 bg-[#c2a067]/10 text-xl shadow-[0_0_40px_rgba(194,160,103,0.18)]">易</span>
+              <div>
+                <p className="font-heading text-lg font-bold tracking-wide text-white">YiShun</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#c2a067]/70">Decision Ritual</p>
+              </div>
+            </Link>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
-              {authChecked && (isLoggedIn ? (
-                <a href="/profile" className="text-xs text-secondary hover:text-secondary/80 transition-colors">
-                  {t("nav.profile")}
-                </a>
-              ) : (
-                <a href="/login" className="text-xs text-secondary hover:text-secondary/80 transition-colors">
-                  {t("nav.login")}
-                </a>
-              ))}
+              {authChecked && (
+                profile ? (
+                  <Link href="/profile" className="hidden rounded-full border border-white/10 px-4 py-2 text-xs text-[#e8d7aa] hover:bg-white/5 sm:inline-flex">
+                    {c.signedIn} · {profile.email}
+                  </Link>
+                ) : (
+                  <Link href="/login" className="rounded-full border border-white/10 px-4 py-2 text-xs text-[#e8d7aa] hover:bg-white/5">
+                    {c.login}
+                  </Link>
+                )
+              )}
             </div>
           </div>
         </header>
 
-        <div className="mx-auto grid max-w-lg gap-6 px-4 py-6 lg:max-w-5xl lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-          <div className="space-y-6">
-            {isLoggedIn && (
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span>{t("nav.signedInAs", { email: profile.email })}</span>
-                {profile.planTier && profile.planTier !== "free" && (
-                  <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-accent">
-                    {profile.planTier}
-                  </span>
-                )}
-              </div>
-            )}
+        <section className="mx-auto grid max-w-6xl gap-8 px-4 pb-10 pt-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:pb-16 lg:pt-14">
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#c2a067]/20 bg-[#c2a067]/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-[#d8bd7a]">
+              <span className="h-2 w-2 rounded-full bg-[#7aa48c] shadow-[0_0_18px_rgba(122,164,140,0.8)]" />
+              {c.eyebrow}
+            </div>
+            <h1 className="mt-6 max-w-3xl font-heading text-5xl font-black leading-[0.96] tracking-[-0.06em] text-white md:text-7xl">
+              {c.title}
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#d8d0bf] md:text-xl">
+              {c.subtitle}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={hasSavedRitual ? "/reading/result" : "/reading/start"}
+                onClick={() => {
+                  track(hasSavedRitual ? "open_today_ritual_click" : "start_daily_signal_click", { source: "home_redesign" });
+                  trackYiShunEvent(YISHUN_EVENTS.START_CLICK, { source: "home_redesign", has_saved_ritual: hasSavedRitual });
+                }}
+                className="group inline-flex items-center justify-center rounded-2xl bg-[#e0bd72] px-6 py-4 text-sm font-black text-[#10130f] shadow-[0_22px_60px_rgba(194,160,103,0.28)] transition hover:-translate-y-0.5 hover:bg-[#f1d28e]"
+              >
+                {hasSavedRitual ? c.open : c.primary}
+                <span className="ml-2 transition group-hover:translate-x-1">→</span>
+              </Link>
+              <Link
+                href="/samples"
+                onClick={() => track("sample_result_click", { source: "home_redesign", sample_count: 4 })}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-bold text-[#f5efe1] backdrop-blur transition hover:border-[#c2a067]/40 hover:bg-white/[0.06]"
+              >
+                {c.sample}
+              </Link>
+            </div>
+            <p className="mt-5 max-w-xl text-sm leading-6 text-[#9d9688]">{c.trust}</p>
+          </motion.div>
 
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-secondary/20 bg-gradient-to-br from-secondary/15 via-surface/80 to-accent/10 p-6 shadow-2xl"
-            >
-              <p className="text-[10px] uppercase tracking-[0.28em] text-accent/80">
-                {t("home.ritual.subtitle")}
-              </p>
-              <h2 className="mt-3 text-3xl font-heading font-bold text-white text-glow">
-                {t("home.ritual.title")}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-gray-300">
-                {t("home.ritual.description")}
-              </p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Link
-                  href={hasSavedRitual ? "/reading/result" : "/reading/start"}
-                  onClick={() => track(hasSavedRitual ? "open_today_ritual_click" : "start_daily_signal_click", { source: "home" })}
-                  className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-bold text-white shadow-lg hover:opacity-95"
-                >
-                  {hasSavedRitual ? t("home.ritual.open") : t("home.ritual.start")}
-                </Link>
-                <Link
-                  href="/tools/sample"
-                  onClick={() => track("sample_result_click", { source: "home" })}
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/20 px-5 py-4 text-sm font-semibold text-gray-200 hover:bg-white/5"
-                >
-                  {t("home.ritual.sample")}
-                </Link>
-              </div>
-              <p className="mt-3 text-[11px] text-gray-500">
-                {t("home.ritual.disclaimer")}
-              </p>
-            </motion.section>
-
-            <PwaInstallPrompt />
-          </div>
-
-          <div className="space-y-6">
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="rounded-3xl border border-white/10 bg-surface/70 p-5 shadow-2xl"
-            >
+          <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.08, duration: 0.55 }} className="relative">
+            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#c2a067]/20 via-transparent to-[#5e8a72]/20 blur-2xl" />
+            <article className="ys-share-card relative overflow-hidden rounded-[2rem] p-5 backdrop-blur-2xl md:p-6">
+              <div className="absolute right-[-4rem] top-[-4rem] h-40 w-40 rounded-full border border-[#c2a067]/20" />
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-secondary/80">
-                    {hasSavedRitual ? t("home.ritual.yourRitual") : t("home.ritual.sampleRitual")}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-heading font-bold text-white">
-                    {activeSignal.dailySignal.score} / 100 {t("home.ritual.timingClarity")}
-                  </h3>
+                  <p className="text-[11px] uppercase tracking-[0.25em] text-[#c2a067]">{c.heroCardLabel}</p>
+                  <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] text-white">
+                    {activeSignal.dailySignal.score}<span className="text-xl text-[#8f8878]">/100</span>
+                  </h2>
+                  <p className="text-sm text-[#a9a18f]">{c.clarity}</p>
                 </div>
-                <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
-                  {completedToday ? t("todayFortune.completed") : displaySignal.focus}
+                <span className="rounded-full border border-[#7aa48c]/30 bg-[#7aa48c]/10 px-3 py-1 text-xs font-bold text-[#a8d8bd]">
+                  {completedToday ? c.saved : hasSavedRitual ? c.saved : c.sampleSignal}
                 </span>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{t("home.ritual.bestFor")}</p>
-                  <p className="mt-1 text-white font-semibold">{displaySignal.bestFor.slice(0, 2).join(" · ")}</p>
-                </div>
-                <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{t("home.ritual.goldenHour")}</p>
-                  <p className="mt-1 text-white font-semibold">{activeSignal.dailySignal.bestHour}</p>
-                </div>
-                <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{t("home.ritual.luckyElement")}</p>
-                  <p className="mt-1 text-white font-semibold">{displaySignal.luckyElement}</p>
-                </div>
-                <div className="rounded-2xl bg-black/20 p-4">
-                  <p className="text-xs text-gray-500">{t("home.ritual.luckyDirection")}</p>
-                  <p className="mt-1 text-white font-semibold">{displaySignal.luckyDirection}</p>
-                </div>
-              </div>
-              <div className="mt-4 rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
-                <p className="text-xs font-bold uppercase text-secondary">{t("home.ritual.do")}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{displaySignal.do}</p>
-              </div>
-              <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/10 p-4">
-                <p className="text-xs font-bold uppercase text-accent">{t("home.ritual.avoid")}</p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">{displaySignal.avoid}</p>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link href={hasSavedRitual ? "/reading/result" : "/reading/start"} className="rounded-xl bg-secondary/80 px-4 py-3 text-sm font-semibold text-white hover:bg-secondary">
-                  {hasSavedRitual ? t("home.ritual.open") : t("home.ritual.create")}
-                </Link>
-                <Link href="/reports" className="rounded-xl border border-white/20 px-4 py-3 text-sm text-gray-300 hover:bg-white/5">
-                  {t("home.ritual.viewHistory")}
-                </Link>
-              </div>
-            </motion.section>
 
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-2xl bg-surface/60 border border-white/10 p-5"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/20 to-secondary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg" role="img" aria-hidden="true">📚</span>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {[
+                  [c.bestFor, displaySignal.bestFor.slice(0, 2).join(" · ")],
+                  [c.bestHour, activeSignal.dailySignal.bestHour],
+                  [c.element, displaySignal.luckyElement],
+                  [c.direction, displaySignal.luckyDirection],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-3xl border border-white/8 bg-white/[0.045] p-4">
+                    <p className="text-xs text-[#8f8878]">{label}</p>
+                    <p className="mt-1 text-sm font-bold leading-5 text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <div className="rounded-3xl border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a8d8bd]">{c.do}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#e8e1d2]">{displaySignal.do}</p>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-wider text-accent/80 mb-1">{t("home.baziBasics.sectionTitle")}</p>
-                  <h3 className="text-base font-heading font-bold text-white">{t("home.baziBasics.title")}</h3>
-                  <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                    {t("home.baziBasics.description")}
-                  </p>
-                  <a href="/learn/bazi-basics" className="inline-block mt-3 text-xs text-secondary hover:text-secondary/80 transition-colors">
-                    {t("home.baziBasics.link")}
-                  </a>
+                <div className="rounded-3xl border border-[#c2a067]/25 bg-[#c2a067]/10 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e0bd72]">{c.avoid}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#e8e1d2]">{displaySignal.avoid}</p>
                 </div>
               </div>
-            </motion.section>
+            </article>
+          </motion.div>
+        </section>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-center pt-4"
-            >
-              <p className="text-xs text-gray-600">🔮 {t("common.poweredBy")}</p>
-              <p className="text-xs text-gray-700 mt-1">{t("common.disclaimer")}</p>
-            </motion.div>
+        <section className="mx-auto max-w-6xl px-4 py-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            {c.mechanisms.map(([num, title, body], index) => (
+              <motion.article
+                key={title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.06 }}
+                className="ys-panel-soft rounded-[1.75rem] p-5 backdrop-blur-xl"
+              >
+                <p className="text-xs font-black text-[#c2a067]">{num}</p>
+                <h3 className="mt-4 text-xl font-black tracking-[-0.03em] text-white">{title}</h3>
+                <p className="mt-3 text-sm leading-6 text-[#aaa292]">{body}</p>
+              </motion.article>
+            ))}
           </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-6">
+          <div className="ys-panel grid gap-5 rounded-[2rem] p-5 md:grid-cols-[0.9fr_1.1fr] md:p-6">
+            <div>
+              <p className="ys-kicker">{isZh ? "每日节奏" : "Daily rhythm"}</p>
+              <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">{isZh ? "不是一次性测算，而是每天 3 分钟的决策复盘。" : "Not a one-off reading. A 3-minute decision ritual you can repeat."}</h2>
+              <p className="mt-3 text-sm leading-6 text-[#aaa292]">{isZh ? "易顺把今日信号压缩成可保存、可分享、可明天对比的节奏卡：今日窗口、行动边界和信任提示都在同一张卡里。" : "YiShun compresses the signal into a saveable, shareable rhythm card: window, action boundary, and trust notes in one place."}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                [isZh ? "早上" : "Morning", isZh ? "看今日黄金窗口" : "Check the best window"],
+                [isZh ? "行动前" : "Before acting", isZh ? "确认适合 / 避免" : "Review fit / avoid"],
+                [isZh ? "晚上" : "Evening", isZh ? "保存并形成连续记录" : "Save and build streak"],
+              ].map(([label, body]) => (
+                <div key={label} className="ys-panel-soft rounded-3xl p-4">
+                  <p className="text-xs font-black text-[#e0bd72]">{label}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#ede6d6]">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="rounded-[2rem] border border-[#c2a067]/15 bg-[#c2a067]/[0.07] p-6">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[#c2a067]">{c.journeyLabel}</p>
+            <h2 className="mt-3 max-w-md text-3xl font-black tracking-[-0.05em] text-white">{c.journeyTitle}</h2>
+            <div className="mt-6 space-y-3">
+              {c.journey.map((item, index) => (
+                <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[#e0bd72] text-xs font-black text-[#10130f]">{index + 1}</span>
+                  <span className="text-sm font-semibold text-[#ede6d6]">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-[#0b0f0d]/70 p-6 backdrop-blur-xl">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[#7aa48c]">{c.proofLabel}</p>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">{c.proofTitle}</h2>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {c.proof.map((item) => (
+                <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm font-bold text-[#ede6d6]">
+                  <span className="mr-2 text-[#7aa48c]">✓</span>{item}
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/learn/bazi-basics" className="rounded-2xl border border-[#7aa48c]/30 px-5 py-3 text-sm font-bold text-[#a8d8bd] hover:bg-[#7aa48c]/10">
+                {c.learn}
+              </Link>
+              <Link href="/reports" className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-[#d8d0bf] hover:bg-white/5">
+                Reports →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="mx-auto max-w-6xl px-4 pb-10 pt-3">
+          <PwaInstallPrompt />
+          <p className="mt-6 text-center text-xs text-[#766f62]">{c.powered}</p>
         </div>
 
         <Navigation />

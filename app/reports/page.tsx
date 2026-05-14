@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
@@ -8,6 +9,7 @@ import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useI18n } from "../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
+import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
 type Consultation = {
   id: string;
@@ -125,11 +127,13 @@ export default function ReportsPage() {
   });
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedDate, setCopiedDate] = useState<string | null>(null);
   const streak = calculateStreak(dailyHistory);
 
   useEffect(() => {
     queueP0Analytics("reports_open", { daily_history_count: dailyHistory.length, streak, source: "reports" });
     queueP0Analytics("streak_view", { streak, source: "reports" });
+    trackYiShunEvent(YISHUN_EVENTS.REPORT_VIEW, { source: "reports", daily_history_count: dailyHistory.length, streak });
   }, [dailyHistory.length, streak]);
 
   useEffect(() => {
@@ -158,10 +162,25 @@ export default function ReportsPage() {
     loadConsultations();
   }, []);
 
+  async function copyDailySummary(item: DailyRitualHistoryItem) {
+    const summary = isEnglish
+      ? `YiShun daily signal ${item.date}: ${item.score}/100 · ${item.focus}. Best for ${item.bestFor.slice(0, 3).join(", ")}. Try: ${item.action ?? "one calm next step"}. For reflection only.`
+      : `易顺每日信号 ${item.date}：${item.score}/100 · ${item.focus}。适合：${item.bestFor.slice(0, 3).join("、")}。建议：${item.action ?? "选择一个小行动"}。仅供娱乐和自我反思。`;
+    await navigator.clipboard?.writeText(summary).catch(() => undefined);
+    setCopiedDate(item.date);
+    trackYiShunEvent(YISHUN_EVENTS.SHARE_CLICK, { source: "reports", mode: "copy_summary", date: item.date });
+  }
+
+  function saveLocalState() {
+    window.localStorage.setItem("yishun:reports:lastSavedAt", new Date().toISOString());
+    trackYiShunEvent(YISHUN_EVENTS.SAVE_CLICK, { source: "reports", mode: "save_local_state", daily_history_count: dailyHistory.length });
+    setCopiedDate("local-state");
+  }
+
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-24">
+      <main className="ys-shell relative z-10 min-h-screen pb-24">
         {/* Header */}
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
@@ -185,25 +204,64 @@ export default function ReportsPage() {
         </header>
 
         {/* Main Content */}
-        <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-4"
+            className="ys-panel rounded-[2rem] p-6"
           >
-            <h2 className="text-2xl font-heading font-bold text-white text-glow">
-              {t("reports.title")}
-            </h2>
-            <p className="text-sm text-gray-400 mt-2">
-              {t("reports.subtitle")}
-            </p>
+            <p className="ys-kicker">{isEnglish ? "Personal rhythm center" : "个人节奏中心"}</p>
+            <div className="mt-4 grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div>
+                <h2 className="text-3xl font-heading font-bold tracking-[-0.04em] text-white text-glow">
+                  {isEnglish ? "Your saved signals, streak, and shareable timing cards." : "你的历史、连续记录和可分享时机卡。"}
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-gray-400">
+                  {isEnglish ? "Use this as the home base for returning tomorrow, comparing patterns, and turning a private signal into a clean public card." : "这里是每日回访中心：对比历史节奏，查看连续记录，并把私密信号转成高质感公开卡。"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-center sm:min-w-56">
+                <div className="ys-panel-soft rounded-3xl p-4"><p className="text-3xl font-bold text-white">{streak}</p><p className="text-[10px] uppercase tracking-[0.18em] text-accent">{t("reports.dayStreak")}</p></div>
+                <div className="ys-panel-soft rounded-3xl p-4"><p className="text-3xl font-bold text-white">{dailyHistory.length}</p><p className="text-[10px] uppercase tracking-[0.18em] text-secondary">{isEnglish ? "Saved" : "已保存"}</p></div>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <Link href="/reading/start" className="ys-cta px-4 py-3 text-sm">{t("reports.findTiming")}</Link>
+              <Link href="/samples" className="ys-secondary-cta px-4 py-3 text-sm">{isEnglish ? "Open samples" : "查看样例"}</Link>
+              <button onClick={saveLocalState} className="ys-secondary-cta px-4 py-3 text-sm">{copiedDate === "local-state" ? (isEnglish ? "Saved locally" : "已本地保存") : (isEnglish ? "Save state" : "保存状态")}</button>
+            </div>
           </motion.div>
 
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.04 }}
+            className="ys-panel rounded-3xl p-5"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-secondary/90">{t("reports.valueLabel")}</p>
+            <h3 className="mt-2 text-xl font-heading font-bold text-white">{t("reports.valueTitle")}</h3>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+              {([
+                "reports.summaryBlock",
+                "reports.actionsBlock",
+                "reports.fitAvoidBlock",
+                "reports.evidenceBlock",
+                "reports.nextStepBlock",
+                "reports.disclaimerBlock",
+              ] as const).map((key) => (
+                <div key={key} className="min-h-[56px] rounded-2xl border border-white/10 bg-black/20 p-3 text-gray-200">
+                  {t(key)}
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-gray-400">{t("reports.valueDisclaimer")}</p>
+          </motion.section>
+
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 }}
-            className="rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/15 via-surface/80 to-secondary/10 p-5"
+            className="ys-panel rounded-3xl p-5"
           >
             <p className="text-xs uppercase tracking-[0.25em] text-accent">{t("reports.returnHook")}</p>
             <div className="mt-3 grid grid-cols-[auto_1fr] gap-4 items-center">
@@ -223,7 +281,7 @@ export default function ReportsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="glass card p-5"
+            className="ys-panel rounded-3xl p-5"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -271,8 +329,19 @@ export default function ReportsPage() {
                         {item.avoid && <p><span className="text-accent">{t("reports.avoid")}</span> {localizeSavedAction(item.avoid, !isEnglish)}</p>}
                       </div>
                     )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button onClick={() => void copyDailySummary(item)} className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5">
+                        {copiedDate === item.date ? (isEnglish ? "Copied" : "已复制") : (isEnglish ? "Copy share summary" : "复制分享摘要")}
+                      </button>
+                      <a href={`/s/shr_sample_${encodeURIComponent(item.date.replace(/-/g, ""))}`} className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1.5 text-xs text-secondary hover:bg-secondary/20">
+                        {isEnglish ? "Preview share page" : "预览分享页"}
+                      </a>
+                    </div>
                   </div>
                 ))}
+                <button onClick={saveLocalState} className="w-full rounded-2xl border border-white/15 px-4 py-3 text-sm text-gray-200 hover:bg-white/5">
+                  {copiedDate === "local-state" ? (isEnglish ? "Local state saved" : "本地状态已保存") : (isEnglish ? "Save report state locally" : "保存报告本地状态")}
+                </button>
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-gray-400">
@@ -301,12 +370,20 @@ export default function ReportsPage() {
               <p className="text-xs text-gray-400 mb-4">
                 {t("reports.longFormEmpty")}
               </p>
-              <a
-                href="/reading/start"
-                className="inline-block px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
-              >
-                {t("reports.createSignal")}
-              </a>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <a
+                  href="/reading/start"
+                  className="inline-block px-6 py-3 rounded-xl bg-secondary/80 text-white font-semibold text-sm hover:bg-secondary transition-colors"
+                >
+                  {t("reports.createSignal")}
+                </a>
+                <Link
+                  href="/samples"
+                  className="inline-block px-6 py-3 rounded-xl border border-white/20 text-gray-200 font-semibold text-sm hover:bg-white/5 transition-colors"
+                >
+                  {isEnglish ? "View 4 samples" : "查看 4 个样例"}
+                </Link>
+              </div>
             </motion.div>
           ) : (
             <div className="space-y-4">

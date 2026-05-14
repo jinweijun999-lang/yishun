@@ -28,8 +28,21 @@ export default async function ShareLandingPage({ params }: PageProps) {
   let status: "ready" | "missing" | "expired" = "missing";
   let createdAt: string | undefined;
 
-  if (isValidShareId(shareId)) {
-    const share = await prisma.shareLink.findUnique({ where: { id: shareId } });
+  if (shareId.startsWith("shr_sample_")) {
+    status = "ready";
+    payload = {
+      title: "YiShun daily timing card",
+      theme: "Daily",
+      summary: "A shareable sample card with a practical action, return CTA, and privacy-safe public content.",
+      best_window: "07:00–09:00",
+      avoid_window: "forcing a final answer before the options are clear",
+      action: "Choose one meaningful push and write the next step before you commit.",
+      element_hint: "Wood",
+      score_label: "82/100 clarity",
+    };
+    createdAt = new Date().toISOString();
+  } else if (isValidShareId(shareId)) {
+    const share = await prisma.shareLink.findUnique({ where: { id: shareId } }).catch(() => null);
     if (share) {
       if (share.expiresAt < new Date()) {
         status = "expired";
