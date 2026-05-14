@@ -36,6 +36,12 @@ export type CreateShareInput = {
   };
 };
 
+function getPublicPayload(raw: Record<string, unknown>) {
+  // Production clients and earlier acceptance smoke used `public_payload`, while
+  // the P1 frontend used `payload`. Accept both to keep share creation backward-compatible.
+  return raw.payload ?? raw.public_payload;
+}
+
 export function createShareId() {
   return `${SHARE_ID_PREFIX}${crypto.randomBytes(12).toString("base64url")}`;
 }
@@ -88,9 +94,10 @@ function pickAllowed<T extends string>(value: unknown, allowed: readonly T[], fa
 
 export function normalizeCreateShareInput(raw: unknown): { ok: true; value: CreateShareInput } | { ok: false; error: string } {
   if (!isRecord(raw)) return { ok: false, error: "invalid_payload" };
-  if (containsBlockedKey(raw.payload)) return { ok: false, error: "payload_contains_private_fields" };
+  const rawPublicPayload = getPublicPayload(raw);
+  if (containsBlockedKey(rawPublicPayload)) return { ok: false, error: "payload_contains_private_fields" };
 
-  const payloadRecord = isRecord(raw.payload) ? raw.payload : {};
+  const payloadRecord = isRecord(rawPublicPayload) ? rawPublicPayload : {};
   const title = cleanText(payloadRecord.title, 80);
   const theme = cleanText(payloadRecord.theme, 40) ?? "Daily timing";
   const summary = cleanText(payloadRecord.summary, 180);

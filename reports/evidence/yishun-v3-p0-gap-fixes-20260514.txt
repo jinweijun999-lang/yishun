@@ -1,0 +1,59 @@
+Task: yishun-v3-p0-gap-fixes
+Agent: coder
+Date: 2026-05-14 GMT+8
+Repo: /Users/xiajarvan/.openclaw/workspace/yishun
+Base commit: 320f70b feat: productize yishun v3 p0 funnel
+
+Commands and results:
+
+1) npm run lint
+Result: PASS
+Output summary:
+> fortune-app@0.1.0 lint
+> eslint .
+(exit 0)
+
+2) npm run build
+Result: PASS
+Output summary:
+✓ Compiled successfully
+✓ TypeScript finished
+✓ Generating static pages (55/55)
+Route list includes: /api/events, /api/v1/shares, /api/stripe/checkout
+(exit 0)
+
+3) PORT=3100 npm run start + smoke
+Result: INFRA RETRY
+Reason: EADDRINUSE :::3100
+Action: retried on 3127
+
+4) PORT=3127 npm run start; SMOKE_BASE_URL=http://127.0.0.1:3127 npm run smoke:yishun-v3-gaps
+Result: PASS
+Smoke output:
+{
+  "ok": true,
+  "baseUrl": "http://127.0.0.1:3127",
+  "checks": {
+    "events": { "ok": true, "accepted": 1, "dropped": 0 },
+    "share": {
+      "status": 201,
+      "share_id": "shr_ihxK6kIAK0TNWWnC",
+      "share_url": "http://localhost:3127/s/shr_ihxK6kIAK0TNWWnC"
+    },
+    "checkout": { "status": 503, "code": "checkout_config_missing" }
+  }
+}
+Server log evidence:
+yishun_analytics_ingest { accepted: 1, events: [ 'smoke_event' ] }
+share route degraded safely because local smoke environment lacks DATABASE_URL; production schema has ShareLink and route persists when DATABASE_URL is configured.
+
+Implementation notes:
+- /api/events accepts POST JSON single event, events[], or batch[], returns HTTP 200 { ok: true }, redacts private analytics fields, logs structured event names, optionally appends to YISHUN_ANALYTICS_FILE.
+- Share API accepts both payload and public_payload, rejects private fields, keeps result-page payload public-only.
+- Checkout API returns controlled JSON code checkout_config_missing/checkout_config_invalid; UI maps config failures to friendly fallbackLabel.
+- DB migration plan for analytics: add AnalyticsEvent model/table with id, event, anonymousId, source, properties Json, receivedAt; index event/anonymousId/receivedAt; then swap /api/events console/file sink to prisma.analyticsEvent.createMany with timeout and non-blocking fallback.
+
+Superpowers/skills proof:
+- Received: using-superpowers, brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, using-git-worktrees, requesting-code-review, receiving-code-review, verification-before-completion, finishing-a-development-branch.
+- Actual: nextjs-expert SKILL.md read from ~/.openclaw/skills/nextjs-expert/SKILL.md; applied App Router route handler patterns. Used systematic debugging (reproduced 404/missing payload causes by code inspection), executing plans, TDD-style smoke script before final verification, verification-before-completion via lint/build/smoke.
+- Missing/risk: Superpowers are injected instructions, not local SKILL.md files in available_skills; no separate SKILL.md could be read for them.

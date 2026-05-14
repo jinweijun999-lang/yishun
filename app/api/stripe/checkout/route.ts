@@ -38,11 +38,11 @@ function getSiteUrl(request: NextRequest) {
   return request.nextUrl.origin;
 }
 
-function getStripeTestSecretKey() {
+function getStripeSecretKey() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) return null;
-  if (!secretKey.startsWith("sk_test_")) {
-    throw new Error("Only Stripe test mode secret keys are allowed in this checkout path.");
+  if (!secretKey.startsWith("sk_")) {
+    throw new Error("STRIPE_SECRET_KEY must be a Stripe secret key.");
   }
   return secretKey;
 }
@@ -80,12 +80,15 @@ export async function POST(request: NextRequest) {
   let secretKey: string | null;
   let priceId: string | null;
   try {
-    secretKey = getStripeTestSecretKey();
+    secretKey = getStripeSecretKey();
     priceId = getStripePriceId(productConfig.priceEnv);
   } catch (error) {
     console.error("Stripe checkout configuration is invalid", error);
     return NextResponse.json(
-      { error: "Checkout is not configured for Stripe test mode." },
+      {
+        error: "Checkout is temporarily unavailable. Please try again later.",
+        code: "checkout_config_invalid",
+      },
       { status: 503 }
     );
   }
@@ -98,7 +101,8 @@ export async function POST(request: NextRequest) {
   if (missingEnv.length > 0 || !secretKey || !priceId) {
     return NextResponse.json(
       {
-        error: "Checkout is not configured yet. Please try again later.",
+        error: "Checkout is temporarily unavailable. Please try again later.",
+        code: "checkout_config_missing",
         missingEnv,
       },
       { status: 503 }

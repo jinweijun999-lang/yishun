@@ -42,10 +42,14 @@ export default function StripeCheckoutButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product, clientReferenceId }),
       });
-      const data = (await response.json()) as { url?: string; error?: string };
+      const data = (await response.json()) as { url?: string; error?: string; code?: string };
 
       if (!response.ok || !data.url) {
-        setMessage(data.error || fallbackLabel);
+        setMessage(
+          data.code === "checkout_config_missing" || data.code === "checkout_config_invalid"
+            ? fallbackLabel
+            : data.error || fallbackLabel,
+        );
         return;
       }
 
