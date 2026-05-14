@@ -12,7 +12,8 @@
     "smoke:i18n-ux": "node scripts/i18n-ux-copy-smoke.mjs",
     "smoke:p0-new-user": "node scripts/p0-new-user-smoke.mjs",
     "qa:regression": "node qa-regression.cjs",
-    "smoke:p1-growth": "node scripts/p1-growth-smoke.mjs"
+    "smoke:p1-growth": "node scripts/p1-growth-smoke.mjs",
+    "smoke:wrong-second-60": "node scripts/wrong-second-60-smoke.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

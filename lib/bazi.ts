@@ -282,12 +282,15 @@ function applyTrueSolarTime(
   const longitudeCorrectionMinutes = (timezoneMeridian - effectiveLongitude) * 4;
   const totalCorrectionMinutes = eotMinutes + longitudeCorrectionMinutes;
   const totalSeconds = (hour * 60 + minute + totalCorrectionMinutes) * 60;
-  const normalizedSeconds = ((totalSeconds % 86400) + 86400) % 86400;
-  const dayShift = Math.floor((totalSeconds - normalizedSeconds) / 86400);
+  // Round before decomposing into H:M:S so values like 17:04:59.995
+  // carry to 17:05:00 instead of producing an invalid second=60 for lunar-typescript.
+  const roundedTotalSeconds = Math.round(totalSeconds);
+  const dayShift = Math.floor(roundedTotalSeconds / 86400);
+  const normalizedSeconds = ((roundedTotalSeconds % 86400) + 86400) % 86400;
   const date = new Date(Date.UTC(year, month - 1, day + dayShift));
   const correctedHour = Math.floor(normalizedSeconds / 3600);
   const correctedMinute = Math.floor((normalizedSeconds % 3600) / 60);
-  const correctedSecond = Math.round(normalizedSeconds % 60);
+  const correctedSecond = normalizedSeconds % 60;
   const formattedDate = date.toISOString().slice(0, 10);
   const formattedTime = `${String(correctedHour).padStart(2, "0")}:${String(correctedMinute).padStart(2, "0")}`;
 
