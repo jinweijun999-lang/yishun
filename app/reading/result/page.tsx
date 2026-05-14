@@ -57,6 +57,26 @@ type PreviewData = {
     deeperInsight: string;
     disclaimer: string;
   };
+  ai?:
+    | {
+        status: "ok";
+        provider: "gemini";
+        model: string;
+        attribution: string;
+        interpretationBasis: string;
+        summary: string;
+        signalsUsed: string[];
+        actionSuggestions: string[];
+        reflectionQuestion: string;
+        terminologyNote: string;
+      }
+    | {
+        status: "fallback";
+        provider: "rules";
+        reason: string;
+        attribution: string;
+        interpretationBasis: string;
+      };
   focus?: string;
 };
 
@@ -524,8 +544,37 @@ export default function ReadingResultPage() {
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">{isZh ? "免费结果已解锁" : "Free result unlocked"}</span>
             </div>
             <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base leading-7 text-white">
-              {oneLineSummary}
+              {preview.ai?.status === "ok" ? preview.ai.summary : oneLineSummary}
             </p>
+            {preview.ai?.status === "ok" && (
+              <div className="mt-4 rounded-[1.5rem] border border-[#e0bd72]/25 bg-[#e0bd72]/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#e0bd72]">
+                    {isZh ? "AI 个性化解读（基于结构化八字时机信号）" : "AI-personalized interpretation based on structured BaZi timing"}
+                  </p>
+                  <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-bold text-emerald-200">
+                    {isZh ? "仅解释已提供信号" : "Explains provided signals only"}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-gray-400">
+                  {isZh ? "命盘、分数、黄金时段、四柱、日主、五行与真太阳时由 YiShun 规则引擎计算；AI 不决定命盘。" : "YiShun’s rules engine computes the chart, score, best hour, Four Pillars, Day Master, Five Elements, and true solar time; AI does not decide the chart."}
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr]">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <p className="text-xs text-gray-400">{isZh ? "AI 行动建议" : "AI action suggestions"}</p>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-white">
+                      {preview.ai.actionSuggestions.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <p className="text-xs text-gray-400">{isZh ? "依据与术语" : "Basis and terminology"}</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-100">{preview.ai.reflectionQuestion}</p>
+                    <p className="mt-2 text-xs leading-5 text-gray-300">{preview.ai.terminologyNote}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] leading-5 text-gray-500">{preview.ai.attribution}</p>
+              </div>
+            )}
             <div className="mt-5 grid grid-cols-[1fr_auto] items-end gap-4">
               <div>
                 <span className="text-6xl font-heading font-bold text-white text-glow">{preview.dailySignal.score}</span>

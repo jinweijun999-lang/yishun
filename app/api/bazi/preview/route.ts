@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enrichBaziPreviewWithGemini } from "@/lib/gemini-bazi-enrichment";
 import { buildPreviewChart, generateDailySignal, normalizeBirthProfileInput } from "@/lib/p0-astrology";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,7 @@ export async function POST(request: NextRequest) {
     const input = normalizeBirthProfileInput(body);
     const preview = buildPreviewChart(input);
     const dailySignal = generateDailySignal(preview.chart, input.birthTimeKnown, input.locale);
-
-    return NextResponse.json({
+    const responsePayload = {
       birthProfile: {
         birthDate: input.birthDate,
         birthTime: input.birthTimeKnown ? input.birthTime : null,
@@ -57,7 +57,17 @@ export async function POST(request: NextRequest) {
       tenGodPattern: preview.tenGodPattern,
       interpretation: preview.interpretation,
       dailySignal,
+      focus: typeof body.focus === "string" ? body.focus : undefined,
+    };
+    const debugGeminiMock = process.env.NODE_ENV !== "production"
+      ? request.headers.get("x-yishun-gemini-mock") as "success" | "invalid-json" | "timeout" | "failure" | null
+      : null;
+    const ai = await enrichBaziPreviewWithGemini(input, responsePayload, {
+      enabled: body.enableAi !== false,
+      mockMode: debugGeminiMock,
     });
+
+    return NextResponse.json({ ...responsePayload, ai });
   } catch (error) {
     const message = error instanceof Error ? error.message : "PREVIEW_FAILED";
     const status = message === "INVALID_BIRTH_DATE" || message === "INVALID_BIRTH_TIME" ? 400 : 500;

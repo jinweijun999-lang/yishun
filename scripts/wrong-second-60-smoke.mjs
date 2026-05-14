@@ -18,6 +18,9 @@ const edgeBirthProfile = {
   gender: "female",
   locale: "zh",
   focus: "General",
+  // This smoke isolates true-solar-time normalization. AI enrichment is covered by
+  // gemini-hybrid-smoke and disabled here to avoid external-provider flakiness.
+  enableAi: false,
 };
 
 function ensureDir(dir) {
@@ -62,9 +65,12 @@ async function assertMobileZhOnboarding(browser) {
   await selects.nth(2).selectOption("01");
   await selects.nth(3).selectOption("17");
   await selects.nth(4).selectOption("08");
+  await page.waitForTimeout(150);
   await page.getByRole("button", { name: "继续" }).click();
+  await page.waitForSelector('input[placeholder="城市，国家"], input[placeholder="City, country"]', { timeout: 10000 });
 
-  await page.getByPlaceholder("城市，国家").fill("北京，中国");
+  const cityInput = page.locator('input[placeholder="城市，国家"], input[placeholder="City, country"]').first();
+  await cityInput.fill("北京，中国");
   await page.getByRole("button", { name: "继续" }).click();
 
   await page.getByRole("button", { name: "综合" }).click();
