@@ -16,19 +16,19 @@ const NAV_ITEMS: NavItem[] = [
   {
     key: "home",
     href: "/",
-    icon: "🏠",
+    icon: "✦",
     labelKey: "nav.tab.home",
   },
   {
     key: "reports",
     href: "/reports",
-    icon: "📊",
+    icon: "◍",
     labelKey: "nav.tab.reports",
   },
   {
     key: "profile",
     href: "/profile",
-    icon: "👤",
+    icon: "◐",
     labelKey: "nav.tab.profile",
   },
 ];
@@ -39,28 +39,28 @@ export default function Navigation() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/10"
+      className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[calc(0.55rem+env(safe-area-inset-bottom))] pt-2"
       role="navigation"
       aria-label={locale === "zh-CN" ? "主导航" : "Main navigation"}
     >
-      <div className="flex items-center justify-around px-2 py-2 max-w-lg mx-auto">
+      <div className="mx-auto grid max-w-lg grid-cols-3 gap-2 rounded-[1.65rem] border border-white/12 bg-[#090d0b]/88 p-2 shadow-[0_-18px_60px_rgba(0,0,0,0.42)] backdrop-blur-2xl">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.key}
               href={item.href}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 min-w-[60px] ${
+              className={`group relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-3 py-2 text-center transition-all duration-200 ${
                 isActive
-                  ? "bg-secondary/20 text-secondary"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                  ? "bg-[#e0bd72] text-[#10130f] shadow-[0_14px_36px_rgba(224,189,114,0.25)]"
+                  : "text-gray-400 hover:-translate-y-0.5 hover:bg-white/[0.07] hover:text-gray-100 active:translate-y-0"
               }`}
               aria-current={isActive ? "page" : undefined}
             >
-              <span className="text-xl" role="img" aria-hidden="true">
+              <span className={`grid h-6 w-6 place-items-center rounded-full text-sm font-black ${isActive ? "bg-[#10130f]/12" : "bg-white/[0.06] text-[#e0bd72] group-hover:bg-[#e0bd72]/15"}`} aria-hidden="true">
                 {item.icon}
               </span>
-              <span className="text-[10px] font-medium tracking-wide">
+              <span className="text-[10px] font-black tracking-wide">
                 {t(item.labelKey)}
               </span>
             </Link>

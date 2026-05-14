@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import AppBackLink from "../components/AppBackLink";
 import { useI18n } from "../components/LocaleProvider";
 
 export default function LoginPage() {
@@ -66,13 +67,7 @@ export default function LoginPage() {
             className="w-full glass card p-8 sm:p-10 space-y-6"
           >
             <div className="flex items-center justify-between gap-4">
-              <button
-                onClick={() => router.back()}
-                className="text-gray-400 hover:text-white transition-colors p-2 -ml-2"
-                aria-label="返回"
-              >
-                ←
-              </button>
+              <AppBackLink label={t("common.goBack")} context="YiShun" />
               <div>
                 <h1 className="text-3xl font-heading font-bold text-white mb-2 text-glow">
                   {t("login.title")}

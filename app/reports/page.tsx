@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
-import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import AppBackLink from "../components/AppBackLink";
+import YiShunBottomActionBar from "../components/YiShunBottomActionBar";
 import { useI18n } from "../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
@@ -86,6 +86,21 @@ const zhValueMap: Record<string, string> = {
   "calm decisions": "冷静决策",
 };
 
+const reportGlossary = {
+  en: [
+    ["Four Pillars", "Year, month, day, and hour columns used as the chart backbone."],
+    ["Day Master", "The day’s Heavenly Stem; used as the reference point for the reading."],
+    ["Five Elements", "Wood, Fire, Earth, Metal, and Water balance used to describe tendencies."],
+    ["True solar time", "Birth time adjusted by location before chart calculation when coordinates are available."],
+  ],
+  zh: [
+    ["四柱", "年、月、日、时四组干支，是命盘的结构骨架。"],
+    ["日主", "出生日的天干，是解读时用来定位“我”的参考点。"],
+    ["五行", "木、火、土、金、水的分布，用来描述能量倾向。"],
+    ["真太阳时", "有经纬度时，先按出生地校准后的出生时间。"],
+  ],
+};
+
 const zhActionMap: Record<string, string> = {
   "Borrow Wood energy: write the next step before making a commitment.": "借用木的能量：先写下下一步，再做承诺。",
   "Borrow Fire energy: share one clear message instead of over-explaining.": "借用火的能量：清楚表达一个重点，不要过度解释。",
@@ -110,8 +125,6 @@ function localizeSavedAction(value: string | undefined, isZh: boolean) {
 }
 
 export default function ReportsPage() {
-  const router = useRouter();
-  const handleBack = () => { router.back(); };
   const { t, locale } = useI18n();
   const isEnglish = locale === "en";
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -180,20 +193,13 @@ export default function ReportsPage() {
   return (
     <>
       <Background />
-      <main className="ys-shell relative z-10 min-h-screen pb-24">
+      <main className="ys-shell relative z-10 min-h-screen pb-32 md:pb-16">
         {/* Header */}
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBack}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label={t("common.goBack")}
-              >
-                ←
-              </button>
-              <span className="text-xl" role="img" aria-label="reports">📊</span>
-              <h1 className="text-lg font-heading font-bold text-white">
+            <div className="flex items-center gap-3">
+              <AppBackLink label={t("common.goBack")} context={isEnglish ? "Reports" : "报告"} icon="‹" />
+              <h1 className="hidden text-lg font-heading font-bold text-white sm:block">
                 {isEnglish ? "YiShun" : <>YiShun <span className="text-accent text-sm">易顺</span></>}
               </h1>
             </div>
@@ -260,6 +266,27 @@ export default function ReportsPage() {
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="ys-panel rounded-3xl p-5"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-[#a8d8bd]">{isEnglish ? "Plain-language glossary" : "普通用户术语说明"}</p>
+            <h3 className="mt-2 text-xl font-heading font-bold text-white">{isEnglish ? "Professional terms, explained before they appear" : "专业术语先解释，再阅读报告"}</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(isEnglish ? reportGlossary.en : reportGlossary.zh).map(([term, explanation]) => (
+                <div key={term} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <p className="text-sm font-bold text-white">{term}</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-400">{explanation}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-gray-500">
+              {isEnglish ? "YiShun uses these terms as calculation labels, not deterministic fate claims." : "易顺把这些术语作为计算标签使用，不把它们包装成宿命判断。"}
+            </p>
+          </motion.section>
+
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 }}
             className="ys-panel rounded-3xl p-5"
           >
@@ -297,7 +324,7 @@ export default function ReportsPage() {
               <div className="mt-4 space-y-3">
                 {dailyHistory.map((item) => (
                   <div key={`${item.date}-${item.savedAt}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-xs text-gray-500">
                           {new Date(`${item.date}T00:00:00`).toLocaleDateString(isEnglish ? "en-US" : "zh-CN", {
@@ -509,7 +536,34 @@ export default function ReportsPage() {
           </div>
         )}
 
-        <Navigation />
+        <YiShunBottomActionBar
+          statusText={isEnglish ? "Reports are saved locally in this P0 build. Manage or continue when ready." : "P0 阶段报告保存在本设备；可继续查看或管理。"}
+          primary={{
+            label: isEnglish ? "Continue reading" : "继续查看",
+            icon: "□",
+            onClick: () => { window.location.href = "/reading/start"; },
+          }}
+          secondary={{
+            label: isEnglish ? "Share" : "分享",
+            icon: "↗",
+            onClick: () => {
+              const latest = dailyHistory[0];
+              if (latest) void copyDailySummary(latest);
+              else window.location.href = "/samples";
+            },
+            state: copiedDate && copiedDate !== "local-state" ? "success" : "default",
+            successLabel: isEnglish ? "Copied" : "已复制",
+            disabled: dailyHistory.length === 0,
+            disabledReason: isEnglish ? "Generate a report before sharing." : "生成报告后可分享。",
+          }}
+          tertiary={{
+            label: isEnglish ? "Manage" : "管理",
+            icon: "☷",
+            onClick: saveLocalState,
+            state: copiedDate === "local-state" ? "success" : "default",
+            successLabel: isEnglish ? "Saved" : "已保存",
+          }}
+        />
       </main>
     </>
   );

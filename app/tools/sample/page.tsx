@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import Navigation from "../../components/Navigation";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import AppBackLink from "../../components/AppBackLink";
 import { useI18n } from "../../components/LocaleProvider";
 
 const sampleData = {
@@ -79,16 +80,9 @@ export default function SamplePage() {
       <main className="relative z-10 min-h-screen pb-24">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.back()}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label={copy.back}
-              >
-                ←
-              </button>
-              <span className="text-xl" role="img" aria-label={copy.chart}>🔮</span>
-              <h1 className="text-lg font-heading font-bold text-white">{copy.title}</h1>
+            <div className="flex items-center gap-3">
+              <AppBackLink label={copy.back} context={copy.title} />
+              <h1 className="hidden text-lg font-heading font-bold text-white sm:block">{copy.title}</h1>
             </div>
             <LanguageSwitcher />
           </div>

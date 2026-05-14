@@ -7,6 +7,7 @@ import Background from "../../components/Background";
 import FiveElementsChart from "../../components/FiveElementsChart";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import AppBackLink from "../../components/AppBackLink";
+import YiShunBottomActionBar, { type YiShunActionState } from "../../components/YiShunBottomActionBar";
 import { useI18n } from "../../components/LocaleProvider";
 import StripeCheckoutButton from "../../components/StripeCheckoutButton";
 import { queueP0Analytics } from "@/lib/p0-analytics";
@@ -356,6 +357,7 @@ export default function ReadingResultPage() {
   const [savePanelOpen, setSavePanelOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [saveActionState, setSaveActionState] = useState<YiShunActionState>("default");
   const [history, setHistory] = useState<DailyArchiveItem[]>(() => getSavedHistory());
 
   useEffect(() => {
@@ -431,9 +433,17 @@ export default function ReadingResultPage() {
   }
 
   function handleSaveDeviceOnly() {
-    archiveToday();
-    setSavePanelOpen(false);
-    setSavedMessage(isZh ? "已保存在本设备，可在报告中查看每日仪式历史。" : "Saved on this device. Your Daily Ritual history is ready in Reports.");
+    setSaveActionState("loading");
+    try {
+      archiveToday();
+      setSavePanelOpen(false);
+      setSavedMessage(isZh ? "已保存在本设备，可在报告中查看每日仪式历史。" : "Saved on this device. Your Daily Ritual history is ready in Reports.");
+      setSaveActionState("success");
+      window.setTimeout(() => setSaveActionState("default"), 1400);
+    } catch {
+      setSavedMessage(isZh ? "保存失败。请检查浏览器本地存储后重试，当前内容仍保留在页面中。" : "Save failed. Check browser storage and try again; the current report is still on this page.");
+      setSaveActionState("error");
+    }
   }
 
   function handleSaveWithReminder(event: React.FormEvent<HTMLFormElement>) {
@@ -590,7 +600,7 @@ export default function ReadingResultPage() {
   return (
     <>
       <Background />
-      <main className="ys-shell relative z-10 min-h-screen pb-16">
+      <main className="ys-shell relative z-10 min-h-screen pb-32 md:pb-16">
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
             <AppBackLink href="/reading/start" label={isZh ? "修改出生资料" : "Edit birth profile"} context={isZh ? "返回" : "Back"} />
@@ -908,6 +918,32 @@ export default function ReadingResultPage() {
 
           <p className="text-center text-xs text-gray-500">{localizedDisclaimer(preview.dailySignal.disclaimer, isZh)}</p>
         </section>
+        <YiShunBottomActionBar
+          statusText={savedMessage ?? (isZh ? "基于你填写的信息生成，适合用于自我观察和决策参考。" : "Generated from your inputs for self-observation and timing decisions.")}
+          errorText={saveActionState === "error" ? savedMessage : null}
+          primary={{
+            label: isZh ? "保存报告" : "Save report",
+            icon: "▣",
+            onClick: handleSaveDeviceOnly,
+            state: saveActionState,
+            loadingLabel: isZh ? "保存中..." : "Saving...",
+            successLabel: isZh ? "已保存" : "Saved",
+            errorLabel: isZh ? "重试保存" : "Retry save",
+          }}
+          secondary={{
+            label: isZh ? "分享摘要" : "Share summary",
+            icon: "↗",
+            onClick: () => void handleShare(),
+            state: shareBusy ? "loading" : shareCopied ? "success" : "default",
+            loadingLabel: isZh ? "分享中..." : "Sharing...",
+            successLabel: isZh ? "已复制" : "Copied",
+          }}
+          tertiary={{
+            label: isZh ? "重新测算" : "Retake",
+            icon: "↻",
+            onClick: () => router.push("/reading/start"),
+          }}
+        />
       </main>
     </>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Background from "./Background";
+import AppBackLink from "./AppBackLink";
 
 type SeoToolLandingProps = {
   eyebrow: string;
@@ -15,7 +16,7 @@ export default function SeoToolLanding({ eyebrow, title, description, bullets }:
       <main className="relative z-10 min-h-screen pb-16">
         <section className="mx-auto max-w-3xl px-4 py-12">
           <div className="rounded-3xl border border-secondary/20 bg-surface/75 p-6 sm:p-8 shadow-2xl">
-            <Link href="/" className="text-sm text-gray-400 hover:text-white">← YiShun</Link>
+            <AppBackLink href="/" label="YiShun" context="Back" />
             <p className="mt-8 text-xs uppercase tracking-[0.3em] text-accent/80">{eyebrow}</p>
             <h1 className="mt-3 text-3xl sm:text-5xl font-heading font-bold text-white text-glow">{title}</h1>
             <p className="mt-4 text-base leading-7 text-gray-300">{description}</p>

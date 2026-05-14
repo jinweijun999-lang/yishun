@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
-import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import AppBackLink from "../components/AppBackLink";
+import YiShunBottomActionBar from "../components/YiShunBottomActionBar";
 import { useI18n } from "../components/LocaleProvider";
 import StripeCheckoutButton, { type StripeCheckoutProduct } from "../components/StripeCheckoutButton";
 
@@ -37,7 +38,6 @@ function hasSessionCookie() {
 
 export default function MembershipPage() {
   const router = useRouter();
-  const handleBack = () => { router.back(); };
   const { t, locale } = useI18n();
   const isEnglish = locale === "en";
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -147,20 +147,13 @@ export default function MembershipPage() {
   return (
     <>
       <Background />
-      <main className="relative z-10 min-h-screen pb-24">
+      <main className="relative z-10 min-h-screen pb-32 md:pb-16">
         {/* Header */}
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBack}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label={t("common.goBack")}
-              >
-                ←
-              </button>
-              <span className="text-xl" role="img" aria-hidden="true">🔮</span>
-              <h1 className="text-lg font-heading font-bold text-white">
+            <div className="flex items-center gap-3">
+              <AppBackLink label={t("common.goBack")} context={isEnglish ? "Membership" : "会员"} icon="‹" />
+              <h1 className="hidden text-lg font-heading font-bold text-white sm:block">
                 {isEnglish ? "YiShun" : <>YiShun <span className="text-accent text-sm">易顺</span></>}
               </h1>
             </div>
@@ -265,6 +258,7 @@ export default function MembershipPage() {
                 transition={{ delay: 0.15 + index * 0.08 }}
               >
                 <div
+                  id={tier.id === "monthly" ? "monthly-plan" : undefined}
                   className={`glass card p-5 ${
                     tier.highlight
                       ? "border-secondary/40 bg-gradient-to-br from-secondary/5 to-transparent"
@@ -363,7 +357,33 @@ export default function MembershipPage() {
           </motion.div>
         </div>
 
-        <Navigation />
+        <YiShunBottomActionBar
+          statusText={isEnglish ? "Secure Stripe checkout. Purchases can be restored after sign-in." : "安全支付；登录后可恢复购买。"}
+          primary={{
+            label: isEnglish ? "Continue membership" : "继续开通",
+            icon: "◈",
+            onClick: () => {
+              setIsBuying(true);
+              if (!profile) router.push(requireAuthHref);
+              else document.getElementById("monthly-plan")?.scrollIntoView({ behavior: "smooth", block: "center" });
+              window.setTimeout(() => setIsBuying(false), 900);
+            },
+            state: isBuying ? "loading" : "default",
+            loadingLabel: isEnglish ? "Opening..." : "正在跳转...",
+          }}
+          secondary={{
+            label: isEnglish ? "Restore" : "恢复购买",
+            icon: "↻",
+            onClick: () => setBuySuccess(isEnglish ? "Sign in with the purchase account to restore access." : "请使用购买账号登录后恢复权益。"),
+            state: buySuccess ? "success" : "default",
+            successLabel: isEnglish ? "Notice shown" : "已提示",
+          }}
+          tertiary={{
+            label: isEnglish ? "Benefits" : "权益说明",
+            icon: "i",
+            onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+          }}
+        />
       </main>
     </>
   );

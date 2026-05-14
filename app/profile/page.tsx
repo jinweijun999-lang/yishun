@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Background from "../components/Background";
 import BirthDateTimePicker from "../components/BirthDateTimePicker";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import AppBackLink from "../components/AppBackLink";
 import { useI18n } from "../components/LocaleProvider";
 import { normalizeMembershipTier } from "@/lib/membership";
 
@@ -50,7 +51,6 @@ export default function ProfilePage() {
   const [isBuying, setIsBuying] = useState(false);
   const [error, setError] = useState("");
 
-  const handleBack = () => { router.back(); };
   const [success, setSuccess] = useState("");
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
@@ -191,15 +191,8 @@ export default function ProfilePage() {
           className="w-full max-w-6xl space-y-6"
         >
           <div className="glass card p-8 sm:p-10">
-              <div className="flex items-center gap-3 mb-4">
-                <button
-                  onClick={handleBack}
-                  className="text-gray-400 hover:text-white transition-colors p-2"
-                  aria-label="返回"
-                >
-                  ←
-                </button>
-                <span className="text-sm text-gray-500">返回</span>
+              <div className="mb-4">
+                <AppBackLink label={t("common.goBack")} context="YiShun" />
               </div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

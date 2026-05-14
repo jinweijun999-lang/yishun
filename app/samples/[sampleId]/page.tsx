@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Background from "@/app/components/Background";
 import Navigation from "@/app/components/Navigation";
+import AppBackLink from "@/app/components/AppBackLink";
 import { getSampleReport, SAMPLE_REPORTS } from "@/lib/sample-reports";
 
 export function generateStaticParams() {
@@ -31,7 +32,7 @@ export default async function SampleReportPage({ params }: PageProps) {
       <main className="ys-shell relative z-10 min-h-screen pb-24 text-white">
         <article className="mx-auto max-w-4xl px-4 py-8">
           <header className="flex items-center justify-between gap-4">
-            <Link href="/samples" className="text-sm text-gray-300 hover:text-white">← {isZh ? "样例列表" : "Samples"}</Link>
+            <AppBackLink href="/samples" label={isZh ? "样例列表" : "Samples"} context={isZh ? "返回" : "Back"} />
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">Public preview</span>
           </header>
 

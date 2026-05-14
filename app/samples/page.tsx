@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Background from "@/app/components/Background";
 import Navigation from "@/app/components/Navigation";
+import AppBackLink from "@/app/components/AppBackLink";
 import { SAMPLE_REPORTS } from "@/lib/sample-reports";
 
 export const metadata = {
@@ -20,7 +21,7 @@ export default function SamplesPage() {
       <main className="ys-shell relative z-10 min-h-screen pb-24 text-white">
         <section className="mx-auto max-w-6xl px-4 py-8">
           <header className="flex items-center justify-between gap-4">
-            <Link href="/" className="text-sm text-gray-300 hover:text-white">← YiShun</Link>
+            <AppBackLink href="/" label="YiShun" context="Back" />
             <span className="rounded-full border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-3 py-1 text-xs text-[#e0bd72]">Sample gallery</span>
           </header>
 

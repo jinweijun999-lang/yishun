@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Background from "../components/Background";
 import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import AppBackLink from "../components/AppBackLink";
 import { useI18n } from "../components/LocaleProvider";
 
 type ProfileData = {
@@ -45,7 +46,6 @@ export default function ToolsPage() {
 
   const isLoggedIn = !!profile;
   const hasCompleteProfile = !!(profile?.birthDate && profile?.birthTime && profile?.gender);
-  const handleBack = () => { router.back(); };
 
   const tools = [
     {
@@ -119,13 +119,7 @@ export default function ToolsPage() {
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleBack}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label="返回"
-              >
-                ←
-              </button>
+              <AppBackLink label={t("common.goBack")} context="YiShun" />
               <span className="text-xl" role="img" aria-hidden="true">🔮</span>
               <h1 className="text-lg font-heading font-bold text-white">
                 YiShun <span className="text-accent text-sm">易顺</span>

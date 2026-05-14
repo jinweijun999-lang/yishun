@@ -47,6 +47,33 @@ function getStripeSecretKey() {
   return secretKey;
 }
 
+function getStripeCheckoutMode(secretKey: string) {
+  const configuredMode = process.env.YISHUN_STRIPE_MODE ?? "test";
+  if (configuredMode !== "test" && configuredMode !== "live") {
+    throw new Error("YISHUN_STRIPE_MODE must be either test or live.");
+  }
+
+  const isLiveKey = secretKey.startsWith("sk_live_");
+  const isTestKey = secretKey.startsWith("sk_test_");
+
+  if (configuredMode === "test" && isLiveKey) {
+    throw new Error("Live Stripe key is blocked while YISHUN_STRIPE_MODE=test.");
+  }
+
+  if (configuredMode === "live") {
+    const acknowledged = process.env.STRIPE_LIVE_CUTOVER_ACK === "I_UNDERSTAND_STRIPE_LIVE_CHARGES";
+    if (!isLiveKey || !acknowledged) {
+      throw new Error("Live Stripe checkout requires sk_live_* and STRIPE_LIVE_CUTOVER_ACK=I_UNDERSTAND_STRIPE_LIVE_CHARGES.");
+    }
+  }
+
+  if (!isLiveKey && !isTestKey) {
+    throw new Error("STRIPE_SECRET_KEY must be an explicit sk_test_* or sk_live_* key.");
+  }
+
+  return configuredMode;
+}
+
 function getStripePriceId(priceEnv: string) {
   const priceId = process.env[priceEnv];
   if (!priceId) return null;
@@ -79,9 +106,11 @@ export async function POST(request: NextRequest) {
 
   let secretKey: string | null;
   let priceId: string | null;
+  let stripeMode: "test" | "live";
   try {
     secretKey = getStripeSecretKey();
     priceId = getStripePriceId(productConfig.priceEnv);
+    stripeMode = secretKey ? getStripeCheckoutMode(secretKey) : "test";
   } catch (error) {
     console.error("Stripe checkout configuration is invalid", error);
     return NextResponse.json(
@@ -124,7 +153,8 @@ export async function POST(request: NextRequest) {
         userId: userId ?? "",
         label: productConfig.label,
         priceId,
-        source: "yishun_web_test_checkout",
+        stripeMode,
+        source: stripeMode === "live" ? "yishun_web_live_checkout" : "yishun_web_test_checkout",
       },
       subscription_data:
         productConfig.mode === "subscription"
@@ -133,7 +163,8 @@ export async function POST(request: NextRequest) {
                 product,
                 userId: userId ?? "",
                 priceId,
-                source: "yishun_web_test_checkout",
+                stripeMode,
+                source: stripeMode === "live" ? "yishun_web_live_checkout" : "yishun_web_test_checkout",
               },
             }
           : undefined,
@@ -144,7 +175,8 @@ export async function POST(request: NextRequest) {
                 product,
                 userId: userId ?? "",
                 priceId,
-                source: "yishun_web_test_checkout",
+                stripeMode,
+                source: stripeMode === "live" ? "yishun_web_live_checkout" : "yishun_web_test_checkout",
               },
             }
           : undefined,

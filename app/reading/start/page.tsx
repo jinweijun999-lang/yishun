@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Background from "../../components/Background";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import AppActionBar from "../../components/AppActionBar";
+import AppBackLink from "../../components/AppBackLink";
 import { useI18n } from "../../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
@@ -140,6 +142,53 @@ function toNumberOrNull(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function apiErrorToMessage(code: string, isZh: boolean) {
+  const messages: Record<string, { en: string; zh: string }> = {
+    INVALID_BIRTH_DATE: {
+      en: "Please choose a real birth date before continuing.",
+      zh: "请选择有效的出生日期后再继续。",
+    },
+    INVALID_BIRTH_TIME: {
+      en: "Please choose a valid birth time, or use the unknown-time option.",
+      zh: "请选择有效的出生时间，或勾选“不确定出生时间”。",
+    },
+    PREVIEW_FAILED: {
+      en: "We couldn’t generate your signal. Your information is safe — please try again.",
+      zh: "暂时无法生成你的信号。你的资料是安全的，请稍后重试。",
+    },
+  };
+  const fallback = messages.PREVIEW_FAILED;
+  return isZh ? (messages[code] ?? fallback).zh : (messages[code] ?? fallback).en;
+}
+
+function validateAdvancedFields({
+  longitude,
+  latitude,
+  timezoneOffsetMinutes,
+  isZh,
+}: {
+  longitude: string;
+  latitude: string;
+  timezoneOffsetMinutes: string;
+  isZh: boolean;
+}) {
+  const lon = toNumberOrNull(longitude);
+  const lat = toNumberOrNull(latitude);
+  const tz = toNumberOrNull(timezoneOffsetMinutes);
+
+  if (lon !== null && (lon < -180 || lon > 180)) {
+    return isZh ? "经度需在 -180 到 180 之间；不确定可留空。" : "Longitude must be between -180 and 180; leave it blank if unsure.";
+  }
+  if (lat !== null && (lat < -90 || lat > 90)) {
+    return isZh ? "纬度需在 -90 到 90 之间；不确定可留空。" : "Latitude must be between -90 and 90; leave it blank if unsure.";
+  }
+  if (tz === null || tz < -840 || tz > 720) {
+    return isZh ? "时区偏移分钟无效；可保持系统自动填入的数值。" : "Timezone offset is invalid; keep the auto-filled value if unsure.";
+  }
+
+  return null;
+}
+
 export default function ReadingStartPage() {
   const router = useRouter();
   const { locale } = useI18n();
@@ -170,6 +219,7 @@ export default function ReadingStartPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState<string | null>(null);
 
   const dayOptions = useMemo(() => {
     const total = daysInMonth(birthYear, birthMonth);
@@ -230,11 +280,41 @@ export default function ReadingStartPage() {
     setStep(next);
   }
 
+  function saveDraft() {
+    const draft = {
+      birthYear,
+      birthMonth,
+      birthDay,
+      birthHour,
+      birthMinute,
+      birthTimeKnown,
+      birthPlaceText,
+      longitude,
+      latitude,
+      timezoneOffsetMinutes,
+      timezoneName,
+      gender,
+      focus,
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem("yishun:readingDraft", JSON.stringify(draft));
+    setDraftStatus(isZh ? "草稿已保存在本设备。" : "Draft saved on this device.");
+    window.setTimeout(() => setDraftStatus(null), 1600);
+    track("reading_draft_saved", { step, source: "reading_start" });
+  }
+
   async function submitReading() {
     if (!birthDate) {
       setError(isZh ? "请先选择出生日期，才能生成核心命盘。" : "Please add your birth date to generate the core chart.");
       return;
     }
+    const advancedError = validateAdvancedFields({ longitude, latitude, timezoneOffsetMinutes, isZh });
+    if (advancedError) {
+      setError(advancedError);
+      track("birth_form_error", { step, reason: "invalid_advanced_fields" });
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
     setLoadingStep(0);
@@ -282,7 +362,7 @@ export default function ReadingStartPage() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? (isZh ? "暂时无法生成你的信号。你的资料是安全的，请稍后重试。" : "We couldn’t generate your signal. Your information is safe — please try again."));
+      if (!response.ok) throw new Error(apiErrorToMessage(data.error ?? "PREVIEW_FAILED", isZh));
       localStorage.setItem("yishun:p0BirthProfile", JSON.stringify(payload));
       localStorage.setItem("yishun:p0Preview", JSON.stringify({ ...data, focus }));
       localStorage.setItem("yishun:dailyRitual:lastGeneratedAt", new Date().toISOString());
@@ -313,7 +393,7 @@ export default function ReadingStartPage() {
       const remaining = Math.max(0, 950 - (Date.now() - startedAt));
       window.setTimeout(() => router.push("/reading/result"), remaining);
     } catch (err) {
-      setError(err instanceof Error ? err.message : (isZh ? "暂时无法生成你的信号。你的资料是安全的，请稍后重试。" : "We couldn’t generate your signal. Your information is safe — please try again."));
+      setError(err instanceof Error ? err.message : apiErrorToMessage("PREVIEW_FAILED", isZh));
       track("birth_form_error", { step, reason: err instanceof Error ? err.message : "unknown" });
       setIsSubmitting(false);
     }
@@ -325,10 +405,7 @@ export default function ReadingStartPage() {
       <main className="ys-shell relative z-10 min-h-screen pb-28 sm:pb-16">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-[#080b09]/75 px-4 py-3 backdrop-blur-2xl">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm font-semibold text-gray-200 hover:bg-white/5" aria-label={isZh ? "返回首页" : "Back to home"}>
-              <span aria-hidden="true">←</span>
-              <span>YiShun</span>
-            </Link>
+            <AppBackLink href="/" label={isZh ? "返回首页" : "Back to home"} context="YiShun" />
             <LanguageSwitcher />
           </div>
         </header>
@@ -389,7 +466,7 @@ export default function ReadingStartPage() {
                       </div>
                       {birthDate && <span className="rounded-full bg-secondary/15 px-3 py-1 text-xs text-secondary">{birthDate}</span>}
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <SelectField label={isZh ? zh.year : "Year"} value={birthYear} onChange={(value) => { setBirthYear(value); if (birthMonth && birthDay && Number(birthDay) > daysInMonth(value, birthMonth)) setBirthDay(""); }} options={birthYears} placeholder={isZh ? zh.year : "Year"} />
                       <SelectField label={isZh ? zh.month : "Month"} value={birthMonth} onChange={(value) => { setBirthMonth(value); if (birthYear && birthDay && Number(birthDay) > daysInMonth(birthYear, value)) setBirthDay(""); }} options={months} placeholder={isZh ? zh.month : "Month"} />
                       <SelectField label={isZh ? zh.day : "Day"} value={birthDay} onChange={setBirthDay} options={dayOptions} placeholder={isZh ? zh.day : "Day"} />
@@ -404,7 +481,7 @@ export default function ReadingStartPage() {
                       </div>
                       {birthTimeKnown && birthTime && <span className="rounded-full bg-accent/15 px-3 py-1 text-xs text-accent">{birthTime}</span>}
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <SelectField label={isZh ? zh.hour : "Hour"} value={birthHour} onChange={setBirthHour} options={hours} placeholder={isZh ? zh.hour : "Hour"} disabled={!birthTimeKnown} />
                       <SelectField label={isZh ? zh.minute : "Minute"} value={birthMinute} onChange={setBirthMinute} options={minutes} placeholder={isZh ? zh.minute : "Minute"} disabled={!birthTimeKnown} />
                     </div>
@@ -413,7 +490,20 @@ export default function ReadingStartPage() {
                     <input type="checkbox" checked={!birthTimeKnown} onChange={(e) => setBirthTimeKnown(!e.target.checked)} />
                     {isZh ? zh.unknownTime : "I’m not sure — use an estimated noon chart."}
                   </label>
-                  <button type="button" onClick={() => nextStep(2)} className="ys-cta sticky bottom-4 z-50 w-full px-5 py-4 text-sm shadow-2xl shadow-black/40 sm:static sm:shadow-none">{isZh ? zh.continue : "Continue"}</button>
+                  <AppActionBar
+                    primaryLabel={isZh ? zh.continue : "Continue"}
+                    primaryIcon="◌"
+                    onPrimary={() => nextStep(2)}
+                    disabled={!birthDate}
+                    disabledReason={isZh ? "请先选择出生日期。" : "Please choose your birth date first."}
+                    secondaryLabel={isZh ? "查看示例" : "View sample"}
+                    secondaryIcon="□"
+                    onSecondary={() => router.push("/samples")}
+                    tertiaryLabel={isZh ? "草稿" : "Draft"}
+                    tertiaryIcon="▣"
+                    onTertiary={saveDraft}
+                    hint={draftStatus ?? (isZh ? "下一步只需城市；高级字段可跳过。" : "Next: city only. Advanced fields are optional.")}
+                  />
                 </div>
               )}
 
@@ -451,10 +541,18 @@ export default function ReadingStartPage() {
                       {trueSolarPreview && <p className="sm:col-span-2 text-xs text-gray-400">{trueSolarPreview}. {isZh ? "偏移采用 JS Date.getTimezoneOffset 语义。" : "Offset uses JS Date.getTimezoneOffset semantics."}</p>}
                     </div>
                   )}
-                  <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
-                    <button type="button" onClick={() => setStep(1)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="button" onClick={() => nextStep(3)} className="ys-cta flex-1 px-5 py-4 text-sm">{isZh ? zh.continue : "Continue"}</button>
-                  </div>
+                  <AppActionBar
+                    secondaryLabel={isZh ? "查看示例" : "View sample"}
+                    secondaryIcon="□"
+                    onSecondary={() => router.push("/samples")}
+                    tertiaryLabel={isZh ? "草稿" : "Draft"}
+                    tertiaryIcon="▣"
+                    onTertiary={saveDraft}
+                    primaryLabel={isZh ? zh.continue : "Continue"}
+                    primaryIcon="◌"
+                    onPrimary={() => nextStep(3)}
+                    hint={draftStatus ?? (isZh ? "城市用于校准时区与真太阳时；不公开展示。" : "Birthplace tunes timezone and solar time; it is not shown publicly.")}
+                  />
                 </div>
               )}
 
@@ -479,12 +577,20 @@ export default function ReadingStartPage() {
                       <option value="male">{isZh ? zh.male : "Male"}</option>
                     </select>
                   </label>
-                  <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
-                    <button type="button" onClick={() => setStep(2)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="button" onClick={() => void submitReading()} disabled={isSubmitting} className="ys-cta flex-1 px-5 py-4 text-sm disabled:opacity-60">
-                      {isZh ? zh.submit : "Find my best timing"}
-                    </button>
-                  </div>
+                  <AppActionBar
+                    secondaryLabel={isZh ? "查看示例" : "View sample"}
+                    secondaryIcon="□"
+                    onSecondary={() => router.push("/samples")}
+                    tertiaryLabel={isZh ? "草稿" : "Draft"}
+                    tertiaryIcon="▣"
+                    onTertiary={saveDraft}
+                    primaryLabel={isZh ? zh.submit : "Find my best timing"}
+                    primaryIcon="◌"
+                    onPrimary={() => void submitReading()}
+                    loading={isSubmitting}
+                    disabled={isSubmitting}
+                    hint={draftStatus ?? (isZh ? "生成后会直接进入今日结果页。" : "We’ll generate and take you straight to your result.")}
+                  />
                 </div>
               )}
 

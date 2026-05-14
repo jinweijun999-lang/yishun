@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Background from "../components/Background";
+import AppBackLink from "../components/AppBackLink";
 
 export const metadata: Metadata = {
   title: "Terms & Disclaimer | YiShun",
@@ -13,7 +13,7 @@ export default function TermsPage() {
       <Background />
       <main className="relative z-10 min-h-screen px-4 py-10 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <article className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-surface/75 p-6 text-gray-300 shadow-2xl sm:p-8">
-          <Link href="/" className="text-sm text-secondary hover:text-secondary/80">← Back to YiShun</Link>
+          <AppBackLink href="/" label="Back to YiShun" context="Legal" />
           <p className="mt-8 text-xs uppercase tracking-[0.28em] text-accent/80">Terms & Disclaimer</p>
           <h1 className="mt-3 text-3xl font-heading font-bold text-white">Built for reflection, not fear.</h1>
           <section className="mt-6 space-y-4 text-sm leading-6">

@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import Navigation from "../../components/Navigation";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import AppBackLink from "../../components/AppBackLink";
 import { useI18n } from "../../components/LocaleProvider";
 
 export default function BaziBasicsPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const handleBack = () => { router.back(); };
 
   return (
     <>
@@ -20,13 +20,7 @@ export default function BaziBasicsPage() {
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleBack}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                aria-label="返回"
-              >
-                ←
-              </button>
+              <AppBackLink label={t("common.goBack")} context="YiShun" />
               <span className="text-xl" role="img" aria-label="八字">📚</span>
               <h1 className="text-lg font-heading font-bold text-white">
                 四柱八字基础

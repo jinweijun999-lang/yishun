@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Background from "../../components/Background";
+import AppBackLink from "../../components/AppBackLink";
 
 export const metadata: Metadata = {
   title: "Delete Account | YiShun",
@@ -13,7 +13,7 @@ export default function DeleteAccountPage() {
       <Background />
       <main className="relative z-10 min-h-screen px-4 py-10 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <section className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-surface/75 p-6 text-gray-300 shadow-2xl sm:p-8">
-          <Link href="/privacy" className="text-sm text-secondary hover:text-secondary/80">← Privacy Policy</Link>
+          <AppBackLink href="/privacy" label="Privacy Policy" context="Back" />
           <p className="mt-8 text-xs uppercase tracking-[0.28em] text-accent/80">Data deletion</p>
           <h1 className="mt-3 text-3xl font-heading font-bold text-white">Request account deletion</h1>
           <p className="mt-4 text-sm leading-6">
