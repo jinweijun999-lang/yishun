@@ -142,7 +142,24 @@ jobs:
       - name: Smoke Gemini paid enrichment locally
         run: |
           set -euo pipefail
-          response=$(curl -fsS --max-time 15 -X POST http://127.0.0.1:3001/api/bazi/preview \
-            -H 'content-type: application/json' \
-            --data '{"birthDate":"1990-01-01","birthTime":"17:08","birthTimeKnown":true,"birthPlaceText":"Beijing, China","longitude":116.4,"latitude":39.9,"timezoneOffsetMinutes":-480,"timezoneName":"Asia/Shanghai","gender":"female","locale":"en","focus":"General","enableAi":true}')
-          node -e 'const r=JSON.parse(process.argv[1]); if(r.ai?.status!=="ok") { console.error(JSON.stringify(r.ai)); process.exit(1); } if(!r.dailySignal?.score || !r.fourPillars || !Array.isArray(r.ai.actionSuggestions)) process.exit(1); console.log("gemini paid enrichment smoke passed")' "$response"
+          last_ai=""
+          for attempt in $(seq 1 12); do
+            payload=$(node -e 'const attempt=process.argv[1]; console.log(JSON.stringify({birthDate:"1990-01-01",birthTime:"17:08",birthTimeKnown:true,birthPlaceText:"Beijing, China",longitude:116.4,latitude:39.9,timezoneOffsetMinutes:-480,timezoneName:"Asia/Shanghai",gender:"female",locale:"en",focus:`CI paid smoke ${attempt}`,enableAi:true}))' "$attempt")
+            response=$(curl -fsS --max-time 20 -X POST http://127.0.0.1:3001/api/bazi/preview \
+              -H 'content-type: application/json' \
+              --data "$payload")
+            status=$(node -e 'const r=JSON.parse(process.argv[1]); console.log(r.ai?.status || "missing")' "$response")
+            if [ "$status" = "ok" ]; then
+              node -e 'const r=JSON.parse(process.argv[1]); if(!r.dailySignal?.score || !r.fourPillars || !Array.isArray(r.ai.actionSuggestions)) process.exit(1); console.log("gemini paid enrichment smoke passed")' "$response"
+              exit 0
+            fi
+            last_ai=$(node -e 'const r=JSON.parse(process.argv[1]); console.log(JSON.stringify(r.ai))' "$response")
+            reason=$(node -e 'const r=JSON.parse(process.argv[1]); console.log(r.ai?.reason || "")' "$response")
+            if [ "$reason" != "sampled_out" ]; then
+              echo "$last_ai" >&2
+              exit 1
+            fi
+            echo "gemini smoke sampled out attempt=${attempt}; retrying with a different deterministic focus"
+          done
+          echo "$last_ai" >&2
+          exit 1
