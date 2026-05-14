@@ -1,0 +1,11 @@
+{
+  "base": "http://localhost:3107",
+  "passed": [
+    "en-desktop",
+    "zh-desktop",
+    "en-mobile",
+    "zh-mobile"
+  ],
+  "evidenceDir": "/Users/xiajarvan/.openclaw/workspace/yishun/evidence/v3-p0-productization-20260514-193828",
+  "generatedAt": "2026-05-14T11:38:44.011Z"
+}

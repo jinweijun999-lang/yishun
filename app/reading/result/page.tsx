@@ -7,6 +7,7 @@ import Background from "../../components/Background";
 import FiveElementsChart from "../../components/FiveElementsChart";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { useI18n } from "../../components/LocaleProvider";
+import StripeCheckoutButton from "../../components/StripeCheckoutButton";
 import { queueP0Analytics } from "@/lib/p0-analytics";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
@@ -369,11 +370,25 @@ export default function ReadingResultPage() {
       router.replace("/reading/start");
       return;
     }
+    const aiStatus = preview.ai?.status ?? "missing";
     track("streak_view", {
       streak: calculateStreak(getSavedHistory(), true),
       score: preview.dailySignal.score,
       focus: preview.focus ?? "General",
       source: "reading_result",
+    });
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_VIEW, { screen: "reading_result", score: preview.dailySignal.score, focus: preview.focus ?? "General" });
+    trackYiShunEvent(YISHUN_EVENTS.AI_STATUS, {
+      screen: "reading_result",
+      status: aiStatus,
+      provider: preview.ai?.provider ?? "none",
+      cost_guard: aiStatus !== "ok",
+    });
+    trackYiShunEvent(YISHUN_EVENTS.PAYWALL_VIEW, {
+      placement: "result_premium_card",
+      product: "report_single",
+      price_display: "$4.99",
+      ai_status: aiStatus,
     });
   }, [preview, previewLoaded, router]);
 
@@ -411,6 +426,7 @@ export default function ReadingResultPage() {
     if (reminderEmail) window.localStorage.setItem("yishun:dailyRitual:email", reminderEmail);
     track("save_result", { score: item.score, focus: item.focus, reminder: Boolean(reminderEmail), streak: calculateStreak(merged, true) });
     trackYiShunEvent(YISHUN_EVENTS.SAVE_CLICK, { source: "reading_result", score: item.score, reminder: Boolean(reminderEmail) });
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_SAVE, { source: "reading_result", score: item.score, reminder: Boolean(reminderEmail), streak: calculateStreak(merged, true) });
   }
 
   function handleSaveDeviceOnly() {
@@ -447,6 +463,7 @@ export default function ReadingResultPage() {
     let shareId: string | undefined;
     track("share_create_click", { source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic", anonymous_id: anonymousId });
     trackYiShunEvent(YISHUN_EVENTS.SHARE_CLICK, { source: "reading_result", card_type: "daily_luck" });
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_SHARE, { source: "reading_result", card_type: "daily_luck" });
     try {
       const response = await fetch("/api/v1/shares", {
         method: "POST",
@@ -492,6 +509,28 @@ export default function ReadingResultPage() {
     });
     trackYiShunEvent(YISHUN_EVENTS.REPORT_VIEW, { source: "reading_result", target: "/reports" });
     router.push("/reports");
+  }
+
+  function handlePaidReportIntent(placement: string) {
+    track("paid_report_intent", {
+      placement,
+      product: "report_single",
+      source: "reading_result",
+      score: preview?.dailySignal.score,
+      focus: preview?.focus ?? "General",
+      ai_status: preview?.ai?.status ?? "missing",
+    });
+    trackYiShunEvent(YISHUN_EVENTS.PAYMENT_INTENT, {
+      placement,
+      product: "report_single",
+      source: "reading_result",
+    });
+    trackYiShunEvent(YISHUN_EVENTS.CHECKOUT_START, {
+      placement,
+      product: "report_single",
+      price_display: "$4.99",
+      source: "reading_result",
+    });
   }
 
   const elementSummary = localizedElementSummary(preview, isZh);
@@ -622,6 +661,45 @@ export default function ReadingResultPage() {
                 </div>
               </div>
             </div>
+
+            <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#e0bd72]/30 bg-gradient-to-br from-[#e0bd72]/15 via-white/[0.04] to-secondary/10 p-5">
+              <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-[#e0bd72]">{isZh ? "进阶报告" : "Premium report"}</p>
+                  <h2 className="mt-2 text-2xl font-heading font-bold text-white">
+                    {isZh ? "把今日信号升级成可执行计划。" : "Turn this signal into an actionable plan."}
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-gray-300">
+                    {isZh ? "免费版保留今日最佳窗口和一项行动；付费报告会展开未来 7 天节奏、关键日期、风险提示和可保存的行动清单。" : "The free result gives today’s window and one action. The paid report expands this into a 7-day rhythm, key dates, risk notes, and a saveable action checklist."}
+                  </p>
+                  <div className="mt-4 grid gap-2 text-sm text-gray-200 sm:grid-cols-3">
+                    {(isZh
+                      ? ["7 天择时路线", "PDF/长图保存", "Gemini 个性化扩写"]
+                      : ["7-day timing plan", "PDF/image-ready summary", "Gemini-personalized expansion"]
+                    ).map((item) => (
+                      <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">✓ {item}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">{isZh ? "推荐单次购买" : "Recommended one-time unlock"}</p>
+                  <p className="mt-2 text-3xl font-heading font-bold text-white">{isZh ? "完整报告" : "Full report"}</p>
+                  <p className="mt-1 text-2xl font-black text-[#e0bd72]">US$4.99</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "单次购买：7 天择时路线、关键日期、风险提示和可保存清单。适合先验证价值，不强推订阅。" : "One-time purchase: 7-day timing plan, key dates, risk notes, and a saveable checklist. Best for proving value before a subscription."}</p>
+                  <StripeCheckoutButton
+                    product="report_single"
+                    clientReferenceId={getAnonymousId()}
+                    onStart={() => handlePaidReportIntent("result_premium_card")}
+                    className="mt-4 w-full rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-4 text-sm font-black text-white shadow-xl shadow-black/25"
+                    fallbackLabel={isZh ? "支付暂未配置，请先保存报告，稍后再试。" : "Checkout is not configured yet. Save your result and try again later."}
+                  >
+                    {isZh ? "解锁完整报告" : "Unlock full report"}
+                  </StripeCheckoutButton>
+                  <p className="mt-3 text-[11px] leading-5 text-gray-500">{isZh ? "成本护栏已启用：缓存、采样、超时和规则兜底。" : "Cost guard enabled: cache, sampling, timeout, and rules fallback."}</p>
+                </div>
+              </div>
+            </section>
+
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 [isZh ? "今日节奏" : "Today rhythm", oneLineSummary],

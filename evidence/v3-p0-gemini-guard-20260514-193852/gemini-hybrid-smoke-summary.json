@@ -1,0 +1,14 @@
+{
+  "base": "http://localhost:3108",
+  "checks": [
+    "default enableAi omitted fallback",
+    "enableAi=false fallback",
+    "mock Gemini success",
+    "invalid JSON fallback",
+    "timeout fallback",
+    "API failure fallback",
+    "core facts stable"
+  ],
+  "evidenceDir": "/Users/xiajarvan/.openclaw/workspace/yishun/evidence/v3-p0-gemini-guard-20260514-193852",
+  "generatedAt": "2026-05-14T11:38:53.662Z"
+}

@@ -7,6 +7,7 @@ import Background from "../../components/Background";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { useI18n } from "../../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
+import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
 type BirthPayload = {
   birthDate: string;
@@ -204,12 +205,18 @@ export default function ReadingStartPage() {
     return `${longitudeCorrection >= 0 ? "+" : ""}${longitudeCorrection.toFixed(1)} min longitude correction before equation-of-time adjustment`;
   }, [isZh, longitude, timezoneOffsetMinutes]);
 
+  useEffect(() => {
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_VIEW, { screen: "reading_start", locale: isZh ? "zh" : "en" });
+  }, [isZh]);
+
   function trackFormStart() {
     if (hasTrackedStart) return;
     setHasTrackedStart(true);
     const shareId = searchParams.get("share_id") ?? undefined;
-    track("ritual_start", { source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start", locale: "en", share_id: shareId });
-    if (shareId) track("shared_user_generate_started", { share_id: shareId, entry_screen: "reading_start", locale: "en" });
+    const source = searchParams.get("ref") === "share" ? "share_landing" : "reading_start";
+    track("ritual_start", { source, locale: isZh ? "zh" : "en", share_id: shareId });
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_START, { screen: "reading_start", source, locale: isZh ? "zh" : "en", share_id: shareId });
+    if (shareId) track("shared_user_generate_started", { share_id: shareId, entry_screen: "reading_start", locale: isZh ? "zh" : "en" });
   }
 
   function nextStep(next: number) {
@@ -232,13 +239,25 @@ export default function ReadingStartPage() {
     setIsSubmitting(true);
     setLoadingStep(0);
     track("birth_step_completed", { step: 3, source: "reading_start" });
+    const source = searchParams.get("ref") === "share" ? "share_landing" : "reading_start";
+    const shareId = searchParams.get("share_id") ?? undefined;
     track("ritual_submit", {
       birth_time_known: birthTimeKnown,
       has_place: Boolean(birthPlaceText),
       focus,
-      locale: "en",
-      source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start",
-      share_id: searchParams.get("share_id") ?? undefined,
+      locale: isZh ? "zh" : "en",
+      source,
+      share_id: shareId,
+    });
+    trackYiShunEvent(YISHUN_EVENTS.FUNNEL_SUBMIT, {
+      screen: "reading_start",
+      birth_time_known: birthTimeKnown,
+      has_place: Boolean(birthPlaceText),
+      focus,
+      locale: isZh ? "zh" : "en",
+      source,
+      share_id: shareId,
+      enableAi: false,
     });
 
     const payload: BirthPayload = {
@@ -272,8 +291,17 @@ export default function ReadingStartPage() {
         best_hour: data.dailySignal?.bestHour,
         lucky_element: data.dailySignal?.luckyElement,
         focus,
-        source: searchParams.get("ref") === "share" ? "share_landing" : "reading_start",
-        share_id: searchParams.get("share_id") ?? undefined,
+        source,
+        share_id: shareId,
+      });
+      trackYiShunEvent(YISHUN_EVENTS.FUNNEL_RESULT, {
+        screen: "reading_result",
+        score: data.dailySignal?.score,
+        best_hour: data.dailySignal?.bestHour,
+        focus,
+        source,
+        share_id: shareId,
+        ai_status: data.ai?.status ?? "missing",
       });
       if (data.trueSolarTime) {
         track("true_solar_time_confirmed", {
@@ -295,25 +323,28 @@ export default function ReadingStartPage() {
     <>
       <Background />
       <main className="ys-shell relative z-10 min-h-screen pb-28 sm:pb-16">
-        <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <Link href="/" className="text-sm text-gray-300 hover:text-white">← YiShun</Link>
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#080b09]/75 px-4 py-3 backdrop-blur-2xl">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+            <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm font-semibold text-gray-200 hover:bg-white/5" aria-label={isZh ? "返回首页" : "Back to home"}>
+              <span aria-hidden="true">←</span>
+              <span>YiShun</span>
+            </Link>
             <LanguageSwitcher />
           </div>
         </header>
 
-        <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-          <div className="ys-panel overflow-hidden rounded-[2rem] p-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-accent/80">{isZh ? zh.heroLabel : "Daily Return Hook"}</p>
-            <h1 className="mt-3 text-3xl sm:text-4xl font-heading font-bold text-white text-glow">
-              {isZh ? zh.heroTitle : "Find today’s best timing in 60 seconds."}
+        <section className="max-w-3xl mx-auto px-4 py-5 sm:py-8 space-y-5 sm:space-y-6">
+          <div className="ys-panel overflow-hidden rounded-[2rem] p-5 sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-accent/80">{isZh ? "每日决策引导" : "Daily decision guide"}</p>
+            <h1 className="mt-3 text-2xl font-heading font-bold leading-tight text-white text-glow sm:text-4xl">
+              {step === 3 ? (isZh ? "选择今天要把握的时机。" : "Choose what you want to time today.") : (isZh ? zh.heroTitle : "Find today’s best timing in 60 seconds.")}
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-300">
-              {isZh ? zh.heroDesc : "Enter only what we need. YiShun gives you one best window, one avoid window, and one action to try today."}
+              {step === 3 ? (isZh ? "结果会聚焦到一个最佳窗口、一个避开窗口和一项行动建议。" : "The result stays focused: one best window, one avoid window, and one action.") : (isZh ? zh.heroDesc : "Enter only what we need. YiShun gives you one best window, one avoid window, and one action to try today.")}
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="hidden gap-3 sm:grid sm:grid-cols-3">
             {[
               isZh ? ["为什么要生日", "用来建立个人节律，不会展示在分享卡。"] : ["Why birth date", "It sets the personal rhythm and never appears on public cards."],
               isZh ? ["为什么要城市", "只用于校准时区/真太阳时，可跳过高级字段。"] : ["Why city", "It tunes timezone and solar-time precision; advanced fields are optional."],
@@ -334,14 +365,7 @@ export default function ReadingStartPage() {
             </div>
           ) : (
             <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (step < 3) {
-                  nextStep(step + 1);
-                  return;
-                }
-                void submitReading();
-              }}
+              onSubmit={(event) => event.preventDefault()}
               onFocus={trackFormStart}
               className="ys-panel rounded-[2rem] p-5 sm:p-6 space-y-5"
             >
@@ -389,7 +413,7 @@ export default function ReadingStartPage() {
                     <input type="checkbox" checked={!birthTimeKnown} onChange={(e) => setBirthTimeKnown(!e.target.checked)} />
                     {isZh ? zh.unknownTime : "I’m not sure — use an estimated noon chart."}
                   </label>
-                  <button type="submit" className="ys-cta sticky bottom-4 z-50 w-full px-5 py-4 text-sm shadow-2xl shadow-black/40 sm:static sm:shadow-none">{isZh ? zh.continue : "Continue"}</button>
+                  <button type="button" onClick={() => nextStep(2)} className="ys-cta sticky bottom-4 z-50 w-full px-5 py-4 text-sm shadow-2xl shadow-black/40 sm:static sm:shadow-none">{isZh ? zh.continue : "Continue"}</button>
                 </div>
               )}
 
@@ -429,7 +453,7 @@ export default function ReadingStartPage() {
                   )}
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(1)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="submit" className="ys-cta flex-1 px-5 py-4 text-sm">{isZh ? zh.continue : "Continue"}</button>
+                    <button type="button" onClick={() => nextStep(3)} className="ys-cta flex-1 px-5 py-4 text-sm">{isZh ? zh.continue : "Continue"}</button>
                   </div>
                 </div>
               )}
@@ -457,7 +481,7 @@ export default function ReadingStartPage() {
                   </label>
                   <div className="sticky bottom-4 z-50 flex gap-3 rounded-3xl bg-surface/90 p-2 shadow-2xl shadow-black/40 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
                     <button type="button" onClick={() => setStep(2)} className="rounded-2xl border border-white/20 px-5 py-4 text-sm text-gray-300">{isZh ? zh.back : "Back"}</button>
-                    <button type="submit" disabled={isSubmitting} className="ys-cta flex-1 px-5 py-4 text-sm disabled:opacity-60">
+                    <button type="button" onClick={() => void submitReading()} disabled={isSubmitting} className="ys-cta flex-1 px-5 py-4 text-sm disabled:opacity-60">
                       {isZh ? zh.submit : "Find my best timing"}
                     </button>
                   </div>

@@ -15,10 +15,14 @@ import type { Prisma, User } from "@prisma/client";
 
 type UserWithAccrual = User & { lastCreditsAccruedAt?: Date | null };
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GEMINI_API_KEY_YISHUN
+  ?? process.env.GOOGLE_API_KEY
+  ?? process.env.GEMINI_API_KEY
+  ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 const GOOGLE_MODELS = [
   process.env.GOOGLE_MODEL,
-  "gemini-2.0-flash-exp",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
   "gemini-1.5-flash-002",
   "gemini-1.5-flash",
   "gemini-1.5-pro",

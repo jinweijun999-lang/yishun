@@ -1,0 +1,141 @@
+{
+  "birthProfile": {
+    "birthDate": "1990-01-01",
+    "birthTime": "17:08",
+    "birthTimeKnown": true,
+    "birthPlaceText": "Beijing, China",
+    "timezoneName": "Asia/Shanghai",
+    "longitude": null,
+    "latitude": null,
+    "timezoneOffsetMinutes": -480
+  },
+  "apiContract": {
+    "timezoneOffsetMinutes": "timezoneOffsetMinutes uses JavaScript Date.getTimezoneOffset semantics: UTC - local time. Examples: Beijing UTC+8 = -480, New York UTC-5 = 300."
+  },
+  "trueSolarTime": {
+    "date": "1990-01-01",
+    "time": "17:05",
+    "offsetMinutes": -3,
+    "equationOfTimeMinutes": -3,
+    "longitudeCorrectionMinutes": 0,
+    "timezoneMeridianDegrees": 120,
+    "timezoneOffsetMinutes": -480,
+    "longitude": 120,
+    "latitude": null,
+    "timezoneName": "Asia/Shanghai",
+    "steps": [
+      "Standard time (Local clock) / 标准时间: 17:08",
+      "Equation of time (EoT) / 时差: -3.00 min",
+      "Timezone meridian / 时区中心经度: 120.00°",
+      "Longitude correction / 经度修正: (120.00 - 120.00) × 4 = 0.00 min",
+      "Total offset / 总偏移: -3.00 min",
+      "True solar time / 真太阳时: 17:05"
+    ],
+    "changedHourPillar": false,
+    "changedDayBoundary": false,
+    "precision": "high"
+  },
+  "fourPillars": {
+    "year": {
+      "stem": {
+        "name": "Ji",
+        "element": "Earth",
+        "polarity": "Yin"
+      },
+      "branch": {
+        "name": "Si",
+        "zodiac": "Snake"
+      },
+      "pillar": "Ji Si",
+      "stemTenGod": "Hurting Officer (Shang Guan) / 伤官"
+    },
+    "month": {
+      "stem": {
+        "name": "Bing",
+        "element": "Fire",
+        "polarity": "Yang"
+      },
+      "branch": {
+        "name": "Zi",
+        "zodiac": "Rat"
+      },
+      "pillar": "Bing Zi",
+      "stemTenGod": "Friend (Bi Jian) / 比肩"
+    },
+    "day": {
+      "stem": {
+        "name": "Bing",
+        "element": "Fire",
+        "polarity": "Yang"
+      },
+      "branch": {
+        "name": "Yin",
+        "zodiac": "Tiger"
+      },
+      "pillar": "Bing Yin",
+      "stemTenGod": "Friend (Bi Jian) / 比肩"
+    },
+    "hour": {
+      "stem": {
+        "name": "Ding",
+        "element": "Fire",
+        "polarity": "Yin"
+      },
+      "branch": {
+        "name": "You",
+        "zodiac": "Rooster"
+      },
+      "pillar": "Ding You",
+      "stemTenGod": "Rob Wealth (Jie Cai) / 劫财"
+    }
+  },
+  "dayMaster": "Bing (Yang Fire)",
+  "elementsBalance": {
+    "wood": 1,
+    "fire": 4,
+    "earth": 1,
+    "metal": 1,
+    "water": 1
+  },
+  "dominantElement": "Fire",
+  "missingElement": "Water",
+  "favorableElement": "Earth",
+  "tenGodPattern": {
+    "label": "Peer Pattern",
+    "plain": "independence, allies, and healthy competition"
+  },
+  "interpretation": {
+    "dayMasterDescription": "Bing Fire (Yang): Like the sun, radiant and generous. Passionate, charismatic, but can be impulsive.",
+    "monthSeasonDescription": "Born in Zi month (Winter (Water prosperous)).",
+    "strengthAnalysis": "Day Master appears Strong (supported by many same/resource elements).",
+    "favorableElements": [
+      "Earth",
+      "Metal",
+      "Water"
+    ]
+  },
+  "dailySignal": {
+    "score": 75,
+    "bestFor": [
+      "reviewing details",
+      "budgeting",
+      "stable commitments"
+    ],
+    "do": "Borrow Earth energy: choose the stable option and confirm the details.",
+    "avoid": "saying yes to vague plans without confirming the ground rules",
+    "bestHour": "13:00–15:00",
+    "luckyElement": "Earth",
+    "luckyDirection": "Center / Northeast",
+    "why": "Your chart benefits from stability, trust, boundaries, and practical follow-through today. The signal is based on your Day Master, Five Elements balance, Yin/Yang rhythm, and true-solar-time adjusted birth profile.",
+    "deeperInsight": "The unlocked layer translates Ten Gods into user-friendly patterns. independence, allies, and healthy competition. Use this as a reflection prompt, not a fixed prediction.",
+    "disclaimer": "For entertainment and self-reflection only. YiShun does not provide medical, financial, legal, or life-critical advice."
+  },
+  "focus": "General",
+  "ai": {
+    "status": "fallback",
+    "provider": "rules",
+    "reason": "disabled",
+    "attribution": "AI-personalized interpretation based on structured BaZi timing; core chart facts and timing scores are computed by YiShun's rules engine.",
+    "interpretationBasis": "Rules engine provides BaZi/Four Pillars facts, Day Master, Five Elements balance, Ten Gods pattern, true solar time, score, best hour, and lucky element. AI may only explain those provided signals."
+  }
+}

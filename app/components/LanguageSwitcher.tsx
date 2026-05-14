@@ -26,7 +26,6 @@ export default function LanguageSwitcher() {
           </option>
         ))}
       </select>
-      <span className="sm:hidden text-gray-400">{LABELS[locale].short}</span>
     </label>
   );
 }
