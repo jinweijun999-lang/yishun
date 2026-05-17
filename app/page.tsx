@@ -7,6 +7,7 @@ import Background from "./components/Background";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import Navigation from "./components/Navigation";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
+import PaymentValueMatrix from "./components/PaymentValueMatrix";
 import { useI18n } from "./components/LocaleProvider";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
@@ -17,20 +18,6 @@ type ProfileData = {
   gender: string | null;
   planTier?: string | null;
   consultationCredits?: number | null;
-};
-
-type CachedPreview = {
-  dailySignal: {
-    score: number;
-    bestFor: string[];
-    do: string;
-    avoid: string;
-    bestHour: string;
-    luckyElement: string;
-    luckyDirection: string;
-  };
-  dominantElement: string;
-  focus?: string;
 };
 
 function hasSessionCookie() {
@@ -44,69 +31,20 @@ function track(event: string, properties: Record<string, unknown> = {}) {
   window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
 }
 
-const zhValueMap: Record<string, string> = {
-  General: "综合",
-  Work: "事业",
-  Money: "财务",
-  Love: "情感",
-  Energy: "能量",
-  Creativity: "创意",
-  Wood: "木",
-  Fire: "火",
-  Earth: "土",
-  Metal: "金",
-  Water: "水",
-  East: "东方",
-  South: "南方",
-  "Center / Northeast": "中宫 / 东北",
-  West: "西方",
-  North: "北方",
-  planning: "规划",
-  learning: "学习",
-  "focused outreach": "专注沟通",
-  "calm decisions": "冷静决策",
-  "Choose one meaningful push and write the next step before you commit.": "选择一个最重要的推进点，并在承诺前写下下一步。",
-  "Do not force a final answer before the options are clear.": "选项还不清楚前，不要强行给出最终答案。",
-};
-
-function localizeValue(value: string | undefined, isZh: boolean) {
-  if (!value) return isZh ? "综合" : "General";
-  if (!isZh) return value;
-  return zhValueMap[value] ?? value;
-}
-
-function localizeList(values: string[], isZh: boolean) {
-  return values.map((value) => localizeValue(value, isZh));
-}
-
-const sampleSignal: CachedPreview = {
-  focus: "General",
-  dominantElement: "Wood",
-  dailySignal: {
-    score: 82,
-    bestFor: ["planning", "focused outreach", "calm decisions"],
-    do: "Choose one meaningful push and write the next step before you commit.",
-    avoid: "Do not force a final answer before the options are clear.",
-    bestHour: "07:00–09:00",
-    luckyElement: "Wood",
-    luckyDirection: "East",
-  },
-};
-
 const copy = {
   en: {
-    eyebrow: "Trusted Eastern timing rules · BaZi + Five Elements · Gemini explanation",
-    title: "Know today’s best timing in 5 seconds — then see why it fits you.",
+    eyebrow: "Love · Career · Money answers · Daily Ritual · Destiny Card · Love compatibility · Ask AI master",
+    title: "Unlock your full Eastern destiny report — then ask AI Master, test TA, or draw today’s sign.",
     subtitle:
-      "YiShun combines trusted Eastern timing rules, your BaZi/Five Elements profile, and Gemini-personalized explanations so you can save, share, or unlock a premium report with confidence.",
-    primary: "Start my free daily signal",
-    open: "Open today’s signal",
-    sample: "View sample reports",
+      "The main card is your complete destiny report preview: personality, love, career, wealth, helpful people, and the next 90 days. Ask your most important life question through AI Master for a Career decision, Money window, Love compatibility, or complete a 30-second ritual; Daily Timing stays a small supporting window.",
+    primary: "Ask AI Master",
+    open: "Open my destiny preview",
+    sample: "View locked report preview",
     profile: "Account",
     login: "Sign in",
     signedIn: "Signed in",
     trust: "Privacy boundary: public cards never show birth date, birth place, email, or private chart details. Not fortune-telling — a structured reflection tool for timing, priorities, and decisions.",
-    heroCardLabel: "Today’s Decision Brief",
+    heroCardLabel: "Four榜单入口 · Free first · Paid depth",
     clarity: "Timing clarity",
     bestFor: "Best for",
     bestHour: "Best window",
@@ -118,9 +56,9 @@ const copy = {
     sampleSignal: "Live sample",
     mechanism: "Product highlights",
     mechanisms: [
-      ["01", "Action, not vague fortune text", "Every result gives one best window, one avoid boundary, and one next step you can actually use today."],
-      ["02", "Explainable calculation layer", "The app shows which structured signals were used: birth profile, Four Pillars, Five Elements balance, true solar time, and daily timing score."],
-      ["03", "Retention and monetization built in", "Save history, build a streak, share a public card, then upgrade only when a full 7-day report is useful."],
+      ["01", "AI Master answers", "Use 1 Ask Credit for one focused question after balance check and explicit confirmation."],
+      ["02", "Relationship compatibility", "Start from two-person fit and emotional timing; partner details are not persisted in the lite flow."],
+      ["03", "Full destiny report", "Free shows a useful summary first. Paid Full Report unlocks deeper modules and does not consume Ask Credits."],
     ],
     accuracyLabel: "How accuracy is handled",
     accuracyTitle: "Not a black-box AI answer. Rules compute; AI explains.",
@@ -145,18 +83,18 @@ const copy = {
     powered: "Structured BaZi timing engine · for reflection only",
   },
   zh: {
-    eyebrow: "东方时机智能 · 可解释的每日决策信号",
-    title: "别再问“会发生什么”，开始判断“现在该不该行动”。",
+    eyebrow: "今日抽签 · 命格卡 · 测我和TA · 问一件事",
+    title: "先看完整东方命运报告，再问大师、测关系或抽今日一签。",
     subtitle:
-      "易顺把八字与五行时机转成清晰的每日决策系统：今天该推进什么、延后什么，以及这个信号的依据是什么。",
-    primary: "开始免费今日信号",
-    open: "打开今日信号",
-    sample: "查看示例报告",
+      "首屏主卡是完整命运报告预览：性格、爱情、事业、财富、贵人、未来90天。用户可继续问 AI 大师、测我和 TA、或 30 秒抽签；Daily Timing 只做小型时间窗口。",
+    primary: "问 AI 大师",
+    open: "打开命运预览",
+    sample: "查看锁定报告预览",
     profile: "账户",
     login: "登录",
     signedIn: "已登录",
     trust: "隐私边界：公开卡不展示出生日期、出生地、邮箱或私人命盘细节。易顺不是算命，而是用于时机、优先级和决策复盘的结构化工具。",
-    heroCardLabel: "今日决策简报",
+    heroCardLabel: "四个榜单入口 · 免费先体验 · 付费看深度",
     clarity: "时机清晰度",
     bestFor: "适合",
     bestHour: "黄金窗口",
@@ -168,9 +106,9 @@ const copy = {
     sampleSignal: "实时示例",
     mechanism: "产品亮点",
     mechanisms: [
-      ["01", "有依据的信号", "每条建议都呈现时段、五行平衡和行动边界，而不是一句玄学结论。"],
-      ["02", "每日仪式闭环", "生成、保存、明日回访；产品建立连续记录，而不是一次性娱乐。"],
-      ["03", "决策优先文案", "先回答“今天该怎么做”，再展示命盘和解释。"],
+      ["01", "AI大师问事", "余额预检并明确确认后，消耗 1 次问事，回答一个聚焦问题。"],
+      ["02", "关系合盘", "从两个人适不适合、相处节奏和情感时机切入；轻量版不持久化伴侣隐私。"],
+      ["03", "完整命运报告", "免费先看摘要；付费解锁深度模块，且不消耗问事次数。"],
     ],
     accuracyLabel: "准确性如何处理",
     accuracyTitle: "不是黑盒 AI 答案：规则负责计算，AI 只负责解释。",
@@ -197,21 +135,10 @@ export default function Home() {
   const c = isZh ? copy.zh : copy.en;
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [cachedPreview, setCachedPreview] = useState<CachedPreview | null>(null);
-  const [completedDate, setCompletedDate] = useState<string | null>(null);
 
   useEffect(() => {
+    track("view_home", { source: "home_rank_grid" });
     trackYiShunEvent(YISHUN_EVENTS.HOME_VIEW, { source: "home_redesign" });
-    window.setTimeout(() => {
-      try {
-        const cached = window.localStorage.getItem("yishun:p0Preview");
-        setCachedPreview(cached ? (JSON.parse(cached) as CachedPreview) : null);
-        setCompletedDate(window.localStorage.getItem("yishun:dailyRitual:completedDate"));
-      } catch {
-        setCachedPreview(null);
-      }
-    }, 0);
-
     const loadProfile = async () => {
       if (!hasSessionCookie()) {
         setAuthChecked(true);
@@ -230,18 +157,6 @@ export default function Home() {
     loadProfile();
   }, []);
 
-  const activeSignal = cachedPreview ?? sampleSignal;
-  const hasSavedRitual = Boolean(cachedPreview);
-  const today = new Date().toISOString().slice(0, 10);
-  const completedToday = completedDate === today;
-  const displaySignal = {
-    focus: localizeValue(activeSignal.focus, isZh),
-    bestFor: localizeList(activeSignal.dailySignal.bestFor, isZh),
-    luckyElement: localizeValue(activeSignal.dailySignal.luckyElement, isZh),
-    luckyDirection: localizeValue(activeSignal.dailySignal.luckyDirection, isZh),
-    do: localizeValue(activeSignal.dailySignal.do, isZh),
-    avoid: localizeValue(activeSignal.dailySignal.avoid, isZh),
-  };
 
   return (
     <>
@@ -288,27 +203,27 @@ export default function Home() {
             <p className="mt-6 max-w-2xl text-lg leading-8 text-[#d8d0bf] md:text-xl">
               {c.subtitle}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href={hasSavedRitual ? "/reading/result" : "/reading/start"}
-                onClick={() => {
-                  track(hasSavedRitual ? "open_today_ritual_click" : "start_daily_signal_click", { source: "home_redesign" });
-                  trackYiShunEvent(YISHUN_EVENTS.START_CLICK, { source: "home_redesign", has_saved_ritual: hasSavedRitual });
-                }}
-                className="group inline-flex items-center justify-center rounded-2xl bg-[#e0bd72] px-6 py-4 text-sm font-black text-[#10130f] shadow-[0_22px_60px_rgba(194,160,103,0.28)] transition hover:-translate-y-0.5 hover:bg-[#f1d28e]"
-              >
-                {hasSavedRitual ? c.open : c.primary}
-                <span className="ml-2 transition group-hover:translate-x-1">→</span>
-              </Link>
-              <Link
-                href="/samples"
-                onClick={() => track("sample_result_click", { source: "home_redesign", sample_count: 4 })}
-                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-bold text-[#f5efe1] backdrop-blur transition hover:border-[#c2a067]/40 hover:bg-white/[0.06]"
-              >
-                {c.sample}
-              </Link>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                ["🪄", isZh ? "问 AI 大师" : "Ask AI Master", isZh ? "爱情/事业/财富/关系，一问一答。" : "Love, career, money, relationship, or other.", "/ask-master?source=home_rank", "bg-[#e0bd72] text-[#10130f] shadow-[0_22px_60px_rgba(194,160,103,0.28)]"],
+                ["💞", isZh ? "测我和 TA" : "Check me and TA", isZh ? "缘分分、冲突点、是否推进。" : "Match score, conflict, advance or pause.", "/compatibility?source=home_rank", "border border-[#f4a6b8]/30 bg-[#f4a6b8]/10 text-[#f5efe1]"],
+                ["🃏", isZh ? "今日抽一签" : "Draw today’s sign", isZh ? "选主题、抽签、解签、今日行动。" : "Choose theme, draw, interpret, act today.", "/daily-ritual?source=home_rank", "border border-[#7aa48c]/35 bg-[#7aa48c]/10 text-[#f5efe1]"],
+              ].map(([icon, label, body, href, tone]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => track("consumer_rank_entry_click", { source: "home_rank_grid", label })}
+                  className={`group rounded-3xl px-5 py-4 transition hover:-translate-y-0.5 ${tone}`}
+                >
+                  <span className="text-xl">{icon}</span>
+                  <span className="mt-3 block text-sm font-black">{label}</span>
+                  <span className="mt-2 block text-xs leading-5 opacity-80">{body}</span>
+                  <span className="mt-3 inline-flex text-xs font-black transition group-hover:translate-x-1">Start free →</span>
+                </Link>
+              ))}
             </div>
-            <p className="mt-5 max-w-xl text-sm leading-6 text-[#9d9688]">{c.trust}</p>
+            <p className="mt-4 max-w-xl text-xs leading-5 text-[#9d9688]">{isZh ? "P0 路径：完整报告是主卡；三 CTA 进入问大师、测关系、抽签。Daily Timing 只作为 bestTime 小信号。" : "P0 path: report preview is the main card; three CTAs start AI Master, compatibility, and ritual. Daily Timing appears only as best-time micro signal."}</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#9d9688]">{c.trust}</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.08, duration: 0.55 }} className="relative">
@@ -318,39 +233,44 @@ export default function Home() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.25em] text-[#c2a067]">{c.heroCardLabel}</p>
-                  <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] text-white">
-                    {activeSignal.dailySignal.score}<span className="text-xl text-[#8f8878]">/100</span>
+                  <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">
+                    {isZh ? "你的完整命运报告，先看摘要再解锁。" : "Your full destiny report, previewed before unlock."}
                   </h2>
-                  <p className="text-sm text-[#a9a18f]">{c.clarity}</p>
+                  <p className="mt-3 max-w-sm text-sm leading-6 text-[#a9a18f]">
+                    {isZh
+                      ? "首页必须让用户立刻知道：这是问事、关系、抽签和完整报告 App，不是单一 Daily Timing 工具。"
+                      : "The first screen makes the product obvious: AI answers, relationship matching, ritual draw, and a full report—not a Daily Timing utility."}
+                  </p>
                 </div>
-                <span className="rounded-full border border-[#7aa48c]/30 bg-[#7aa48c]/10 px-3 py-1 text-xs font-bold text-[#a8d8bd]">
-                  {completedToday ? c.saved : hasSavedRitual ? c.saved : c.sampleSignal}
+                <span className="rounded-full border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-3 py-1 text-xs font-bold text-[#e0bd72]">
+                  {isZh ? "锁定预览" : "Locked preview"}
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="mt-6 grid gap-3">
                 {[
-                  [c.bestFor, displaySignal.bestFor.slice(0, 2).join(" · ")],
-                  [c.bestHour, activeSignal.dailySignal.bestHour],
-                  [c.element, displaySignal.luckyElement],
-                  [c.direction, displaySignal.luckyDirection],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-3xl border border-white/8 bg-white/[0.045] p-4">
-                    <p className="text-xs text-[#8f8878]">{label}</p>
-                    <p className="mt-1 text-sm font-bold leading-5 text-white">{value}</p>
+                  [isZh ? "完整命运报告" : "Full destiny report", isZh ? "性格/爱情/事业/财富/贵人/未来90天" : "Personality, love, career, wealth, helpers, next 90 days", "📜"],
+                  [isZh ? "问 AI 大师" : "Ask AI master", isZh ? "结论 / 3依据 / 风险 / 7-30天行动" : "Conclusion, 3 reasons, risk, 7/30-day actions", "🪄"],
+                  [isZh ? "测我和 TA" : "Love compatibility", isZh ? "缘分分、吸引点、冲突点、窗口" : "Score, attraction, conflict, best window", "💞"],
+                  [isZh ? "今日抽签" : "Daily ritual", isZh ? "选主题→抽签→解签→今日行动" : "Choose theme → draw → interpret → act today", "🃏"],
+                ].map(([title, body, icon]) => (
+                  <div key={title} className="group rounded-3xl border border-white/10 bg-white/[0.045] p-4 transition hover:border-[#e0bd72]/30 hover:bg-[#e0bd72]/10">
+                    <div className="flex items-start gap-3">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-black/30 text-xl">{icon}</span>
+                      <div>
+                        <p className="text-sm font-black text-white">{title}</p>
+                        <p className="mt-1 text-xs leading-5 text-[#aaa292]">{body}</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-3xl border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a8d8bd]">{c.do}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#e8e1d2]">{displaySignal.do}</p>
-                </div>
-                <div className="rounded-3xl border border-[#c2a067]/25 bg-[#c2a067]/10 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e0bd72]">{c.avoid}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#e8e1d2]">{displaySignal.avoid}</p>
-                </div>
+              <div className="mt-4 rounded-3xl border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a8d8bd]">{isZh ? "隐私默认安全" : "Privacy-safe by default"}</p>
+                <p className="mt-2 text-sm leading-6 text-[#e8e1d2]">
+                  {isZh ? "分享卡只展示昵称化命格与行动建议，不展示生日、出生地、邮箱或完整命盘。" : "Share cards show a nickname-style archetype and action prompt, never birth date, location, email, or private chart details."}
+                </p>
               </div>
             </article>
           </motion.div>
@@ -458,7 +378,25 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="mx-auto max-w-6xl px-4 pb-10 pt-3">
+        <div className="mx-auto max-w-6xl px-4 pb-10 pt-3 space-y-5">
+          <section className="ys-panel rounded-[2rem] p-5 sm:p-6">
+            <p className="ys-kicker">{isZh ? "3 分钟强体验" : "3-minute strong experiences"}</p>
+            <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "先完成一次情感、问事、占卜或付费报告体验" : "Start with love, Ask AI, divination, or a deep report."}</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              {[
+                ["🃏", isZh ? "今日抽签" : "Tarot / Oracle / Coin", "/daily-ritual?source=home_p0"],
+                ["🪪", isZh ? "命格卡" : "$0.99-style deep report", "/profile-card?source=home_p0"],
+                ["💘", isZh ? "测我和 TA" : "Love Compatibility", "/compatibility?source=home_p0"],
+                ["💬", isZh ? "Ask AI 问事" : "Ask AI Love/Money/Career", "/ask-master?source=home_p0"],
+              ].map(([icon, title, href]) => (
+                <Link key={title} href={href} className="rounded-3xl border border-white/10 bg-white/[0.05] p-4 text-sm font-bold text-white transition hover:border-secondary/40 hover:bg-secondary/10">
+                  <span className="mb-3 block text-2xl">{icon}</span>{title}
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <PaymentValueMatrix isEnglish={!isZh} credits={profile?.consultationCredits} source="home" />
           <PwaInstallPrompt />
           <p className="mt-6 text-center text-xs text-[#766f62]">{c.powered}</p>
         </div>

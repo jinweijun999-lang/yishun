@@ -26,6 +26,12 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.tab.reports",
   },
   {
+    key: "tools",
+    href: "/tools",
+    icon: "✧",
+    labelKey: "nav.tab.tools",
+  },
+  {
     key: "profile",
     href: "/profile",
     icon: "◐",
@@ -43,7 +49,7 @@ export default function Navigation() {
       role="navigation"
       aria-label={locale === "zh-CN" ? "主导航" : "Main navigation"}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-3 gap-2 rounded-[1.65rem] border border-white/12 bg-[#090d0b]/88 p-2 shadow-[0_-18px_60px_rgba(0,0,0,0.42)] backdrop-blur-2xl">
+      <div className="mx-auto grid max-w-lg grid-cols-4 gap-2 rounded-[1.65rem] border border-white/12 bg-[#090d0b]/88 p-2 shadow-[0_-18px_60px_rgba(0,0,0,0.42)] backdrop-blur-2xl">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
