@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const baseUrl = process.env.YISHUN_BASE_URL ?? process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000";
+const baseUrl = process.env.YISHUN_BASE_URL ?? process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 const evidenceDir = process.env.EVIDENCE_DIR;
 const chineseRe = /[\u3400-\u9fff]/;
 
@@ -77,7 +77,7 @@ const sampleHistory = [{
 }];
 
 const pages = [
-  { path: "/", name: "home", expect: ["Trusted Eastern timing rules", "BaZi + Five Elements", "Gemini explanation", "Save, share, or unlock a premium report"] },
+  { path: "/", name: "home", expect: ["Love · Career · Money answers", "Ask your most important life question", "Love compatibility", "Career decision", "Ask AI master"] },
   { path: "/reports", name: "reports", seedHistory: true, expect: ["Your saved signals", "Daily Ritual history", "Best window"] },
   { path: "/samples?lang=en", name: "samples", expect: ["Sample reports are product proof", "English samples", "Premium turns a sample signal into a plan users can keep"] },
   { path: "/samples/en-career-pivot?lang=en", name: "sample-en-career-pivot", expect: ["Career pivot timing sample", "Why this result", "Rules engine vs Gemini", "Premium value", "Retention path"] },
@@ -125,6 +125,9 @@ try {
     await seed(page, { seedPreview: item.seedPreview, seedHistory: item.seedHistory });
     await page.goto(`${baseUrl}${item.path}`, { waitUntil: "networkidle" });
     await page.locator("body").waitFor({ state: "attached", timeout: 10_000 });
+    if (item.seedHistory) {
+      await page.waitForFunction(() => document.body.innerText.includes("Best window"), undefined, { timeout: 10_000 });
+    }
     const rendered = await collectVisibleTextAndA11y(page);
     for (const needle of item.expect) {
       assert(rendered.toLowerCase().includes(needle.toLowerCase()), `${item.path} missing expected English copy: ${needle}\n${rendered.slice(0, 1000)}`);

@@ -1,11 +1,12 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionPayload } from "@/lib/auth";
+import { stripeSandboxCheckoutAdapter } from "@/lib/stripe-sandbox-adapter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CheckoutProduct = "report_single" | "premium_monthly" | "consultation_single";
+type CheckoutProduct = "report_single" | "premium_monthly" | "premium_annual" | "consultation_single";
 
 const CHECKOUT_PRODUCTS: Record<
   CheckoutProduct,
@@ -20,6 +21,11 @@ const CHECKOUT_PRODUCTS: Record<
     priceEnv: "STRIPE_PRICE_PREMIUM_MONTHLY",
     mode: "subscription",
     label: "YiShun Premium Monthly",
+  },
+  premium_annual: {
+    priceEnv: "STRIPE_PRICE_PREMIUM_ANNUAL",
+    mode: "subscription",
+    label: "YiShun Premium Annual",
   },
   consultation_single: {
     priceEnv: "STRIPE_PRICE_CONSULTATION_SINGLE",
@@ -127,18 +133,28 @@ export async function POST(request: NextRequest) {
     !priceId ? productConfig.priceEnv : null,
   ].filter(Boolean);
 
+  const siteUrl = getSiteUrl(request);
+
   if (missingEnv.length > 0 || !secretKey || !priceId) {
-    return NextResponse.json(
-      {
-        error: "Checkout is temporarily unavailable. Please try again later.",
-        code: "checkout_config_missing",
-        missingEnv,
-      },
-      { status: 503 }
-    );
+    const checkout = await stripeSandboxCheckoutAdapter.createCheckout({
+      userId: userId ?? `anonymous_${Date.now()}`,
+      product,
+      quantity: 1,
+      successUrl: `${siteUrl}/checkout/sandbox?product=${product}`,
+      cancelUrl: `${siteUrl}/checkout/cancel?product=${product}`,
+      idempotencyKey: `${product}:${userId ?? "anonymous"}:${Date.now()}`,
+      mode: "mock",
+    });
+
+    return NextResponse.json({
+      url: checkout.redirectUrl,
+      code: "checkout_sandbox_pending",
+      checkoutSessionId: checkout.checkoutSessionId,
+      chargePerformed: false,
+      message: "Stripe is not configured. Opening sandbox pending checkout; no real charge or entitlement fulfillment will happen.",
+    });
   }
 
-  const siteUrl = getSiteUrl(request);
   const stripe = new Stripe(secretKey);
 
   try {

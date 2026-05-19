@@ -10,6 +10,7 @@ import AppBackLink from "../../components/AppBackLink";
 import YiShunBottomActionBar, { type YiShunActionState } from "../../components/YiShunBottomActionBar";
 import { useI18n } from "../../components/LocaleProvider";
 import StripeCheckoutButton from "../../components/StripeCheckoutButton";
+import PaymentValueMatrix from "../../components/PaymentValueMatrix";
 import { queueP0Analytics } from "@/lib/p0-analytics";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
@@ -22,7 +23,25 @@ type PreviewData = {
     timezoneName?: string | null;
     timezoneOffsetMinutes?: number | null;
   };
-  trueSolarTime: null | {
+  access?: {
+    depth: "free_teaser" | "full_report";
+    authenticated: boolean;
+    askCredits: number;
+    fullReportEntitlement: { status: "locked" | "unlocked" | "pending"; source: string; note: string };
+    creditPolicy: string;
+  };
+  freeSummary?: {
+    score: number;
+    bestFor: string[];
+    bestHour: string;
+    do: string;
+    avoid: string;
+    luckyElement: string;
+    disclaimer: string;
+    summary: string;
+  };
+  lockedModules?: string[];
+  trueSolarTime?: null | {
     date: string;
     time: string;
     offsetMinutes: number;
@@ -30,20 +49,20 @@ type PreviewData = {
     changedDayBoundary: boolean;
     precision: string;
   };
-  fourPillars: Record<string, { pillar: string; stemTenGod?: string }>;
-  dayMaster: string;
-  elementsBalance: {
+  fourPillars?: Record<string, { pillar: string; stemTenGod?: string }>;
+  dayMaster?: string;
+  elementsBalance?: {
     wood: number;
     fire: number;
     earth: number;
     metal: number;
     water: number;
   };
-  dominantElement: string;
-  missingElement: string;
-  favorableElement: string;
-  tenGodPattern: { label: string; plain: string };
-  interpretation: {
+  dominantElement?: string;
+  missingElement?: string;
+  favorableElement?: string;
+  tenGodPattern?: { label: string; plain: string };
+  interpretation?: {
     dayMasterDescription: string;
     strengthAnalysis: string;
     favorableElements: string[];
@@ -226,14 +245,15 @@ function localizedDayMaster(value: string | null | undefined, isZh: boolean) {
 }
 
 function localizedProfileDescription(preview: PreviewData, isZh: boolean) {
-  if (!isZh) return stripChineseText(preview.interpretation.dayMasterDescription, "Your full profile is calculated and ready for English guidance.");
+  if (!isZh) return stripChineseText(preview.interpretation?.dayMasterDescription, "Your full profile is calculated and ready for English guidance.");
   return `你的出生资料已完成排盘。当前日主为 ${localizedDayMaster(preview.dayMaster, true)}，系统会结合四柱、五行与今日节律生成行动提示。`;
 }
 
 function localizedElementSummary(preview: PreviewData, isZh: boolean) {
-  if (!isZh) return buildElementSummary(preview);
-  const dominant = cleanElementName(preview.dominantElement) ?? fallbackElementFromBalance(preview.elementsBalance, "dominant");
-  const missing = cleanElementName(preview.missingElement) ?? fallbackElementFromBalance(preview.elementsBalance, "weak");
+  const balance = preview.elementsBalance ?? { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  if (!isZh) return buildElementSummary({ ...preview, elementsBalance: balance });
+  const dominant = cleanElementName(preview.dominantElement) ?? fallbackElementFromBalance(balance, "dominant");
+  const missing = cleanElementName(preview.missingElement) ?? fallbackElementFromBalance(balance, "weak");
   const favorable = cleanElementName(preview.favorableElement) ?? cleanElementName(preview.dailySignal.luckyElement) ?? missing;
   const parts = [
     dominant ? `最强：${zhValue(dominant)}` : null,
@@ -279,15 +299,16 @@ function cleanElementName(value: string | null | undefined) {
   return key ? ELEMENT_LABELS[key] ?? key : null;
 }
 
-function fallbackElementFromBalance(balance: PreviewData["elementsBalance"], mode: "dominant" | "weak") {
-  const entries = (Object.entries(balance) as Array<[keyof PreviewData["elementsBalance"], number]>).sort((a, b) => b[1] - a[1]);
+function fallbackElementFromBalance(balance: NonNullable<PreviewData["elementsBalance"]>, mode: "dominant" | "weak") {
+  const entries = (Object.entries(balance) as Array<[keyof NonNullable<PreviewData["elementsBalance"]>, number]>).sort((a, b) => b[1] - a[1]);
   const selected = mode === "dominant" ? entries[0] : entries[entries.length - 1];
   return selected ? ELEMENT_LABELS[selected[0]] : null;
 }
 
 function buildElementSummary(preview: PreviewData) {
-  const dominant = cleanElementName(preview.dominantElement) ?? fallbackElementFromBalance(preview.elementsBalance, "dominant");
-  const missing = cleanElementName(preview.missingElement) ?? fallbackElementFromBalance(preview.elementsBalance, "weak");
+  const balance = preview.elementsBalance ?? { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  const dominant = cleanElementName(preview.dominantElement) ?? fallbackElementFromBalance(balance, "dominant");
+  const missing = cleanElementName(preview.missingElement) ?? fallbackElementFromBalance(balance, "weak");
   const favorable = cleanElementName(preview.favorableElement) ?? cleanElementName(preview.dailySignal.luckyElement) ?? missing;
   const parts = [
     dominant ? `Strongest: ${dominant}` : null,
@@ -334,6 +355,20 @@ function readCachedPreview() {
   }
 }
 
+function escapeSvgText(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+}
+
+function downloadTextAsFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function calculateStreak(history: DailyArchiveItem[], includeToday = true) {
   const dates = new Set(history.map((item) => item.date));
   if (includeToday) dates.add(todayKey());
@@ -359,11 +394,17 @@ export default function ReadingResultPage() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [saveActionState, setSaveActionState] = useState<YiShunActionState>("default");
   const [history, setHistory] = useState<DailyArchiveItem[]>(() => getSavedHistory());
+  const [recoveryStatus, setRecoveryStatus] = useState<string | null>(null);
 
   useEffect(() => {
     window.setTimeout(() => {
-      setPreview(readCachedPreview());
+      const cachedPreview = readCachedPreview();
+      setPreview(cachedPreview);
       setPreviewLoaded(true);
+      if (cachedPreview) {
+        setRecoveryStatus(cachedPreview.access?.depth === "full_report" ? "Full report recovered after refresh." : "Free teaser recovered after refresh.");
+        queueP0Analytics("result_recovered_after_refresh", { depth: cachedPreview.access?.depth ?? "unknown", source: "reading_result" });
+      }
     }, 0);
   }, []);
 
@@ -395,8 +436,9 @@ export default function ReadingResultPage() {
     });
   }, [preview, previewLoaded, router]);
 
+  const hasFullReport = preview?.access?.depth === "full_report" || preview?.access?.fullReportEntitlement?.status === "unlocked";
   const pillars = useMemo(() => {
-    if (!preview) return [];
+    if (!preview?.fourPillars) return [];
     return Object.entries(preview.fourPillars).map(([name, value]) => ({ name, ...value }));
   }, [preview]);
 
@@ -405,6 +447,186 @@ export default function ReadingResultPage() {
       <>
         <Background />
         <main className="relative z-10 min-h-screen grid place-items-center text-gray-300">{isZh ? "正在加载你的信号…" : "Loading your signal…"}</main>
+      </>
+    );
+  }
+
+  const elementSummary = localizedElementSummary(preview, isZh);
+  const streak = calculateStreak(history, true);
+  const oneLineSummary = isZh
+    ? `${localizedValue(preview.focus, true)}适合${preview.dailySignal.bestFor.map((item) => localizedValue(item, true, "时机")).slice(0, 2).join(" + ")}，参考时段 ${preview.dailySignal.bestHour}。`
+    : `${stripChineseText(preview.focus, "General")} favors ${preview.dailySignal.bestFor.map((item) => stripChineseText(item, "timing")).slice(0, 2).join(" + ")} during ${preview.dailySignal.bestHour}.`;
+  const actionCard = {
+    bestWindow: preview.dailySignal.bestHour,
+    avoidWindow: localizedAction(preview.dailySignal.avoid, isZh),
+    action: localizedAction(preview.dailySignal.do, isZh),
+  };
+  const personaSeed = (preview.dailySignal.score + (preview.focus ?? "General").length + preview.dailySignal.bestFor.length) % 4;
+  const persona = (isZh
+    ? [
+        { label: "细节大师", line: "你今天赢在稳，不赢在冲。适合把复杂事拆细，把遗漏补上。", share: "今日行动人设：细节大师｜赢在稳，不赢在冲" },
+        { label: "战略家", line: "你今天适合先看全局，再做关键一步。别急着证明自己，先把节奏拿回来。", share: "今日行动人设：战略家｜先看全局，再落一子" },
+        { label: "沟通者", line: "你今天的价值在于把话说清楚。少一点猜测，多一次确认，关系会更顺。", share: "今日行动人设：沟通者｜把话说清楚就是好运" },
+        { label: "破局者", line: "你今天不必硬冲，但可以打开一个卡住的结。先动一小步，局面就会松。", share: "今日行动人设：破局者｜先动一小步，局面就会松" },
+      ]
+    : [
+        { label: "Detail Master", line: "You win today by being steady, not by rushing. Slow review is not delay — it is your edge.", share: "Today's archetype: Detail Master | steady wins, rushing leaks" },
+        { label: "Strategist", line: "Today favors the person who sees the board before moving. Reclaim the rhythm before proving anything.", share: "Today's archetype: Strategist | see the board, then move" },
+        { label: "Connector", line: "Your value today is clarity with people. One honest check-in beats ten quiet assumptions.", share: "Today's archetype: Connector | clear words create luck" },
+        { label: "Breaker", line: "You do not need to force the whole wall down. Move one small stone and the stuck pattern loosens.", share: "Today's archetype: Breaker | one small move opens the path" },
+      ])[personaSeed];
+  const emotionalRead = isZh
+    ? `如果你今天感觉推进慢、反复检查，先别急着否定自己。这不是没效率，而是今天更适合深度审视：把坑看清，把承诺说准，把下一步做稳。${persona.line}`
+    : `If today feels slower than expected, or you keep checking the same thing twice, do not read that as failure. Today is built for deeper review: notice the trap, name the next step, and move with steadiness. ${persona.line}`;
+  const humanActionLine = isZh
+    ? `${persona.line} 把 ${localizedValue(preview.focus, true)} 放在 ${actionCard.bestWindow} 前后处理；遇到 ${actionCard.avoidWindow} 时，先停十分钟再回应。`
+    : `${persona.line} Put ${stripChineseText(preview.focus, "your focus").toLowerCase()} near ${actionCard.bestWindow}; when ${actionCard.avoidWindow.toLowerCase()} shows up, pause for ten minutes before responding.`;
+  const suggestedActions = isZh
+    ? [
+        humanActionLine,
+        `今天免费版先告诉你“做什么”：${actionCard.action}`,
+        `完整报告会继续告诉你“为什么”、未来 7 天怎么走，以及哪个坑最该避开。`,
+      ]
+    : [
+        humanActionLine,
+        `The free result tells you what to do today: ${actionCard.action}`,
+        "The full report shows why, how the next 7 days move, and which trap to avoid.",
+      ];
+  const suitableItems = preview.dailySignal.bestFor.map((item) => localizedValue(item, isZh, "Timing")).slice(0, 3);
+
+  const confidenceNotes = [
+    !preview.birthProfile.birthTimeKnown ? (isZh ? "出生时间未知：时柱和黄金时段会采用估算午时命盘。" : "Birth time unknown: hour-pillar and golden-hour guidance use an estimated noon chart.") : null,
+    !preview.birthProfile.birthPlaceText ? (isZh ? "出生地缺失：添加城市或坐标后，真太阳时精度会更高。" : "Birthplace missing: true solar time precision is lower until you add a city or advanced coordinates.") : null,
+    !preview.trueSolarTime ? (isZh ? "由于位置信息不完整，真太阳时尚未完全校正。" : "True solar time was not fully adjusted because location details are incomplete.") : null,
+  ].filter(Boolean);
+
+  if (!hasFullReport) {
+    const teaser = preview.freeSummary ?? preview.dailySignal;
+    const lockedModules = preview.lockedModules ?? ["four_pillars", "five_elements", "ten_gods", "interpretation_basis", "deep_daily_signal", "seven_day_plan"];
+    const askCredits = preview.access?.askCredits ?? 0;
+    const entitlementStatus = preview.access?.fullReportEntitlement?.status ?? "locked";
+    return (
+      <>
+        <Background />
+        <main className="ys-shell relative z-10 min-h-screen pb-32 md:pb-16">
+          <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+              <AppBackLink href="/reading/start" label={isZh ? "修改出生资料" : "Edit birth profile"} context={isZh ? "返回" : "Back"} />
+              <LanguageSwitcher />
+            </div>
+          </header>
+          <section className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+            {recoveryStatus ? <p className="rounded-2xl border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-3 text-xs text-[#d7f0e2]">{recoveryStatus}</p> : null}
+            <article className="ys-panel rounded-[2rem] p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.28em] text-secondary">{isZh ? "免费摘要" : "Free teaser"} · {todayKey()}</p>
+                  <h1 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "完整东方命运报告预览" : "Full Eastern Destiny Report Preview"}</h1>
+                </div>
+                <span className="rounded-full border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-3 py-1 text-xs font-bold text-[#e0bd72]">
+                  {entitlementStatus === "unlocked" ? (isZh ? "完整报告已解锁" : "Full report unlocked") : (isZh ? "完整报告未解锁" : "Full report locked")}
+                </span>
+              </div>
+              <div className="mt-4 rounded-[1.75rem] border border-[#e0bd72]/30 bg-[#e0bd72]/10 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#e0bd72]">{isZh ? "今日状态解读" : "Today’s emotional read"}</p>
+                <p className="mt-2 text-base leading-7 text-white">{emotionalRead}</p>
+              </div>
+              <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base leading-7 text-white">
+                {preview.freeSummary?.summary ?? (isZh ? "免费版先给你今天该抓住什么、避开什么和一个可执行动作；完整报告会讲清原因与未来 7 天节奏。" : "The free result gives what to lean into, what to avoid, and one practical action; the full report explains why and the next 7-day rhythm.")}
+              </p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div>
+                  <span className="text-5xl font-heading font-bold text-white text-glow sm:text-6xl">{teaser.score}</span>
+                  <span className="pb-3 text-sm text-gray-400"> / 100 {isZh ? "清晰度" : "clarity"}</span>
+                </div>
+                <div className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
+                  <p className="text-xs uppercase tracking-[0.18em] text-accent">{isZh ? "问事次数" : "Ask credits"}</p>
+                  <p className="mt-1 text-2xl font-heading font-bold text-white">{askCredits}</p>
+                </div>
+              </div>
+              <div className="mt-5 grid sm:grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-4">
+                  <p className="text-xs font-bold uppercase text-secondary">{isZh ? "最佳窗口" : "Best window"}</p>
+                  <p className="mt-2 text-lg font-heading font-bold text-white">{teaser.bestHour}</p>
+                </div>
+                <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
+                  <p className="text-xs font-bold uppercase text-accent">{isZh ? "避开" : "Avoid"}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{localizedAction(teaser.avoid, isZh)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-bold uppercase text-gray-300">{isZh ? "一项行动" : "One action"}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-200">{localizedAction(teaser.do, isZh)}</p>
+                </div>
+              </div>
+              <section className="mt-5 rounded-[2rem] border border-white/10 bg-black/25 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#e0bd72]">{isZh ? "已锁定模块" : "Locked Full Report modules"}</p>
+                <p className="mt-2 text-sm leading-6 text-gray-300">
+                  {isZh ? "免费摘要只展示 3 条命中线索和目录；性格、爱情、事业、财富、贵人、未来90天等深度章节保持锁定。解锁完整报告不会消耗问事次数。" : "The free teaser only shows three hit-style clues and the table of contents. Personality, love, career, wealth, helpful people, and future 90-day chapters stay locked. Unlocking Full Report does not consume ask credits."}
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {["personality", "love", "career", "wealth", "helpful_people", "future_90_days", ...lockedModules].slice(0, 9).map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-gray-200">🔒 {item.replaceAll("_", " ")}</div>
+                  ))}
+                </div>
+              </section>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <StripeCheckoutButton
+                  product="report_single"
+                  clientReferenceId={getAnonymousId()}
+                  onStart={() => {
+                    trackYiShunEvent(YISHUN_EVENTS.CLICK_PAYWALL, { placement: "result_teaser_unlock", product: "report_single", source: "reading_result" });
+                    trackYiShunEvent(YISHUN_EVENTS.CHECKOUT_START, { placement: "result_teaser_unlock", product: "report_single", source: "reading_result" });
+                  }}
+                  className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-black text-white"
+                  fallbackLabel={isZh ? "支付暂未配置，请先保存摘要。" : "Checkout is not configured. Save your teaser first."}
+                >
+                  {isZh ? "购买完整报告（不扣问事次数）" : "Buy Full Report / Unlock Full Report (no ask credits used)"}
+                </StripeCheckoutButton>
+                <Link href="/ai-question?source=reading_result_teaser" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-bold text-secondary">
+                  {isZh ? `使用 1 次问事｜余额 ${askCredits}` : `Use 1 credit · balance ${askCredits}`}
+                </Link>
+                <Link href="/membership?source=reading_result_teaser" className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-bold text-gray-200">
+                  {isZh ? "查看会员权益" : "Compare membership"}
+                </Link>
+              </div>
+              <p className="mt-4 text-xs leading-5 text-gray-500">{localizedDisclaimer(teaser.disclaimer, isZh)}</p>
+            </article>
+
+            <section className="ys-share-card rounded-3xl p-5 sm:p-6" aria-label="Shareable YiShun timing card">
+              <div className="mx-auto max-w-sm rounded-[2rem] border border-white/15 bg-black/25 p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.25em] text-accent">{isZh ? "易顺今日卡" : "YiShun Timing Card"}</p>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs">{todayKey()}</span>
+                </div>
+                <p className="mt-5 text-5xl font-heading font-bold text-glow">{teaser.score}</p>
+                <p className="mt-2 text-sm text-gray-300">{isZh ? "今日清晰度评分" : "Today’s clarity score"}</p>
+                <div className="mt-5 space-y-3 text-sm">
+                  <p><span className="text-secondary">{isZh ? "今日行动人设：" : "Today's archetype:"}</span> {persona.label}</p>
+                  <p><span className="text-white">{isZh ? "人设金句：" : "Share line:"}</span> {persona.share}</p>
+                  <p><span className="text-secondary">{isZh ? "适合：" : "Good for:"}</span> {suitableItems.join(" · ")}</p>
+                  <p><span className="text-white">{isZh ? "最佳窗口：" : "Best window:"}</span> {actionCard.bestWindow}</p>
+                  <p><span className="text-accent">{isZh ? "避免：" : "Avoid:"}</span> {actionCard.avoidWindow}</p>
+                </div>
+                <p className="mt-5 border-t border-white/10 pt-4 text-xs text-gray-400">
+                  {isZh ? "不会展示生日、出生地或隐私细节。你可以保存、截图或分享这张卡。" : "No birth date, birthplace, or private details shown. Save, screenshot, or share this card."}
+                </p>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <button onClick={handleSaveDeviceOnly} className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-gradient-to-r from-secondary to-accent px-5 py-3 text-sm font-black text-white shadow-[0_16px_45px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 active:translate-y-0">
+                  {saveActionState === "loading" ? (isZh ? "保存中…" : "Saving…") : saveActionState === "success" ? (isZh ? "已保存" : "Saved") : (isZh ? "保存今日卡" : "Save today card")}
+                </button>
+                <button onClick={handleShare} disabled={shareBusy} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-surface shadow-[0_16px_45px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-[#f5efe1] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  {shareBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-surface/30 border-t-surface" aria-hidden="true" />}
+                  {shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "已复制 / 已分享" : "Copied / shared") : (isZh ? "分享今日卡" : "Share today card")}
+                </button>
+                <button onClick={handleDownloadShareImage} className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">{isZh ? "下载 SVG 长图" : "Download SVG card"}</button>
+              </div>
+              {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
+            </section>
+
+            <PaymentValueMatrix isEnglish={!isZh} credits={askCredits} compact source="reading_result" />
+          </section>
+        </main>
       </>
     );
   }
@@ -450,7 +672,7 @@ export default function ReadingResultPage() {
     event.preventDefault();
     archiveToday(email.trim());
     setSavePanelOpen(false);
-    setSavedMessage(isZh ? "已保存。提醒偏好会保存在本地测试版本中。" : "Saved. Reminder preference is stored locally for the P0 test build.");
+    setSavedMessage(isZh ? "已保存。提醒偏好只保存在本机浏览器中。" : "Saved. Reminder preference is stored in this browser only.");
   }
 
   async function handleShare() {
@@ -468,8 +690,8 @@ export default function ReadingResultPage() {
       score_label: isZh ? `${preview.dailySignal.score}/100 清晰度` : `${preview.dailySignal.score}/100 clarity`,
     };
     const fallbackText = isZh
-      ? `我的易顺今日时机卡：${preview.dailySignal.score}/100 清晰度 · 最佳窗口 ${preview.dailySignal.bestHour} · 避免 ${localizedAction(preview.dailySignal.avoid, true)} · 可做 ${localizedAction(preview.dailySignal.do, true)} #每日时机`
-      : `My YiShun timing card today: ${preview.dailySignal.score}/100 clarity · Best window ${preview.dailySignal.bestHour} · Avoid ${toSentenceCase(preview.dailySignal.avoid)} · Try this: ${toSentenceCase(preview.dailySignal.do)} #DailyTiming`;
+      ? `${persona.share}｜清晰度 ${preview.dailySignal.score}/100｜最佳 ${preview.dailySignal.bestHour}｜避免 ${localizedAction(preview.dailySignal.avoid, true)} #每日时机`
+      : `${persona.share} | clarity ${preview.dailySignal.score}/100 | Best ${preview.dailySignal.bestHour} | Avoid ${toSentenceCase(preview.dailySignal.avoid)} #DailyTiming`;
     let shareUrl = window.location.origin;
     let shareId: string | undefined;
     track("share_create_click", { source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic", anonymous_id: anonymousId });
@@ -511,6 +733,33 @@ export default function ReadingResultPage() {
     setShareBusy(false);
   }
 
+  function handleDownloadShareImage() {
+    if (!preview) return;
+    const safeFocus = localizedValue(preview.focus, isZh, "General");
+    const safeAction = localizedAction(preview.dailySignal.do, isZh);
+    const safeAvoid = localizedAction(preview.dailySignal.avoid, isZh);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+      <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080b09"/><stop offset="0.55" stop-color="#16231c"/><stop offset="1" stop-color="#3b2d12"/></linearGradient></defs>
+      <rect width="1080" height="1350" rx="72" fill="url(#bg)"/>
+      <rect x="70" y="80" width="940" height="1190" rx="56" fill="rgba(255,255,255,0.06)" stroke="#e0bd72" stroke-opacity="0.35" stroke-width="3"/>
+      <text x="110" y="170" fill="#e0bd72" font-family="Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="8">MY ACTION TIMING TODAY</text>
+      <text x="110" y="285" fill="#ffffff" font-family="Georgia, serif" font-size="128" font-weight="800">${preview.dailySignal.score}</text>
+      <text x="320" y="274" fill="#d8d0bf" font-family="Arial, sans-serif" font-size="34">/100 clarity · Good for ${escapeSvgText(safeFocus)}</text>
+      <text x="110" y="385" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800">${escapeSvgText(persona.label)}</text>
+      <foreignObject x="110" y="420" width="840" height="110"><div xmlns="http://www.w3.org/1999/xhtml" style="font: 34px Arial, sans-serif; color: #f5efe1; line-height: 1.25;">${escapeSvgText(persona.share)}</div></foreignObject>
+      <text x="110" y="550" fill="#7fd8a8" font-family="Arial, sans-serif" font-size="42" font-weight="800">Best window: ${escapeSvgText(preview.dailySignal.bestHour)}</text>
+      <text x="110" y="615" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800">Good for ${escapeSvgText(safeFocus)}</text>
+      <text x="110" y="675" fill="#e0bd72" font-family="Arial, sans-serif" font-size="38" font-weight="800">Try this</text>
+      <foreignObject x="110" y="705" width="840" height="180"><div xmlns="http://www.w3.org/1999/xhtml" style="font: 44px Arial, sans-serif; color: white; line-height: 1.25;">${escapeSvgText(safeAction)}</div></foreignObject>
+      <text x="110" y="950" fill="#f5b5a7" font-family="Arial, sans-serif" font-size="38" font-weight="800">Avoid</text>
+      <foreignObject x="110" y="980" width="840" height="140"><div xmlns="http://www.w3.org/1999/xhtml" style="font: 36px Arial, sans-serif; color: #f5efe1; line-height: 1.25;">${escapeSvgText(safeAvoid)}</div></foreignObject>
+      <text x="110" y="1190" fill="#aaa292" font-family="Arial, sans-serif" font-size="28">No birth date or private details shown · 11263.com</text>
+    </svg>`;
+    downloadTextAsFile(`yishun-timing-card-${todayKey()}.svg`, svg, "image/svg+xml;charset=utf-8");
+    queueP0Analytics("share_image_saved", { source: "reading_result", card_type: "daily_luck_svg", score: preview.dailySignal.score });
+    trackYiShunEvent(YISHUN_EVENTS.SAVE_CLICK, { source: "reading_result", mode: "share_image_svg", score: preview.dailySignal.score });
+  }
+
   function handleReportPreview() {
     track("reports_open", {
       placement: "post_free_value",
@@ -531,6 +780,11 @@ export default function ReadingResultPage() {
       focus: preview?.focus ?? "General",
       ai_status: preview?.ai?.status ?? "missing",
     });
+    trackYiShunEvent(YISHUN_EVENTS.CLICK_PAYWALL, {
+      placement,
+      product: "report_single",
+      source: "reading_result",
+    });
     trackYiShunEvent(YISHUN_EVENTS.PAYMENT_INTENT, {
       placement,
       product: "report_single",
@@ -544,56 +798,27 @@ export default function ReadingResultPage() {
     });
   }
 
-  const elementSummary = localizedElementSummary(preview, isZh);
-  const streak = calculateStreak(history, true);
-  const oneLineSummary = isZh
-    ? `${localizedValue(preview.focus, true)}适合${preview.dailySignal.bestFor.map((item) => localizedValue(item, true, "时机")).slice(0, 2).join(" + ")}，参考时段 ${preview.dailySignal.bestHour}。`
-    : `${stripChineseText(preview.focus, "General")} favors ${preview.dailySignal.bestFor.map((item) => stripChineseText(item, "timing")).slice(0, 2).join(" + ")} during ${preview.dailySignal.bestHour}.`;
-  const actionCard = {
-    bestWindow: preview.dailySignal.bestHour,
-    avoidWindow: localizedAction(preview.dailySignal.avoid, isZh),
-    action: localizedAction(preview.dailySignal.do, isZh),
-  };
-  const suggestedActions = isZh
-    ? [
-        actionCard.action,
-        `把最重要的${localizedValue(preview.focus, true)}任务安排在 ${actionCard.bestWindow} 前后。`,
-        `先写下一个可验证的小步骤，再承诺更大的决定。`,
-      ]
-    : [
-        actionCard.action,
-        `Place your most important ${stripChineseText(preview.focus, "focus").toLowerCase()} task near ${actionCard.bestWindow}.`,
-        "Write one verifiable next step before making a larger commitment.",
-      ];
-  const suitableItems = preview.dailySignal.bestFor.map((item) => localizedValue(item, isZh, "Timing")).slice(0, 3);
-
-  const confidenceNotes = [
-    !preview.birthProfile.birthTimeKnown ? (isZh ? "出生时间未知：时柱和黄金时段会采用估算午时命盘。" : "Birth time unknown: hour-pillar and golden-hour guidance use an estimated noon chart.") : null,
-    !preview.birthProfile.birthPlaceText ? (isZh ? "出生地缺失：添加城市或坐标后，真太阳时精度会更高。" : "Birthplace missing: true solar time precision is lower until you add a city or advanced coordinates.") : null,
-    !preview.trueSolarTime ? (isZh ? "由于位置信息不完整，真太阳时尚未完全校正。" : "True solar time was not fully adjusted because location details are incomplete.") : null,
-  ].filter(Boolean);
-  const aiSummary = preview.ai?.status === "ok"
-    ? (isZh ? preview.ai.summary : stripChineseText(preview.ai.summary, oneLineSummary))
-    : oneLineSummary;
   const aiActionSuggestions = preview.ai?.status === "ok"
-    ? preview.ai.actionSuggestions.map((item) => isZh ? item : stripChineseText(item, "Use the timing signal as a reflection prompt."))
+    ? preview.ai.actionSuggestions.map((item) => isZh ? item : stripChineseText(item, "Use this timing card as a reflection prompt."))
     : [];
   const aiReflectionQuestion = preview.ai?.status === "ok"
     ? (isZh ? preview.ai.reflectionQuestion : stripChineseText(preview.ai.reflectionQuestion, "What one action fits this timing window today?"))
     : "";
   const aiTerminologyNote = preview.ai?.status === "ok"
-    ? (isZh ? preview.ai.terminologyNote : stripChineseText(preview.ai.terminologyNote, "Terms are explained from the structured timing signal."))
+    ? (isZh ? preview.ai.terminologyNote : stripChineseText(preview.ai.terminologyNote, "Terms are explained from your timing card."))
     : "";
   const aiAttribution = preview.ai?.status === "ok"
-    ? (isZh ? preview.ai.attribution : stripChineseText(preview.ai.attribution, "Gemini explains the rules-engine signal; it does not decide chart facts."))
+    ? (isZh
+        ? preview.ai.attribution.replaceAll("Gemini", "易顺").replaceAll("规则引擎", "易顺计算").replaceAll("AI", "易顺")
+        : stripChineseText(preview.ai.attribution, "YiShun explains the timing card without changing your chart facts.").replaceAll("AI", "YiShun").replaceAll("rules engine", "YiShun calculation"))
     : "";
   const ruleEvidenceItems = [
     [isZh ? "出生资料" : "Birth profile", isZh ? "用于建立个人时机基准；分享卡不会展示隐私资料。" : "Used to set the personal timing baseline; private birth details stay off share cards."],
     [isZh ? "真太阳时" : "True solar time", preview.trueSolarTime ? localizedTrueSolarOffset(preview.trueSolarTime.offsetMinutes, isZh) : (isZh ? "当前缺少完整位置，因此使用可用资料估算。" : "Location is incomplete, so the result uses the available profile estimate.")],
-    [isZh ? "四柱" : "Four Pillars", isZh ? "年柱、月柱、日柱、时柱由规则引擎计算，用作长期结构背景。" : "Year, month, day, and hour pillars are computed by the rules engine as structural context."],
-    [isZh ? "日主" : "Day Master", isZh ? `${localizedDayMaster(preview.dayMaster, true)} 用于判断今日信号与个人结构的配合。` : `${localizedDayMaster(preview.dayMaster, false)} anchors how today's signal fits your profile.`],
+    [isZh ? "四柱" : "Four Pillars", isZh ? "年柱、月柱、日柱、时柱用于提供长期结构背景。" : "Year, month, day, and hour pillars provide structural context."],
+    [isZh ? "日主" : "Day Master", isZh ? `${localizedDayMaster(preview.dayMaster, true)} 用于理解今天更适合哪种节奏。` : `${localizedDayMaster(preview.dayMaster, false)} anchors what rhythm fits you today.`],
     [isZh ? "五行" : "Five Elements", elementSummary || (isZh ? "五行分布已计算。" : "Element balance is calculated.")],
-    [isZh ? "今日信号" : "Today’s signal", isZh ? `清晰度 ${preview.dailySignal.score}/100；有利窗口 ${preview.dailySignal.bestHour}。` : `Clarity ${preview.dailySignal.score}/100; best window ${preview.dailySignal.bestHour}.`],
+    [isZh ? "今日状态" : "Today’s state", isZh ? `清晰度 ${preview.dailySignal.score}/100；有利窗口 ${preview.dailySignal.bestHour}。` : `Clarity ${preview.dailySignal.score}/100; best window ${preview.dailySignal.bestHour}.`],
     [isZh ? "最佳窗口" : "Best window", isZh ? "由今日节律、五行提示和行动边界共同生成。" : "Generated from today’s cycle, element hint, and action boundaries."],
   ];
 
@@ -609,33 +834,42 @@ export default function ReadingResultPage() {
         </header>
 
         <section className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          {recoveryStatus ? <p className="rounded-2xl border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-3 text-xs text-[#d7f0e2]">{recoveryStatus}</p> : null}
           <article className="ys-panel overflow-hidden rounded-[2rem] p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-secondary">{isZh ? "今日决策信号" : "Today’s Decision Signal"} · {todayKey()}</p>
-                <h1 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "时机清晰度" : "Timing clarity"}: {localizedValue(preview.focus, isZh)}</h1>
+                <p className="text-xs uppercase tracking-[0.28em] text-secondary">{isZh ? "今日状态解读" : "Today’s emotional read"} · {todayKey()}</p>
+                <h1 className="mt-2 text-2xl font-heading font-bold text-white">{persona.label}: {localizedValue(preview.focus, isZh)}</h1>
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">{isZh ? "免费结果已解锁" : "Free result unlocked"}</span>
             </div>
+            <div className="mt-4 rounded-[1.75rem] border border-[#e0bd72]/30 bg-[#e0bd72]/10 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#e0bd72]">{isZh ? "先理解你今天的状态" : "First: what today may feel like"}</p>
+              <p className="mt-2 text-xl font-heading font-bold leading-8 text-white">
+                {isZh
+                  ? `今天最该抓住 ${localizedValue(preview.focus, true)}，避开 ${actionCard.avoidWindow}，最佳窗口 ${actionCard.bestWindow}。`
+                  : `Today, lean into ${stripChineseText(preview.focus, "your focus")}, avoid ${actionCard.avoidWindow.toLowerCase()}, and use ${actionCard.bestWindow}.`}
+              </p>
+            </div>
             <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-base leading-7 text-white">
-              {aiSummary}
+              {emotionalRead}
             </p>
             {preview.ai?.status === "ok" && (
               <div className="mt-4 rounded-[1.5rem] border border-[#e0bd72]/25 bg-[#e0bd72]/10 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-[#e0bd72]">
-                    {isZh ? "AI 个性化解读（基于结构化八字时机信号）" : "AI-personalized interpretation based on structured BaZi timing"}
+                    {isZh ? "更像顾问的补充解读" : "A more personal reading"}
                   </p>
                   <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-bold text-emerald-200">
-                    {isZh ? "仅解释已提供信号" : "Explains provided signals only"}
+                    {isZh ? "不夸大，不吓人" : "Grounded, not fear-based"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-gray-400">
-                  {isZh ? "命盘、分数、黄金时段、四柱、日主、五行与真太阳时由 YiShun 规则引擎计算；AI 不决定命盘。" : "YiShun’s rules engine computes the chart, score, best hour, Four Pillars, Day Master, Five Elements, and true solar time; AI does not decide the chart."}
+                  {isZh ? "这里把今天的状态翻译成更容易感受到的提醒：先稳住节奏，再做关键动作。" : "This turns today’s pattern into a felt reminder: steady your rhythm first, then take the key action."}
                 </p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr]">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-xs text-gray-400">{isZh ? "AI 行动建议" : "AI action suggestions"}</p>
+                    <p className="text-xs text-gray-400">{isZh ? "顾问式行动建议" : "Advisor-style next steps"}</p>
                     <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-white">
                       {aiActionSuggestions.map((item) => <li key={item}>{item}</li>)}
                     </ol>
@@ -652,12 +886,12 @@ export default function ReadingResultPage() {
             <div className="mt-4 rounded-[1.5rem] border border-[#7aa48c]/25 bg-[#7aa48c]/10 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a8d8bd]">{isZh ? "准确性说明" : "Accuracy / evidence"}</p>
-                <span className="rounded-full bg-black/25 px-3 py-1 text-[11px] font-bold text-[#d7f0e2]">{isZh ? "规则计算，AI 不改事实" : "Rules compute; AI cannot alter facts"}</span>
+                <span className="rounded-full bg-black/25 px-3 py-1 text-[11px] font-bold text-[#d7f0e2]">{isZh ? "透明依据，不制造焦虑" : "Transparent, not fear-based"}</span>
               </div>
               <div className="mt-3 grid gap-2 text-xs leading-5 text-gray-200 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "出生资料已标准化" : "Birth profile normalized"}</div>
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{preview.trueSolarTime ? (isZh ? `真太阳时 ${preview.trueSolarTime.time}` : `True solar time ${preview.trueSolarTime.time}`) : (isZh ? "真太阳时待补充地点" : "True solar time needs location")}</div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "四柱/五行由规则引擎生成" : "Four Pillars / elements from rules"}</div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "四柱/五行提供结构依据" : "Four Pillars / elements provide context"}</div>
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-3">{isZh ? "建议仅用于反思和择时" : "Use for reflection and timing only"}</div>
               </div>
             </div>
@@ -715,17 +949,17 @@ export default function ReadingResultPage() {
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-secondary/90">{isZh ? "结果依据" : "Why this result?"}</p>
                   <h2 className="mt-2 text-2xl font-heading font-bold text-white">
-                    {isZh ? "这些规则让准确性可感知。" : "The signal is traceable, not a black box."}
+                    {isZh ? "为什么今天适合这样做。" : "Why today feels this way."}
                   </h2>
                 </div>
                 <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-gray-300">
-                  {isZh ? "Gemini 只解释，不决定事实" : "Gemini explains; it does not decide facts"}
+                  {isZh ? "解释清楚，不制造焦虑" : "Clear, not fear-based"}
                 </span>
               </div>
               <p className="mt-3 text-sm leading-6 text-gray-300">
                 {isZh
-                  ? "出生资料、真太阳时、四柱、日主、五行和今日信号由 YiShun 规则引擎计算；Gemini 只把这些已计算事实转成更容易理解的个性化说明。"
-                  : "Birth data, true solar time, Four Pillars, Day Master, Five Elements, today’s signal, and the best window are computed by YiShun’s rules engine. Gemini only turns those facts into a personalized explanation."}
+                  ? "易顺把出生资料、当天节奏和行动边界整理成你能立刻使用的提醒：今天该抓什么、避开什么、为什么别硬冲。"
+                  : "YiShun turns your profile, today’s rhythm, and action boundaries into a useful reminder: what to lean into, what to avoid, and why not to force it."}
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {ruleEvidenceItems.map(([label, body]) => (
@@ -742,15 +976,15 @@ export default function ReadingResultPage() {
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-[#e0bd72]">{isZh ? "进阶报告" : "Premium report"}</p>
                   <h2 className="mt-2 text-2xl font-heading font-bold text-white">
-                    {isZh ? "把今日信号升级成可执行计划。" : "Turn this signal into an actionable plan."}
+                    {isZh ? "免费知道今天怎么做；完整报告知道为什么，以及未来 7 天怎么走。" : "Free shows what to do today; Full report shows why and how the next 7 days unfold."}
                   </h2>
                   <p className="mt-3 text-sm leading-6 text-gray-300">
                     {isZh ? "免费版保留今日最佳窗口和一项行动；付费报告会展开未来 7 天节奏、关键日期、风险提示和可保存的行动清单。" : "The free result gives today’s window and one action. The paid report expands this into a 7-day rhythm, key dates, risk notes, and a saveable action checklist."}
                   </p>
                   <div className="mt-4 grid gap-2 text-sm text-gray-200 sm:grid-cols-3">
                     {(isZh
-                      ? ["7 天择时路线", "PDF/长图保存", "Gemini 个性化扩写"]
-                      : ["7-day timing plan", "PDF/image-ready summary", "Gemini-personalized expansion"]
+                      ? ["7 天择时路线", "PDF/长图保存", "个性化扩写"]
+                      : ["7-day timing plan", "PDF/image-ready summary", "personalized expansion"]
                     ).map((item) => (
                       <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">✓ {item}</div>
                     ))}
@@ -760,7 +994,7 @@ export default function ReadingResultPage() {
                   <p className="text-xs uppercase tracking-[0.2em] text-gray-400">{isZh ? "推荐单次购买" : "Recommended one-time unlock"}</p>
                   <p className="mt-2 text-3xl font-heading font-bold text-white">{isZh ? "完整报告" : "Full report"}</p>
                   <p className="mt-1 text-2xl font-black text-[#e0bd72]">US$4.99</p>
-                  <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "单次购买：7 天择时路线、关键日期、风险提示和可保存清单。适合先验证价值，不强推订阅。" : "One-time purchase: 7-day timing plan, key dates, risk notes, and a saveable checklist. Best for proving value before a subscription."}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "单次购买：把今天的感觉、原因、未来 7 天节奏和最该避开的坑讲透。适合想认真做决定的人。" : "One-time purchase: understand today’s feeling, the reason behind it, the next 7-day rhythm, and the trap to avoid. For people making a real decision."}</p>
                   <StripeCheckoutButton
                     product="report_single"
                     clientReferenceId={getAnonymousId()}
@@ -770,16 +1004,16 @@ export default function ReadingResultPage() {
                   >
                     {isZh ? "解锁完整报告" : "Unlock full report"}
                   </StripeCheckoutButton>
-                  <p className="mt-3 text-[11px] leading-5 text-gray-500">{isZh ? "成本护栏已启用：缓存、采样、超时和规则兜底。" : "Cost guard enabled: cache, sampling, timeout, and rules fallback."}</p>
+                  <p className="mt-3 text-[11px] leading-5 text-gray-500">{isZh ? "免费版给方向；完整报告给原因、节奏和避坑清单。" : "Free gives direction; Full report gives the why, rhythm, and avoid-list."}</p>
                 </div>
               </div>
             </section>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
-                [isZh ? "今日节奏" : "Today rhythm", oneLineSummary],
-                [isZh ? "关键洞察" : "Key insight", localizedWhy(preview, isZh)],
-                [isZh ? "行动边界" : "Action boundary", `${isZh ? "适合" : "Best"}: ${suitableItems.join(" · ")} · ${isZh ? "避免" : "Avoid"}: ${actionCard.avoidWindow}`],
+                [isZh ? "先稳住" : "Steady first", emotionalRead],
+                [isZh ? "现在就做" : "Do now", humanActionLine],
+                [isZh ? "明天再看" : "Return cue", isZh ? `保存这张 ${persona.label} 今日卡，明天对比你的节奏是否变快、变稳或需要换方向。` : `Save this ${persona.label} card and compare tomorrow: faster, steadier, or time to change direction.`],
               ].map(([title, body]) => (
                 <div key={title} className="ys-panel-soft rounded-3xl p-4">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e0bd72]">{title}</p>
@@ -798,7 +1032,7 @@ export default function ReadingResultPage() {
                 {shareBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
                 {shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "分享链接已就绪" : "Share link ready") : (isZh ? "分享今日卡片" : "Share today’s card")}
               </button>
-              <Link href="/samples" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "查看样例报告" : "View sample reports"}</Link>
+              <button onClick={handleDownloadShareImage} className="rounded-2xl border border-[#e0bd72]/35 bg-[#e0bd72]/10 px-4 py-3 text-sm font-bold text-[#f1d28e] hover:bg-[#e0bd72]/15">{isZh ? "一键保存长图" : "Save image card"}</button>
             </div>
             {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
           </article>
@@ -812,17 +1046,19 @@ export default function ReadingResultPage() {
               <p className="mt-5 text-5xl font-heading font-bold text-glow">{preview.dailySignal.score}</p>
               <p className="mt-2 text-sm text-gray-300">{isZh ? "今日清晰度评分" : "Today’s clarity score"}</p>
               <div className="mt-5 space-y-3 text-sm">
+                <p><span className="text-secondary">{isZh ? "今日行动人设：" : "Today's archetype:"}</span> {persona.label}</p>
+                <p><span className="text-white">{isZh ? "人设金句：" : "Share line:"}</span> {persona.share}</p>
                 <p><span className="text-secondary">{isZh ? "最佳：" : "Best:"}</span> {actionCard.bestWindow}</p>
                 <p><span className="text-accent">{isZh ? "避免：" : "Avoid:"}</span> {actionCard.avoidWindow}</p>
-                <p><span className="text-white">{isZh ? "尝试：" : "Try:"}</span> {actionCard.action}</p>
               </div>
               <p className="mt-5 border-t border-white/10 pt-4 text-xs text-gray-400">{isZh ? "不会展示出生日期或隐私细节。你可以截图或分享这张卡。" : "No birth date or private details shown. Screenshot or share this card."}</p>
             </div>
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
               <button onClick={handleShare} disabled={shareBusy} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-surface shadow-[0_16px_45px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-[#f5efe1] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
                 {shareBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-surface/30 border-t-surface" aria-hidden="true" />}
                 {shareBusy ? (isZh ? "正在创建链接…" : "Creating link…") : shareCopied ? (isZh ? "已复制 / 已分享" : "Copied / shared") : (isZh ? "复制或系统分享卡片文字" : "Copy or system-share card text")}
               </button>
+              <button onClick={handleDownloadShareImage} className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">{isZh ? "下载长图 SVG" : "Download image SVG"}</button>
             </div>
           </section>
 
@@ -830,7 +1066,7 @@ export default function ReadingResultPage() {
             <section className="rounded-3xl border border-secondary/30 bg-surface/90 p-5 sm:p-6 shadow-2xl">
               <p className="text-xs uppercase tracking-[0.25em] text-accent/80">{isZh ? "每日仪式提醒" : "Daily Ritual reminder"}</p>
               <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "把它保存为你的每日仪式？" : "Keep this as your daily ritual?"}</h2>
-              <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "保存出生资料后，易顺明天可以直接生成新的信号。" : "Save your birth profile so YiShun can generate tomorrow’s signal without asking again."}</p>
+              <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "保存出生资料后，易顺明天可以直接生成新的今日卡。" : "Save your birth profile so YiShun can generate tomorrow’s card without asking again."}</p>
               <form onSubmit={handleSaveWithReminder} className="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="input-field" />
                 <button className="rounded-2xl bg-secondary px-5 py-3 text-sm font-bold text-white">{isZh ? "保存并明天提醒我" : "Save and remind me tomorrow"}</button>
@@ -846,8 +1082,8 @@ export default function ReadingResultPage() {
             <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
               <div>
                 <p className="text-xs uppercase tracking-[0.25em] text-secondary/90">{isZh ? "形成每日仪式" : "Make it a ritual"}</p>
-                <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "明天回来查看新的时机信号。" : "Come back tomorrow for a fresh timing signal."}</h2>
-                <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "保存今日结果，保留连续记录，并比较每天适合的行动如何变化。" : "Save today’s result, keep a simple streak, and compare how your best actions shift day by day."}</p>
+                <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "明天回来，不是重新算命，是看自己有没有变稳。" : "Return tomorrow not to recalculate fate, but to see what changed in you."}</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? `保存今天的 ${persona.label} 卡片。明天对比：情绪有没有松一点、行动有没有更准、该避开的坑有没有少踩。` : `Save today’s ${persona.label} card. Tomorrow compare: did your mood loosen, did action get clearer, did you avoid the trap?`}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-center">
                 <p className="text-3xl font-heading font-bold text-white">{streak}</p>
@@ -886,7 +1122,7 @@ export default function ReadingResultPage() {
                     <p className="text-xs text-gray-500">{isZh ? "时区偏移采用 JS Date.getTimezoneOffset 语义：UTC - 本地时间。" : "Timezone offset uses JS Date.getTimezoneOffset semantics: UTC - local."}</p>
                   </div>
                 ) : (
-                  <p className="mt-2 text-sm text-gray-400">{isZh ? "添加城市或坐标可以提高精度；免费信号仍可使用。" : "Add city or coordinates to raise precision. Your free signal remains available."}</p>
+                  <p className="mt-2 text-sm text-gray-400">{isZh ? "添加城市或坐标可以提高精度；免费今日卡仍可使用。" : "Add city or coordinates to raise precision. Your free today card remains available."}</p>
                 )}
               </div>
             </aside>
@@ -894,7 +1130,7 @@ export default function ReadingResultPage() {
             <div className="space-y-5">
               <div className="glass card p-5">
                 <p className="text-xs uppercase tracking-[0.25em] text-accent/80">{isZh ? "五行" : "Five Elements"}</p>
-                <FiveElementsChart balance={preview.elementsBalance} />
+                <FiveElementsChart balance={preview.elementsBalance ?? { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 }} />
                 {elementSummary && <p className="mt-3 text-sm text-gray-300">{elementSummary}</p>}
               </div>
 
@@ -909,10 +1145,10 @@ export default function ReadingResultPage() {
           <section className="rounded-3xl border border-white/10 bg-surface/70 p-5 sm:p-6">
             <p className="text-xs uppercase tracking-[0.25em] text-accent/80">{isZh ? "免费历史" : "Free history"}</p>
             <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "保存今天，明天对比。" : "Save today and compare tomorrow."}</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "P0 阶段保留核心免费仪式：今日最佳窗口、避开窗口和一个实际行动。此处刻意不展示支付和点数购买。" : "P0 keeps the core ritual free: today’s best timing window, avoid window, and one practical action. Payments and credit purchases are intentionally not shown."}</p>
+            <p className="mt-2 text-sm leading-6 text-gray-300">{isZh ? "免费结果保留核心仪式：今天怎么做、为什么先稳、明天如何对比。这里专注保存与复访，不打断用户体验。" : "The free result keeps the core ritual: what to do today, why steadiness matters, and what to compare tomorrow. This area focuses on saving and revisiting without interrupting the experience."}</p>
             <div className="mt-5 grid sm:grid-cols-2 gap-3">
               <button onClick={handleReportPreview} className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-bold text-white">{isZh ? "打开保存历史" : "Open saved history"}</button>
-              <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "生成明日信号" : "Generate tomorrow’s signal"}</Link>
+              <Link href="/reading/start" className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-gray-200 hover:bg-white/5">{isZh ? "生成明日今日卡" : "Generate tomorrow’s card"}</Link>
             </div>
           </section>
 

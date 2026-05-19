@@ -7,6 +7,7 @@ import {
   getAccruedCreditsUpdate,
   normalizeMembershipTier,
 } from "@/lib/membership";
+import { getFullReportEntitlementForUser } from "@/lib/full-report-entitlement";
 import type { User } from "@prisma/client";
 
 type UserWithAccrual = User & { lastCreditsAccruedAt?: Date | null };
@@ -50,11 +51,13 @@ export async function GET(request: NextRequest) {
 
   const syncedUser = await syncMembershipCredits(user);
 
-  const tier = normalizeMembershipTier(syncedUser.planTier);
-  const hasMemberAccess = tier !== "free";
-  const hasSingleConsultation = (syncedUser.consultationCredits ?? 0) > 0;
-  if (!hasMemberAccess && !hasSingleConsultation) {
-    return NextResponse.json({ error: t("errors.baziLocked") }, { status: 403 });
+  const fullReportEntitlement = await getFullReportEntitlementForUser(syncedUser.id, syncedUser.planTier);
+  if (fullReportEntitlement.status !== "unlocked") {
+    return NextResponse.json({
+      error: t("errors.baziLocked"),
+      entitlement: fullReportEntitlement,
+      creditPolicy: "Ask credits are only for AI questions and do not unlock the full BaZi report.",
+    }, { status: 403 });
   }
 
   if (!syncedUser.birthDate || !syncedUser.birthTime || !isGender(syncedUser.gender)) {

@@ -45,6 +45,7 @@ const copy = {
 export default function PaymentValueMatrix({ isEnglish = true, credits, compact = false, source = "payment_value_matrix" }: PaymentValueMatrixProps) {
   const c = isEnglish ? copy.en : copy.zh;
   const query = `?source=${encodeURIComponent(source)}`;
+  const fullReportQuery = `${query}&intent=full_report`;
 
   return (
     <section className={`rounded-[2rem] border border-[#e0bd72]/25 bg-gradient-to-br from-[#e0bd72]/12 via-white/[0.04] to-secondary/10 ${compact ? "p-4" : "p-5 sm:p-6"}`}>
@@ -78,7 +79,7 @@ export default function PaymentValueMatrix({ isEnglish = true, credits, compact 
         <Link href={`/ai-question${query}`} className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-bold text-secondary">
           {c.askWithCredit}
         </Link>
-        <Link href={`/reading/result${query}`} className="rounded-2xl border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-4 py-3 text-center text-sm font-bold text-[#e0bd72]">
+        <Link href={`/reading/result${fullReportQuery}`} className="rounded-2xl border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-4 py-3 text-center text-sm font-bold text-[#e0bd72]">
           {c.unlockReport}
         </Link>
       </div>

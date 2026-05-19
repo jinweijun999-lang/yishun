@@ -14,8 +14,10 @@ export const YISHUN_EVENTS = {
   SAVE_CLICK: "save_click",
   FUNNEL_SAVE: "save",
   PAYWALL_VIEW: "paywall",
+  CLICK_PAYWALL: "click_paywall",
   PAYMENT_INTENT: "payment_intent",
-  CHECKOUT_START: "checkout",
+  CHECKOUT_START: "checkout_start",
+  UNLOCK_SUCCESS: "unlock_success",
   AI_STATUS: "ai_status",
 } as const;
 

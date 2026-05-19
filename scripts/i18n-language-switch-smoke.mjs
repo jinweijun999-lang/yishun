@@ -10,6 +10,10 @@ async function expectText(locator, expected, label) {
   }
 }
 
+async function expectPageText(page, expected, label) {
+  await expectText(page.locator("body"), expected, label);
+}
+
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
@@ -17,20 +21,20 @@ try {
   await page.context().clearCookies();
   await page.reload({ waitUntil: "networkidle" });
 
-  await expectText(page.locator("h2").first(), "What should you lean into today?", "initial English home title");
+  await expectPageText(page, "Today’s Decision Brief", "initial English home stable copy");
 
-  await page.locator("select").first().selectOption("zh-CN");
-  await expectText(page.locator("h2").first(), "今天适合顺势推进什么？", "en -> zh home title");
-  await expectText(page.locator("body"), "开始免费今日信号", "en -> zh CTA");
-
-  await page.reload({ waitUntil: "networkidle" });
-  await expectText(page.locator("h2").first(), "今天适合顺势推进什么？", "zh persists after refresh");
-
-  await page.locator("select").first().selectOption("en");
-  await expectText(page.locator("h2").first(), "What should you lean into today?", "zh -> en home title");
+  await page.getByLabel(/Language|语言/).selectOption("zh-CN");
+  await expectPageText(page, "今日决策简报", "en -> zh home stable copy");
+  await expectPageText(page, "开始免费今日信号", "en -> zh CTA");
 
   await page.reload({ waitUntil: "networkidle" });
-  await expectText(page.locator("h2").first(), "What should you lean into today?", "en persists after refresh");
+  await expectPageText(page, "今日决策简报", "zh persists after refresh");
+
+  await page.getByLabel(/Language|语言/).selectOption("en");
+  await expectPageText(page, "Today’s Decision Brief", "zh -> en home stable copy");
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expectPageText(page, "Today’s Decision Brief", "en persists after refresh");
 
   console.log("i18n language switch smoke passed", { baseUrl });
 } finally {

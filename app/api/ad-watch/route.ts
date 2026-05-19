@@ -6,6 +6,14 @@ import { getLocaleFromRequest, translate } from "@/lib/i18n";
 export async function POST(request: NextRequest) {
   const locale = getLocaleFromRequest(request);
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+
+  if (process.env.YISHUN_ENABLE_REWARDED_ADS !== "1") {
+    return NextResponse.json({
+      error: "REWARDED_ADS_DISABLED",
+      message: "Rewarded ads are disabled for the current P0 paid-product boundary; this route does not grant credits or entitlement.",
+    }, { status: 410 });
+  }
+
   const session = await getSessionPayload(request);
   if (!session) {
     return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });

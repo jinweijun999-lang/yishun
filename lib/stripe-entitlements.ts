@@ -1,18 +1,22 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { FULL_REPORT_ADAPTER_NOTE } from "@/lib/full-report-entitlement";
 
-export type CheckoutProduct = "report_single" | "premium_monthly" | "consultation_single";
+export type CheckoutProduct = "report_single" | "premium_monthly" | "premium_annual" | "consultation_single";
 
 type FulfillmentResult = {
   fulfilled: boolean;
   reason?: string;
   userId?: string;
   product?: CheckoutProduct;
+  entitlementKind?: "ask_credit" | "membership" | "full_report";
+  note?: string;
 };
 
 const CHECKOUT_PRODUCTS = new Set<CheckoutProduct>([
   "report_single",
   "premium_monthly",
+  "premium_annual",
   "consultation_single",
 ]);
 
@@ -28,13 +32,23 @@ function getEntitlementUpdate(product: CheckoutProduct, now: Date) {
         consultationCredits: { increment: 5 },
         lastCreditsAccruedAt: now,
       };
+    case "premium_annual":
+      return {
+        planTier: "annual",
+        consultationCredits: { increment: 15 },
+        lastCreditsAccruedAt: now,
+      };
     case "consultation_single":
       return { consultationCredits: { increment: 1 } };
     case "report_single":
-      // There is no report-purchase table yet. For the test E2E entitlement loop,
-      // grant one paid credit so the user can generate/access a paid report flow.
-      return { consultationCredits: { increment: 1 } };
+      return {};
   }
+}
+
+function getEntitlementKind(product: CheckoutProduct): FulfillmentResult["entitlementKind"] {
+  if (product === "report_single") return "full_report";
+  if (product === "premium_monthly" || product === "premium_annual") return "membership";
+  return "ask_credit";
 }
 
 export function extractCheckoutEntitlement(session: Stripe.Checkout.Session): {
@@ -93,10 +107,13 @@ export async function fulfillCheckoutSession(params: {
       }
     }
 
-    await tx.user.update({
-      where: { id: userId },
-      data: getEntitlementUpdate(product, now),
-    });
+    const entitlementUpdate = getEntitlementUpdate(product, now);
+    if (Object.keys(entitlementUpdate).length > 0) {
+      await tx.user.update({
+        where: { id: userId },
+        data: entitlementUpdate,
+      });
+    }
 
     await tx.stripeWebhookEvent.create({
       data: {
@@ -112,5 +129,11 @@ export async function fulfillCheckoutSession(params: {
     return { fulfilled: true };
   });
 
-  return { ...result, userId, product };
+  return {
+    ...result,
+    userId,
+    product,
+    entitlementKind: getEntitlementKind(product),
+    note: product === "report_single" ? FULL_REPORT_ADAPTER_NOTE : undefined,
+  };
 }

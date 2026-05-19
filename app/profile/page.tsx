@@ -7,8 +7,10 @@ import Background from "../components/Background";
 import BirthDateTimePicker from "../components/BirthDateTimePicker";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import AppBackLink from "../components/AppBackLink";
+import PaymentValueMatrix from "../components/PaymentValueMatrix";
+import StripeCheckoutButton from "../components/StripeCheckoutButton";
 import { useI18n } from "../components/LocaleProvider";
-import { normalizeMembershipTier } from "@/lib/membership";
+import { logClientError } from "@/lib/error-logging";
 
 type Profile = {
   email: string;
@@ -21,6 +23,7 @@ type Profile = {
   timezoneName: string | null;
   consultationCredits: number;
   planTier: string | null;
+  fullReportEntitlement?: { status: "locked" | "unlocked" | "pending"; source: string; note: string };
 };
 
 type Consultation = {
@@ -38,7 +41,8 @@ type Consultation = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEnglish = locale === "en";
   const [profile, setProfile] = useState<Profile | null>(null);
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
@@ -48,12 +52,14 @@ export default function ProfilePage() {
   const [timezoneOffsetMinutes, setTimezoneOffsetMinutes] = useState<string>("");
   const [timezoneName, setTimezoneName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isBuying, setIsBuying] = useState(false);
   const [error, setError] = useState("");
 
   const [success, setSuccess] = useState("");
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
+  const [supportForm, setSupportForm] = useState({ category: "general", orderId: "", message: "" });
+  const [supportResult, setSupportResult] = useState<{ id: string; status: string; nextStep: string } | null>(null);
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -149,29 +155,28 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
-  const handleBuyCredit = async () => {
+
+
+  const handleSupportSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSubmittingSupport(true);
+    setSupportResult(null);
     setError("");
-    setSuccess("");
-    setIsBuying(true);
-
     try {
-      const response = await fetch("/api/credits", { method: "POST" });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || t("errors.creditPurchaseFailed"));
-      }
-
+      const response = await fetch("/api/support/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...supportForm, email: profile?.email ?? "", locale: "en" }),
+      });
       const data = await response.json();
-      setProfile((prev) =>
-        prev ? { ...prev, consultationCredits: data.consultationCredits } : prev
-      );
-      setSuccess(t("profile.creditPurchased"));
+      if (!response.ok) throw new Error(data.error || "Support submission failed");
+      setSupportResult(data.ticket);
+      setSuccess(`Support ticket created: ${data.ticket.id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("errors.creditPurchaseFailed")
-      );
+      await logClientError({ route: "/profile#feedback-support", message: err instanceof Error ? err.message : "Support submission failed", code: "SUPPORT_CLIENT_FAILED" });
+      setError(err instanceof Error ? err.message : "Support submission failed");
     } finally {
-      setIsBuying(false);
+      setIsSubmittingSupport(false);
     }
   };
 
@@ -304,6 +309,29 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-6">
+              <PaymentValueMatrix isEnglish={isEnglish} credits={profile.consultationCredits} compact source="profile" />
+
+              <div className="glass card p-6 sm:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#e0bd72]">Full Report entitlement</p>
+                    <h2 className="mt-2 text-xl font-heading font-bold text-white">
+                      {profile.fullReportEntitlement?.status === "unlocked" ? "Full Report unlocked" : "Free teaser only"}
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {profile.fullReportEntitlement?.note ?? "Full Report is separate from ask credits. Credits only power AI questions."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-5 py-3 text-sm font-bold text-[#e0bd72]"
+                    onClick={() => router.push(profile.fullReportEntitlement?.status === "unlocked" ? "/reading/result?source=profile_full_report" : "/reading/start?intent=full_report")}
+                  >
+                    {profile.fullReportEntitlement?.status === "unlocked" ? "View full report" : "Unlock full report"}
+                  </button>
+                </div>
+              </div>
+
               <div className="glass card p-6 sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -313,19 +341,69 @@ export default function ProfilePage() {
                     </p>
                   </div>
                   <div className="w-full sm:w-auto space-y-2">
-                    <button
-                      type="button"
+                    <StripeCheckoutButton
+                      product="consultation_single"
                       className="btn-primary w-full sm:w-auto"
-                      onClick={handleBuyCredit}
-                      disabled={isBuying}
+                      fallbackLabel={isEnglish ? "Checkout is not configured. No credit was added." : "支付暂未配置，未增加次数。"}
                     >
-                      {isBuying ? t("profile.buying") : t("profile.buyCredit")}
-                    </button>
+                      {t("profile.buyCredit")}
+                    </StripeCheckoutButton>
                     <p className="text-xs text-gray-500">
                       {t("singleConsultation.note")}
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div id="feedback-support" className="glass card p-6 sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-secondary">Feedback / Support · 客服反馈</p>
+                <h2 className="mt-2 text-xl font-heading font-bold text-white text-glow">
+                  Help improve YiShun V1
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-400">
+                  Report confusing readings, payment/order questions, or content issues. The local mock API returns a tracking ID now and can be connected to a production support desk later.
+                </p>
+                <form onSubmit={handleSupportSubmit} className="mt-5 grid gap-3">
+                  <select
+                    className="input-field"
+                    value={supportForm.category}
+                    onChange={(event) => setSupportForm((prev) => ({ ...prev, category: event.target.value }))}
+                  >
+                    <option value="general">General question</option>
+                    <option value="reading_quality">Reading / copy quality</option>
+                    <option value="order_payment">Order or payment problem</option>
+                    <option value="bug_report">Bug / crash report</option>
+                  </select>
+                  <input
+                    className="input-field"
+                    value={supportForm.orderId}
+                    onChange={(event) => setSupportForm((prev) => ({ ...prev, orderId: event.target.value }))}
+                    placeholder="Order ID (optional for payment issues)"
+                  />
+                  <textarea
+                    className="input-field min-h-[120px]"
+                    value={supportForm.message}
+                    onChange={(event) => setSupportForm((prev) => ({ ...prev, message: event.target.value }))}
+                    placeholder="Tell us what happened. Please do not paste passwords, card numbers, or private secrets."
+                    maxLength={1200}
+                    required
+                  />
+                  <button className="btn-primary w-full sm:w-auto" disabled={isSubmittingSupport}>
+                    {isSubmittingSupport ? "Submitting…" : "Submit feedback / 创建工单"}
+                  </button>
+                </form>
+                {supportResult && (
+                  <div className="mt-4 rounded-2xl border border-green-500/20 bg-green-500/10 p-4 text-sm text-green-100">
+                    <p className="font-bold">Tracking ID: {supportResult.id}</p>
+                    <p className="mt-1">{supportResult.nextStep}</p>
+                  </div>
+                )}
+                <a
+                  className="mt-4 inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/5"
+                  href="mailto:support@yishun.app?subject=YiShun%20V1%20feedback"
+                >
+                  Email support@yishun.app
+                </a>
               </div>
 
               <div className="glass card p-6 sm:p-8">

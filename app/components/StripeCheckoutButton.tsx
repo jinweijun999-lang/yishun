@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { queueP0Analytics } from "@/lib/p0-analytics";
 
 export type StripeCheckoutProduct =
   | "report_single"
   | "premium_monthly"
+  | "premium_annual"
   | "consultation_single";
 
 type StripeCheckoutButtonProps = {
@@ -34,6 +36,7 @@ export default function StripeCheckoutButton({
 
     setIsLoading(true);
     setMessage("");
+    queueP0Analytics("checkout_start", { product, source: "stripe_checkout_button", clientReferenceId: clientReferenceId ? "present" : "missing" });
     onStart?.();
 
     try {

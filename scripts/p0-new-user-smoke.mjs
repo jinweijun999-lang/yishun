@@ -112,11 +112,11 @@ async function runCase(browser, testCase) {
   const resultText = await page.locator("body").innerText();
   const normalizedResultText = resultText.toLowerCase();
   if (testCase.locale === "zh-CN") {
-    for (const expected of ["今日摘要", "3 条行动建议", "适合 / 避免", "仅供娱乐和自我反思"]) {
+    for (const expected of ["免费摘要", "一项行动", "已锁定模块", "解锁完整报告"]) {
       if (!normalizedResultText.includes(expected.toLowerCase())) throw new Error(`ZH result missing: ${expected}`);
     }
   } else {
-    for (const expected of ["One action", "3 practical actions", "Best for / avoid", "For reflection only"]) {
+    for (const expected of ["Free teaser", "One action", "Locked Full Report modules", "Unlock Full Report"]) {
       if (!normalizedResultText.includes(expected.toLowerCase())) throw new Error(`EN result missing: ${expected}`);
     }
   }

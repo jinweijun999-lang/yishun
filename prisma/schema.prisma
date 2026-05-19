@@ -74,3 +74,25 @@ model ShareLink {
   @@index([cardType])
   @@index([expiresAt])
 }
+
+model SupportTicket {
+  id             String   @id @default(cuid())
+  publicId       String   @unique
+  category       String
+  status         String   @default("received")
+  locale         String   @default("en")
+  messagePreview String
+  messageHash    String
+  orderId        String?
+  emailHash      String?
+  emailDomain    String?
+  sourceRoute    String?
+  traceId        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderId])
+}

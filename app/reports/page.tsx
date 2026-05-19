@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Background from "../components/Background";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import AppBackLink from "../components/AppBackLink";
+import PaymentValueMatrix from "../components/PaymentValueMatrix";
 import YiShunBottomActionBar from "../components/YiShunBottomActionBar";
 import { useI18n } from "../components/LocaleProvider";
 import { queueP0Analytics } from "@/lib/p0-analytics";
@@ -33,6 +34,13 @@ type DailyRitualHistoryItem = {
   bestHour?: string;
   avoid?: string;
   action?: string;
+};
+
+type LocalPreviewReport = {
+  access?: { depth?: string; askCredits?: number; fullReportEntitlement?: { status?: string } };
+  freeSummary?: { score: number; bestHour: string; do: string; avoid: string; summary: string };
+  dailySignal?: { score: number; bestHour: string; do: string; avoid: string; summary?: string };
+  lockedModules?: string[];
 };
 
 function todayKey() {
@@ -128,20 +136,27 @@ export default function ReportsPage() {
   const { t, locale } = useI18n();
   const isEnglish = locale === "en";
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [dailyHistory] = useState<DailyRitualHistoryItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = window.localStorage.getItem("yishun:dailyRitual:history");
-      const parsed = saved ? (JSON.parse(saved) as DailyRitualHistoryItem[]) : [];
-      return Array.isArray(parsed) ? parsed.slice(0, 7) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [dailyHistory, setDailyHistory] = useState<DailyRitualHistoryItem[]>([]);
+  const [lastPreviewReport, setLastPreviewReport] = useState<LocalPreviewReport | null>(null);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedDate, setCopiedDate] = useState<string | null>(null);
   const streak = calculateStreak(dailyHistory);
+
+  useEffect(() => {
+    const loadHistory = window.setTimeout(() => {
+      try {
+        const saved = window.localStorage.getItem("yishun:dailyRitual:history");
+        const parsed = saved ? (JSON.parse(saved) as DailyRitualHistoryItem[]) : [];
+        setDailyHistory(Array.isArray(parsed) ? parsed.slice(0, 7) : []);
+        const preview = window.localStorage.getItem("yishun:p0Preview");
+        setLastPreviewReport(preview ? (JSON.parse(preview) as LocalPreviewReport) : null);
+      } catch {
+        setDailyHistory([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(loadHistory);
+  }, []);
 
   useEffect(() => {
     queueP0Analytics("reports_open", { daily_history_count: dailyHistory.length, streak, source: "reports" });
@@ -237,6 +252,50 @@ export default function ReportsPage() {
               <button onClick={saveLocalState} className="ys-secondary-cta px-4 py-3 text-sm">{copiedDate === "local-state" ? (isEnglish ? "Saved locally" : "已本地保存") : (isEnglish ? "Save state" : "保存状态")}</button>
             </div>
           </motion.div>
+
+          <PaymentValueMatrix isEnglish={isEnglish} compact source="reports" />
+
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.035 }}
+            className="ys-panel rounded-3xl p-5"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-[#e0bd72]">{isEnglish ? "Report access" : "报告权益"}</p>
+            <h3 className="mt-2 text-xl font-heading font-bold text-white">
+              {lastPreviewReport?.access?.depth === "full_report" ? (isEnglish ? "Full report unlocked" : "完整报告已解锁") : (isEnglish ? "Latest item is a free teaser" : "最近一份是免费摘要")}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-gray-400">
+              {isEnglish ? "Reports are split into Free teasers, Full Reports, and AI question records. Ask credits only power AI questions and never unlock the full report." : "报告页区分免费摘要、完整报告和 AI 问事记录；问事次数只用于问答，不会解锁完整报告。"}
+            </p>
+            {lastPreviewReport ? (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-white">{isEnglish ? "Latest timing result" : "最近时机结果"}</p>
+                    <p className="mt-1 text-xs text-gray-400">{(lastPreviewReport.freeSummary ?? lastPreviewReport.dailySignal)?.summary ?? (isEnglish ? "Summary saved locally." : "摘要已保存在本地。")}</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+                    {(lastPreviewReport.freeSummary ?? lastPreviewReport.dailySignal)?.score ?? "—"}/100
+                  </span>
+                </div>
+                {lastPreviewReport.access?.depth !== "full_report" ? (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {(lastPreviewReport.lockedModules ?? ["four_pillars", "ten_gods", "five_elements", "deep_daily_signal"]).slice(0, 4).map((module) => (
+                      <span key={module} className="rounded-full border border-[#e0bd72]/20 bg-[#e0bd72]/10 px-3 py-1 text-[#e0bd72]">🔒 {module.replaceAll("_", " ")}</span>
+                    ))}
+                    <Link href="/reading/result?source=reports_unlock" className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-secondary">
+                      {isEnglish ? "Unlock full report" : "解锁完整报告"}
+                    </Link>
+                  </div>
+                ) : (
+                  <Link href="/reading/result?source=reports_full" className="mt-3 inline-block rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
+                    {isEnglish ? "Open unlocked modules" : "打开已解锁模块"}
+                  </Link>
+                )}
+              </div>
+            ) : null}
+          </motion.section>
 
           <motion.section
             initial={{ opacity: 0, y: 20 }}

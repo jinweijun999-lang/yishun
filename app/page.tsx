@@ -33,11 +33,11 @@ function track(event: string, properties: Record<string, unknown> = {}) {
 
 const copy = {
   en: {
-    eyebrow: "Love · Career · Money answers · Daily Ritual · Destiny Card · Love compatibility · Ask AI master",
-    title: "Unlock your full Eastern destiny report — then ask AI Master, test TA, or draw today’s sign.",
+    eyebrow: "Love · Career · Money answers · Today action timing card · Full report · AI question · Love match · Ritual draw · Share card",
+    title: "Generate today’s action timing card in 60 seconds.",
     subtitle:
-      "The main card is your complete destiny report preview: personality, love, career, wealth, helpful people, and the next 90 days. Ask your most important life question through AI Master for a Career decision, Money window, Love compatibility, or complete a 30-second ritual; Daily Timing stays a small supporting window.",
-    primary: "Ask AI Master",
+      "Enter your birth profile once. YiShun turns it into a clear today card: what to do now, the best action window, what to avoid, and one next step you can save or share. Ask your most important life question for a Career decision, Money window, or Love compatibility.",
+    primary: "Ask AI master",
     open: "Open my destiny preview",
     sample: "View locked report preview",
     profile: "Account",
@@ -55,38 +55,46 @@ const copy = {
     saved: "Saved signal",
     sampleSignal: "Live sample",
     mechanism: "Product highlights",
+    outcomeLabel: "What users get in 3 minutes",
+    outcomeTitle: "A concrete decision artifact users can save, revisit, and share.",
+    outcomes: [
+      ["Decision card", "One clear answer: act now, wait, repair, ask, or protect your boundary."],
+      ["Reason layer", "3 traceable reasons from birth rhythm, today window, and user intent."],
+      ["Action plan", "A safe next step for today plus a 7/30-day follow-up prompt."],
+      ["Private share", "A polished SVG card users can save/share without birth date or birthplace."],
+    ],
     mechanisms: [
-      ["01", "AI Master answers", "Use 1 Ask Credit for one focused question after balance check and explicit confirmation."],
-      ["02", "Relationship compatibility", "Start from two-person fit and emotional timing; partner details are not persisted in the lite flow."],
-      ["03", "Full destiny report", "Free shows a useful summary first. Paid Full Report unlocks deeper modules and does not consume Ask Credits."],
+      ["01", "AI Master answers", "A focused question returns conclusion, 3 reasons, risk, and a near-term action plan."],
+      ["02", "Relationship compatibility", "Two-person fit, attraction, conflict point, and whether to advance or pause."],
+      ["03", "Full destiny report", "Personality, love, career, wealth, helpful people, and next-90-day modules in one path."],
     ],
     accuracyLabel: "How accuracy is handled",
-    accuracyTitle: "Not a black-box AI answer. Rules compute; AI explains.",
+    accuracyTitle: "Not a black-box answer. YiShun shows the reasoning in plain language.",
     accuracyPoints: [
       "Birth date/time and timezone are normalized before chart generation.",
       "True solar time correction is shown when location data is available.",
-      "Four Pillars, Day Master, Five Elements, Ten Gods, score, and timing window come from the rules engine.",
-      "Gemini may personalize wording, but cannot change the core facts.",
+      "Your score and timing window are calculated from structured birth and timing inputs.",
+      "YiShun may personalize wording, but cannot change the core facts.",
     ],
     journeyLabel: "Product flow",
     journeyTitle: "From birth data to a daily operating brief",
     journey: [
       "Enter birth profile once",
-      "Rules engine reads BaZi + Five Elements",
-      "Gemini explains the personalized why",
-      "Save, share, or unlock a premium report",
+      "Get today's judgment, best window, avoid note, and one step",
+      "Save or share a privacy-safe timing card",
+      "Continue into report, AI question, love match, or ritual draw",
     ],
     proofLabel: "Trust layer",
     proofTitle: "Built for overseas users who need clarity, not superstition",
-    proof: ["Trusted Eastern timing rules", "BaZi + Five Elements", "Gemini explanation", "Save/share/premium report"],
+    proof: ["Clear today judgment", "Best action window", "Privacy-safe share card", "Save and revisit"],
     learn: "Learn the BaZi basics",
-    powered: "Structured BaZi timing engine · for reflection only",
+    powered: "Daily action timing card · for reflection and planning only",
   },
   zh: {
-    eyebrow: "今日抽签 · 命格卡 · 测我和TA · 问一件事",
-    title: "先看完整东方命运报告，再问大师、测关系或抽今日一签。",
+    eyebrow: "今日行动时机卡 · 完整报告 · AI问事 · 关系合盘 · 抽签 · 分享卡",
+    title: "60 秒生成今日行动时机卡。",
     subtitle:
-      "首屏主卡是完整命运报告预览：性格、爱情、事业、财富、贵人、未来90天。用户可继续问 AI 大师、测我和 TA、或 30 秒抽签；Daily Timing 只做小型时间窗口。",
+      "填写一次出生资料，易顺给你一张清晰的今日卡：今天该抓住什么、最佳行动时间、要避开什么，以及可以保存/分享的一步建议。",
     primary: "问 AI 大师",
     open: "打开命运预览",
     sample: "查看锁定报告预览",
@@ -105,27 +113,35 @@ const copy = {
     saved: "已保存信号",
     sampleSignal: "实时示例",
     mechanism: "产品亮点",
+    outcomeLabel: "3 分钟用户拿到什么",
+    outcomeTitle: "给用户一个可保存、可复访、可分享的决策产物。",
+    outcomes: [
+      ["决策卡", "明确告诉用户：推进、等待、修复关系、提问，还是先守住边界。"],
+      ["依据层", "把出生节律、今日窗口、用户意图拆成 3 条可理解理由。"],
+      ["行动方案", "给今日一步行动，以及 7/30 天后可复盘的提示。"],
+      ["隐私分享", "生成可保存/可分享的 SVG 卡片，不暴露生日或出生地。"],
+    ],
     mechanisms: [
-      ["01", "AI大师问事", "余额预检并明确确认后，消耗 1 次问事，回答一个聚焦问题。"],
-      ["02", "关系合盘", "从两个人适不适合、相处节奏和情感时机切入；轻量版不持久化伴侣隐私。"],
-      ["03", "完整命运报告", "免费先看摘要；付费解锁深度模块，且不消耗问事次数。"],
+      ["01", "AI大师问事", "一个聚焦问题返回结论、3条依据、风险提醒和近期行动方案。"],
+      ["02", "关系合盘", "输出两人缘分分、吸引点、冲突点，以及该推进还是暂停。"],
+      ["03", "完整命运报告", "把性格、爱情、事业、财富、贵人、未来90天串成一条完整路径。"],
     ],
     accuracyLabel: "准确性如何处理",
-    accuracyTitle: "不是黑盒 AI 答案：规则负责计算，AI 只负责解释。",
+    accuracyTitle: "不是黑盒答案：易顺把原因讲清楚，不制造焦虑。",
     accuracyPoints: [
       "出生日期、时间和时区会先标准化。",
       "有地点信息时会展示真太阳时校正。",
-      "四柱、日主、五行、十神、分数和时段由规则引擎生成。",
-      "Gemini 只能个性化表达，不能改动核心命盘事实。",
+      "分数和行动窗口来自结构化出生信息与今日时机输入。",
+      "易顺只把结果讲得更好懂，不改动核心命盘事实。"
     ],
     journeyLabel: "产品流程",
     journeyTitle: "从出生信息到每日行动简报",
-    journey: ["一次填写出生档案", "获得今日时机信号", "保存卡片并记录连续天数", "明天回访新的行动窗口"],
+    journey: ["一次填写出生档案", "拿到今日判断、最佳窗口、避开事项和一步建议", "保存或分享隐私安全的时机卡", "继续探索完整报告、AI问事、合盘或抽签"],
     proofLabel: "信任层",
     proofTitle: "面向海外用户：要清晰，不要迷信感",
-    proof: ["信号可解释", "移动端优先", "隐私边界", "清晰边界声明"],
+    proof: ["今日判断清晰", "最佳行动窗口", "隐私安全分享", "保存并复访"],
     learn: "了解八字基础",
-    powered: "结构化八字时机引擎 · 仅供自我反思",
+    powered: "今日行动时机卡 · 仅供自我反思和计划参考",
   },
 };
 
@@ -222,8 +238,20 @@ export default function Home() {
                 </Link>
               ))}
             </div>
-            <p className="mt-4 max-w-xl text-xs leading-5 text-[#9d9688]">{isZh ? "P0 路径：完整报告是主卡；三 CTA 进入问大师、测关系、抽签。Daily Timing 只作为 bestTime 小信号。" : "P0 path: report preview is the main card; three CTAs start AI Master, compatibility, and ritual. Daily Timing appears only as best-time micro signal."}</p>
+            <p className="mt-4 max-w-xl text-xs leading-5 text-[#9d9688]">{isZh ? "主入口：完整报告、AI问事、关系合盘。次入口：抽签、分享卡、每日时机。" : "Primary paths: full report, AI question, and love match. Secondary paths: ritual draw, share card, and daily timing."}</p>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#9d9688]">{c.trust}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/reading/start"
+                onClick={() => track("home_primary_reading_cta_click", { source: "home_primary_cta" })}
+                className="rounded-2xl bg-[#e0bd72] px-5 py-3 text-sm font-black text-[#10130f] shadow-[0_18px_45px_rgba(224,189,114,0.22)] transition hover:-translate-y-0.5"
+              >
+                {isZh ? "开始免费今日信号" : "Start my free daily signal"}
+              </Link>
+              <Link href="/reports?source=home_primary_cta" className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-[#d8d0bf] hover:bg-white/5">
+                {isZh ? "查看报告样例" : "View report sample"}
+              </Link>
+            </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.08, duration: 0.55 }} className="relative">
@@ -238,9 +266,22 @@ export default function Home() {
                   </h2>
                   <p className="mt-3 max-w-sm text-sm leading-6 text-[#a9a18f]">
                     {isZh
-                      ? "首页必须让用户立刻知道：这是问事、关系、抽签和完整报告 App，不是单一 Daily Timing 工具。"
-                      : "The first screen makes the product obvious: AI answers, relationship matching, ritual draw, and a full report—not a Daily Timing utility."}
+                      ? "首页要让用户立刻知道：输入出生资料后，会得到今日判断、最佳行动时间、避开事项和一步建议。"
+                      : "The first screen shows the product promise: birth profile in, today judgment, best action window, avoid note, and one next step out."}
                   </p>
+                  <div className="mt-4 grid gap-2 rounded-3xl border border-[#e0bd72]/20 bg-black/25 p-3 text-xs text-[#efe6d2] sm:grid-cols-2">
+                    {[
+                      [isZh ? "今日判断" : "Today judgment", isZh ? "推进 / 等待 / 修复 / 守界限" : "Act / wait / repair / protect"],
+                      [isZh ? "最佳行动时间" : "Best action window", isZh ? "给出今天最适合推进的时段" : "The best window to move today"],
+                      [isZh ? "避免事项" : "Avoid note", isZh ? "提醒今天最容易踩坑的动作" : "The move most likely to backfire"],
+                      [isZh ? "一步建议" : "One next step", isZh ? "保存、分享或继续深入探索" : "Save, share, or explore deeper"],
+                    ].map(([label, body]) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                        <p className="font-black text-white">{label}</p>
+                        <p className="mt-1 leading-5 text-[#aaa292]">{body}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <span className="rounded-full border border-[#e0bd72]/30 bg-[#e0bd72]/10 px-3 py-1 text-xs font-bold text-[#e0bd72]">
                   {isZh ? "锁定预览" : "Locked preview"}
@@ -249,10 +290,10 @@ export default function Home() {
 
               <div className="mt-6 grid gap-3">
                 {[
-                  [isZh ? "完整命运报告" : "Full destiny report", isZh ? "性格/爱情/事业/财富/贵人/未来90天" : "Personality, love, career, wealth, helpers, next 90 days", "📜"],
-                  [isZh ? "问 AI 大师" : "Ask AI master", isZh ? "结论 / 3依据 / 风险 / 7-30天行动" : "Conclusion, 3 reasons, risk, 7/30-day actions", "🪄"],
-                  [isZh ? "测我和 TA" : "Love compatibility", isZh ? "缘分分、吸引点、冲突点、窗口" : "Score, attraction, conflict, best window", "💞"],
-                  [isZh ? "今日抽签" : "Daily ritual", isZh ? "选主题→抽签→解签→今日行动" : "Choose theme → draw → interpret → act today", "🃏"],
+                  [isZh ? "完整报告" : "Full report", isZh ? "主入口：性格/爱情/事业/财富/贵人/未来90天" : "Primary: personality, love, career, wealth, helpers, next 90 days", "📜"],
+                  [isZh ? "AI 问事" : "AI question", isZh ? "主入口：结论 / 3依据 / 风险 / 7-30天行动" : "Primary: conclusion, 3 reasons, risk, 7/30-day actions", "🪄"],
+                  [isZh ? "关系合盘" : "Love match", isZh ? "主入口：缘分分、吸引点、冲突点、推进/暂停" : "Primary: score, attraction, conflict, advance or pause", "💞"],
+                  [isZh ? "抽签/分享/每日时机" : "Ritual/share/daily timing", isZh ? "次入口：抽签、保存分享卡、每天复访" : "Secondary: draw, save/share card, return daily", "🃏"],
                 ].map(([title, body, icon]) => (
                   <div key={title} className="group rounded-3xl border border-white/10 bg-white/[0.045] p-4 transition hover:border-[#e0bd72]/30 hover:bg-[#e0bd72]/10">
                     <div className="flex items-start gap-3">
@@ -274,6 +315,35 @@ export default function Home() {
               </div>
             </article>
           </motion.div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-6">
+          <div className="ys-panel overflow-hidden rounded-[2rem] border border-[#e0bd72]/20 p-5 md:p-6">
+            <div className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
+              <div>
+                <p className="ys-kicker">{c.outcomeLabel}</p>
+                <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white md:text-4xl">{c.outcomeTitle}</h2>
+                <p className="mt-3 text-sm leading-6 text-[#aaa292]">
+                  {isZh
+                    ? "用户进入后必须立刻知道自己会得到什么、为什么可信、下一步怎么用。"
+                    : "Users immediately understand the output, why it is trustworthy, and how to use it next."}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {c.outcomes.map(([title, body], index) => (
+                  <div key={title} className="rounded-3xl border border-white/10 bg-white/[0.045] p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#e0bd72] text-xs font-black text-[#10130f]">{index + 1}</span>
+                      <div>
+                        <p className="text-sm font-black text-white">{title}</p>
+                        <p className="mt-2 text-xs leading-5 text-[#aaa292]">{body}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-6">
@@ -307,7 +377,7 @@ export default function Home() {
               <p className="ys-kicker">{c.accuracyLabel}</p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] text-white">{c.accuracyTitle}</h2>
               <p className="mt-3 text-sm leading-6 text-[#aaa292]">
-                {isZh ? "我们把“准确性”拆成可检查的输入、算法和表达边界，而不是让用户相信一句玄学结论。" : "Accuracy is treated as a checkable pipeline: input normalization, deterministic calculation, visible evidence, then bounded explanation."}
+                {isZh ? "我们把“准确性”拆成可检查的输入、计算和表达边界，而不是让用户相信一句玄学结论。" : "Accuracy is treated as a checkable flow: input normalization, calculation, visible evidence, then bounded explanation."}
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

@@ -7,6 +7,7 @@ import {
   normalizeMembershipTier,
 } from "@/lib/membership";
 import type { User } from "@prisma/client";
+import { getFullReportEntitlementForUser } from "@/lib/full-report-entitlement";
 
 type UserWithAccrual = User & { lastCreditsAccruedAt?: Date | null };
 
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
 
   const syncedUser = await syncMembershipCredits(user);
 
+  const fullReportEntitlement = await getFullReportEntitlementForUser(syncedUser.id, syncedUser.planTier);
+
   return NextResponse.json({
     profile: {
       email: syncedUser.email,
@@ -57,6 +60,7 @@ export async function GET(request: NextRequest) {
       timezoneName: syncedUser.timezoneName,
       planTier: syncedUser.planTier,
       consultationCredits: syncedUser.consultationCredits,
+      fullReportEntitlement,
       lastAdWatchedAt: syncedUser.lastAdWatchedAt,
       lastCreditsAccruedAt: syncedUser.lastCreditsAccruedAt,
     },
@@ -99,6 +103,8 @@ export async function PUT(request: NextRequest) {
 
     const syncedUser = await syncMembershipCredits(user);
 
+    const fullReportEntitlement = await getFullReportEntitlementForUser(syncedUser.id, syncedUser.planTier);
+
     return NextResponse.json({
       profile: {
         email: syncedUser.email,
@@ -111,6 +117,7 @@ export async function PUT(request: NextRequest) {
         timezoneName: syncedUser.timezoneName,
         planTier: syncedUser.planTier,
         consultationCredits: syncedUser.consultationCredits,
+        fullReportEntitlement,
         lastAdWatchedAt: syncedUser.lastAdWatchedAt,
         lastCreditsAccruedAt: syncedUser.lastCreditsAccruedAt,
       },

@@ -34,6 +34,7 @@ export default function AiQuestionPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [precheck, setPrecheck] = useState<Precheck | null>(null);
   const [loading, setLoading] = useState(false);
+  const [inputError, setInputError] = useState("");
 
   useEffect(() => {
     queueP0Analytics(analyticsEventDictionary.aiQuestionView, { source: "ai_question" });
@@ -42,6 +43,13 @@ export default function AiQuestionPage() {
 
   async function submit(event: React.FormEvent, execute = false) {
     event.preventDefault();
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || trimmedQuestion.length < 8) {
+      setInputError("Ask a specific question with at least 8 characters so YiShun can answer safely.");
+      queueP0Analytics("empty_input_error", { source: "ai_question", field: "question", execute });
+      return;
+    }
+    setInputError("");
     setLoading(true);
     queueP0Analytics(
       execute ? analyticsEventDictionary.aiQuestionMockPaidExecute : confirmed ? analyticsEventDictionary.aiQuestionConfirmIntent : analyticsEventDictionary.aiQuestionPrecheck,
@@ -51,7 +59,7 @@ export default function AiQuestionPage() {
       const response = await fetch("/api/ai-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, confirmed, execute }),
+        body: JSON.stringify({ question: trimmedQuestion, confirmed, execute }),
       });
       const data = await response.json();
       setPrecheck(data);
@@ -81,7 +89,8 @@ export default function AiQuestionPage() {
 
           <form onSubmit={(event) => submit(event, false)} className="glass card space-y-4 p-5">
             <label className="block text-sm font-bold text-white" htmlFor="question">Your question</label>
-            <textarea id="question" className="input-field min-h-[140px]" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={500} />
+            <textarea id="question" className="input-field min-h-[140px]" value={question} onChange={(e) => { setQuestion(e.target.value); if (inputError) setInputError(""); }} maxLength={500} aria-invalid={Boolean(inputError)} aria-describedby="question-error" />
+            {inputError ? <p id="question-error" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{inputError}</p> : null}
             <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-gray-300">
               <input className="mt-1" type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
               <span>I understand this uses 1 Ask Credit after a successful answer. If execution fails, the reserved credit is returned. Full Report unlock and membership are separate benefits.</span>

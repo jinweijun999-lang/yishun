@@ -62,28 +62,7 @@ export default function MembershipPage() {
 
   const requireAuthHref = `/login?returnTo=${encodeURIComponent("/membership")}`;
 
-  const handleBuyCredit = async () => {
-    if (!profile) {
-      router.push(requireAuthHref);
-      return;
-    }
-    setIsBuying(true);
-    setBuySuccess("");
-    try {
-      const response = await fetch("/api/credits", { method: "POST" });
-      if (response.ok) {
-        const data = await response.json();
-        setProfile((prev) =>
-          prev ? { ...prev, consultationCredits: data.consultationCredits } : prev
-        );
-        setBuySuccess(t("profile.creditPurchased"));
-      }
-    } catch (error) {
-      console.error("Failed to buy credit", error);
-    } finally {
-      setIsBuying(false);
-    }
-  };
+
 
   const tiers: MembershipTier[] = [
     {
@@ -137,10 +116,11 @@ export default function MembershipPage() {
         t("membership.annual.feature4"),
         t("membership.annual.feature5"),
       ],
-      cta: t("membership.comingSoon"),
+      cta: t("membership.checkout"),
       ctaHref: "#",
       highlight: true,
-      disabled: true,
+      disabled: false,
+      checkoutProduct: "premium_annual",
     },
   ];
 
@@ -200,6 +180,34 @@ export default function MembershipPage() {
             </motion.div>
           )}
 
+          {!profile && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass card border border-secondary/25 bg-secondary/10 px-4 py-4"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+                {isEnglish ? "View benefits first · purchase after sign-in" : "可先查看权益 · 登录后才能购买"}
+              </p>
+              <h2 className="mt-2 text-lg font-heading font-bold text-white">
+                {isEnglish ? "You can compare plans here. Checkout is locked until you sign in." : "这里可以先对比权益；购买按钮必须登录后才会进入结账。"}
+              </h2>
+              <p className="mt-2 text-xs leading-5 text-gray-400">
+                {isEnglish
+                  ? "No credits or membership benefits are granted from this page without checkout fulfillment. Signing in only identifies the purchase account."
+                  : "未完成结账履约不会增加次数或开通会员；登录只是用于确认购买账号。"}
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <a href="#monthly-plan" className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-bold text-white">
+                  {isEnglish ? "View benefits" : "查看权益"}
+                </a>
+                <a href={requireAuthHref} className="rounded-xl bg-secondary/80 px-4 py-3 text-center text-sm font-bold text-white hover:bg-secondary">
+                  {isEnglish ? "Sign in to purchase" : "登录后购买"}
+                </a>
+              </div>
+            </motion.div>
+          )}
+
           {/* Consultation Credits Banner */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -231,16 +239,12 @@ export default function MembershipPage() {
                   </StripeCheckoutButton>
                 ) : (
                   <a href={requireAuthHref} className="block w-full px-6 py-3 rounded-xl bg-secondary/80 text-center text-white font-semibold text-sm hover:bg-secondary transition-colors">
-                    {t("membership.signInBeforeCheckout")}
+                    {isEnglish ? "Sign in to buy Ask Credit" : "登录后购买问事次数"}
                   </a>
                 )}
-                <button
-                  onClick={handleBuyCredit}
-                  disabled={isBuying}
-                  className="w-full px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-gray-300 font-semibold text-sm hover:bg-white/10 transition-colors disabled:opacity-50"
-                >
-                  {isBuying ? t("profile.buying") : t("profile.buyCredit")}
-                </button>
+                <p className="max-w-xs text-xs leading-5 text-gray-500">
+                  {isEnglish ? "Single-credit purchases always open checkout first; credits are added only after payment fulfillment." : "单次购买必须先进入支付；只有支付履约后才增加次数。"}
+                </p>
               </div>
             </div>
             {buySuccess && (
@@ -321,7 +325,7 @@ export default function MembershipPage() {
                             : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                         }`}
                       >
-                        {t("membership.signInBeforeCheckout")}
+                        {isEnglish ? "Sign in to purchase" : "登录后购买"}
                       </a>
                     )
                   ) : (

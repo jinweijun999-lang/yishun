@@ -1,12 +1,55 @@
 import Link from "next/link";
 import Background from "../../components/Background";
+import CheckoutEntitlementRecovery from "../../components/CheckoutEntitlementRecovery";
 
 type PageProps = {
   searchParams: Promise<{ product?: string; session_id?: string }>;
 };
 
+function getConsumptionLinks(product?: string) {
+  if (product === "consultation_single") {
+    return {
+      title: "Ask Credit purchased",
+      body: "After webhook fulfillment, your Ask Credit is used from the AI Master Question page. One successful answer consumes 1 credit.",
+      primaryHref: "/ai-question?source=checkout_success",
+      primaryLabel: "Use Ask Credit",
+      secondaryHref: "/membership?source=checkout_success",
+      secondaryLabel: "View balance / membership",
+    };
+  }
+  if (product === "report_single") {
+    return {
+      title: "Full Report purchased",
+      body: "After webhook fulfillment, return to your result page to unlock the complete destiny report. Full Report does not consume Ask Credits.",
+      primaryHref: "/reading/result?source=checkout_success",
+      primaryLabel: "Open Full Report",
+      secondaryHref: "/reports?source=checkout_success",
+      secondaryLabel: "View reports",
+    };
+  }
+  if (product === "premium_monthly" || product === "premium_annual") {
+    return {
+      title: "Membership purchased",
+      body: "After webhook fulfillment, use member benefits from home, AI Master Question, reports, and membership pages.",
+      primaryHref: "/membership?source=checkout_success",
+      primaryLabel: "Use membership",
+      secondaryHref: "/ai-question?source=checkout_success",
+      secondaryLabel: "Ask AI Master",
+    };
+  }
+  return {
+    title: "Payment test completed",
+    body: "This success page confirms the checkout redirect path is wired. Fulfillment should be finalized after webhook verification before production use.",
+    primaryHref: "/reading/start?source=checkout_success",
+    primaryLabel: "Start free summary",
+    secondaryHref: "/membership?source=checkout_success",
+    secondaryLabel: "View membership",
+  };
+}
+
 export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
   const { product, session_id: sessionId } = await searchParams;
+  const nextStep = getConsumptionLinks(product);
 
   return (
     <>
@@ -17,20 +60,19 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
             ✓
           </div>
           <p className="text-xs uppercase tracking-[0.25em] text-secondary/80">Stripe Test Checkout</p>
-          <h1 className="mt-3 text-2xl font-heading font-bold text-white">Payment test completed</h1>
-          <p className="mt-3 text-sm leading-6 text-gray-300">
-            This success page confirms the test checkout redirect path is wired. Fulfillment should be finalized after webhook verification before production use.
-          </p>
+          <h1 className="mt-3 text-2xl font-heading font-bold text-white">{nextStep.title}</h1>
+          <p className="mt-3 text-sm leading-6 text-gray-300">{nextStep.body}</p>
           <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-left text-xs text-gray-400">
             <p>Product: <span className="text-gray-200">{product || "unknown"}</span></p>
             <p className="mt-1">Session received: <span className="text-gray-200">{sessionId ? "yes" : "no"}</span></p>
           </div>
+          <CheckoutEntitlementRecovery product={product} sessionId={sessionId} />
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link href="/reading/start" className="rounded-2xl bg-secondary/80 px-4 py-3 text-sm font-semibold text-white hover:bg-secondary">
-              Start another reading
+            <Link href={nextStep.primaryHref} className="rounded-2xl bg-secondary/80 px-4 py-3 text-sm font-semibold text-white hover:bg-secondary">
+              {nextStep.primaryLabel}
             </Link>
-            <Link href="/membership" className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5">
-              View membership
+            <Link href={nextStep.secondaryHref} className="rounded-2xl border border-white/20 px-4 py-3 text-sm font-semibold text-gray-200 hover:bg-white/5">
+              {nextStep.secondaryLabel}
             </Link>
           </div>
         </section>

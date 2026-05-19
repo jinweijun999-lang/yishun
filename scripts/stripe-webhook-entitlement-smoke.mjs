@@ -1,5 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+#!/usr/bin/env node
 
+if (!process.env.DATABASE_URL) {
+  console.log(JSON.stringify({
+    ok: true,
+    skipped: true,
+    reason: "DATABASE_URL_NOT_CONFIGURED",
+    message: "Stripe webhook entitlement smoke needs a local/dev DATABASE_URL. No secret was read and no live Stripe call was attempted.",
+    requiredEnv: ["DATABASE_URL"],
+  }));
+  process.exit(0);
+}
+
+const { PrismaClient } = await import("@prisma/client");
 const prisma = new PrismaClient();
 
 function getEntitlementUpdate(product, now) {
@@ -13,7 +25,7 @@ function getEntitlementUpdate(product, now) {
     case "consultation_single":
       return { consultationCredits: { increment: 1 } };
     case "report_single":
-      return { consultationCredits: { increment: 1 } };
+      return {};
     default:
       throw new Error(`Unsupported smoke product: ${product}`);
   }
@@ -35,7 +47,10 @@ async function fulfill({ eventId, eventType, checkoutSessionId, userId, product,
       return { fulfilled: true, reason: "session_already_fulfilled" };
     }
 
-    await tx.user.update({ where: { id: userId }, data: getEntitlementUpdate(product, now) });
+    const entitlementUpdate = getEntitlementUpdate(product, now);
+    if (Object.keys(entitlementUpdate).length > 0) {
+      await tx.user.update({ where: { id: userId }, data: entitlementUpdate });
+    }
     await tx.stripeWebhookEvent.create({
       data: { id: eventId, stripeEventType: eventType, checkoutSessionId, userId, product, status: "fulfilled" },
     });
@@ -68,6 +83,20 @@ async function main() {
     userId: user.id,
     product: "consultation_single",
   });
+  const report = await fulfill({
+    eventId: `evt_smoke_report_${suffix}`,
+    eventType: "checkout.session.completed",
+    checkoutSessionId: `cs_smoke_report_${suffix}`,
+    userId: user.id,
+    product: "report_single",
+  });
+  const reportSingle = await fulfill({
+    eventId: `evt_smoke_report_${suffix}`,
+    eventType: "checkout.session.completed",
+    checkoutSessionId: `cs_smoke_report_${suffix}`,
+    userId: user.id,
+    product: "report_single",
+  });
   const duplicate = await fulfill({
     eventId: `evt_smoke_consult_duplicate_${suffix}`,
     eventType: "checkout.session.completed",
@@ -82,8 +111,8 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
 
-  if (!premium.fulfilled || !consultation.fulfilled || !duplicate.fulfilled) {
-    throw new Error(`Expected all smoke fulfillments to resolve: ${JSON.stringify({ premium, consultation, duplicate })}`);
+  if (!premium.fulfilled || !consultation.fulfilled || !report.fulfilled || !duplicate.fulfilled) {
+    throw new Error(`Expected all smoke fulfillments to resolve: ${JSON.stringify({ premium, consultation, report, duplicate })}`);
   }
   if (duplicate.reason !== "session_already_fulfilled") {
     throw new Error(`Expected duplicate session guard, got ${duplicate.reason}`);
@@ -92,10 +121,14 @@ async function main() {
     throw new Error(`Expected monthly planTier, got ${updated.planTier}`);
   }
   if (updated.consultationCredits !== 6) {
-    throw new Error(`Expected 6 consultation credits, got ${updated.consultationCredits}`);
+    throw new Error(`Expected 6 consultation credits (monthly 5 + consultation 1; report_single must not add ask credits), got ${updated.consultationCredits}`);
   }
-  if (events.length !== 3 || events.filter((event) => event.status === "fulfilled").length !== 2) {
-    throw new Error(`Expected 2 fulfilled events plus 1 duplicate_session event, got ${JSON.stringify(events)}`);
+  const reportEvent = events.find((event) => event.product === "report_single" && event.status === "fulfilled");
+  if (!reportEvent) {
+    throw new Error(`Expected report_single fulfilled event adapter record, got ${JSON.stringify(events)}`);
+  }
+  if (events.length !== 4 || events.filter((event) => event.status === "fulfilled").length !== 3) {
+    throw new Error(`Expected 3 fulfilled events plus 1 duplicate_session event, got ${JSON.stringify(events)}`);
   }
 
   console.log(JSON.stringify({

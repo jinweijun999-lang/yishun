@@ -586,6 +586,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const creditReservation = await prisma.user.updateMany({
+    where: { id: syncedUser.id, consultationCredits: { gte: 1 } },
+    data: { consultationCredits: { decrement: 1 } },
+  });
+  if (creditReservation.count !== 1) {
+    return NextResponse.json(
+      { error: t("errors.creditsRequired") },
+      { status: 402 }
+    );
+  }
+
   const normalizedGender = syncedUser.gender.toLowerCase();
   if (!isGender(normalizedGender)) {
     return NextResponse.json(
@@ -617,6 +628,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (!response) {
+    await prisma.user.update({
+      where: { id: syncedUser.id },
+      data: { consultationCredits: { increment: 1 } },
+    });
     return NextResponse.json(
       { error: t("errors.consultationFailed") },
       { status: 500 }
@@ -635,19 +650,20 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  let creditsRemaining = syncedUser.consultationCredits;
-  if (isApplicable) {
-    const updated = await prisma.user.update({
+  let creditsRemaining = syncedUser.consultationCredits - 1;
+  if (!isApplicable) {
+    const refunded = await prisma.user.update({
       where: { id: syncedUser.id },
-      data: { consultationCredits: { decrement: 1 } },
+      data: { consultationCredits: { increment: 1 } },
       select: { consultationCredits: true },
     });
-    creditsRemaining = updated.consultationCredits;
+    creditsRemaining = refunded.consultationCredits;
   }
 
   return NextResponse.json({
     status: response.status,
     result: response,
     creditsRemaining,
+    creditPolicy: isApplicable ? "1 ask credit consumed." : "Question was not applicable; reserved ask credit was returned.",
   });
 }

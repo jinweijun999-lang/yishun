@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Background from "../components/Background";
 import Navigation from "../components/Navigation";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import AppBackLink from "../components/AppBackLink";
+import PaymentValueMatrix from "../components/PaymentValueMatrix";
 import { useI18n } from "../components/LocaleProvider";
+import { queueP0Analytics } from "@/lib/p0-analytics";
+import { analyticsEventDictionary } from "@/lib/platform-foundation";
 
 type ProfileData = {
   email: string;
@@ -24,8 +26,8 @@ function hasSessionCookie() {
 }
 
 export default function ToolsPage() {
-  const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEnglish = locale === "en";
   const [profile, setProfile] = useState<ProfileData | null>(null);
 
   useEffect(() => {
@@ -53,8 +55,8 @@ export default function ToolsPage() {
       icon: "🔮",
       title: t("quickDivination.title"),
       description: t("quickDivination.description"),
-      href: isLoggedIn ? "/" : "/login",
-      cta: t("quickDivination.startBtn"),
+      href: "/ritual",
+      cta: "Open daily ritual",
       color: "from-secondary/20 to-accent/10",
       borderColor: "border-secondary/20",
       available: true,
@@ -85,6 +87,50 @@ export default function ToolsPage() {
       locked: !isLoggedIn || !hasCompleteProfile,
     },
     {
+      id: "daily-timing",
+      icon: "💞",
+      title: "Love Signal / Money Window / Career Warning",
+      description: "Three concrete daily hooks that lead to a free summary, Ask AI, or deep report unlock.",
+      href: "/daily-timing",
+      cta: "Pick today’s signal",
+      color: "from-cyan-500/20 to-blue-500/10",
+      borderColor: "border-cyan-500/20",
+      available: true,
+    },
+    {
+      id: "relationship-lite",
+      icon: "🤝",
+      title: "Relationship Lite",
+      description: "Two-person relationship summary; partner birth details are not persisted.",
+      href: "/relationship-lite",
+      cta: "Compare two profiles",
+      color: "from-pink-500/20 to-purple-500/10",
+      borderColor: "border-pink-500/20",
+      available: true,
+    },
+    {
+      id: "crush-reading",
+      icon: "💘",
+      title: "Crush Reading",
+      description: "Fast love-compatibility entry for users who want a 3-minute strong experience.",
+      href: "/crush-reading",
+      cta: "Start crush reading",
+      color: "from-rose-500/20 to-pink-500/10",
+      borderColor: "border-rose-500/20",
+      available: true,
+    },
+    {
+      id: "tarot-divination",
+      icon: "🃏",
+      title: "Tarot / 灵签 / 铜钱卦",
+      description: "Reserved divination hub: quick card, oracle stick, and coin-style prompts leading into Ask AI.",
+      href: "/tarot",
+      cta: "Open divination hub",
+      color: "from-violet-500/20 to-indigo-500/10",
+      borderColor: "border-violet-500/20",
+      available: true,
+    },
+    {
       id: "ten-gods",
       icon: "⚡",
       title: t("tenGods.title"),
@@ -99,17 +145,21 @@ export default function ToolsPage() {
     {
       id: "consultation",
       icon: "💬",
-      title: t("layerC.title"),
-      description: t("layerC.notice"),
-      href: isLoggedIn && (profile?.consultationCredits ?? 0) > 0 ? "/" : "/membership",
-      cta: (profile?.consultationCredits ?? 0) > 0 ? t("layerC.askQuestion") : t("layerC.buyMore"),
+      title: "AI Question",
+      description: "Ask a real question with entitlement check and confirmation before any paid execution.",
+      href: "/ai-question",
+      cta: (profile?.consultationCredits ?? 0) > 0 ? "Ask with precheck" : t("layerC.buyMore"),
       color: "from-blue-500/20 to-indigo-500/10",
       borderColor: "border-blue-500/20",
-      available: isLoggedIn && (profile?.consultationCredits ?? 0) > 0,
-      locked: !isLoggedIn || (profile?.consultationCredits ?? 0) === 0,
+      available: true,
+      locked: false,
       credits: profile?.consultationCredits ?? 0,
     },
   ];
+
+  useEffect(() => {
+    queueP0Analytics(analyticsEventDictionary.ritualView, { source: "tools" });
+  }, []);
 
   return (
     <>
@@ -161,6 +211,8 @@ export default function ToolsPage() {
               )}
             </motion.div>
           )}
+
+          <PaymentValueMatrix isEnglish={isEnglish} credits={profile?.consultationCredits} compact source="tools" />
 
           {/* Tools Grid */}
           <div className="grid gap-4">

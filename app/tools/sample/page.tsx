@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Background from "../../components/Background";
 import Navigation from "../../components/Navigation";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
@@ -53,7 +52,6 @@ const tenGodLabels = {
 } as const;
 
 export default function SamplePage() {
-  const router = useRouter();
   const { t, locale } = useI18n();
   const isEnglish = locale === "en";
   const copy = {
@@ -81,7 +79,7 @@ export default function SamplePage() {
         <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <AppBackLink label={copy.back} context={copy.title} />
+              <AppBackLink label={copy.back} context={copy.title} ariaLabel={copy.back} />
               <h1 className="hidden text-lg font-heading font-bold text-white sm:block">{copy.title}</h1>
             </div>
             <LanguageSwitcher />

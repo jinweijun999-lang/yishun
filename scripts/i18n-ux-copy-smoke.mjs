@@ -18,9 +18,9 @@ const previewRequest = {
 const cases = [
   {
     path: "/",
-    zhExpected: ["今日决策简报", "适合", "规划", "专注沟通", "五行", "木", "方向", "东方", "宜行动", "避开", "中文", "产品亮点", "准确性如何处理"],
-    zhForbidden: ["Today’s Decision Brief", "Best for", "planning · focused outreach", "Element", "Wood", "Direction", "East", "Choose one meaningful push", "Do not force a final answer"],
-    enExpected: ["Today’s Decision Brief", "Best for", "planning", "Element", "Wood", "Direction", "East", "Trusted Eastern timing rules", "Gemini explanation"],
+    zhExpected: ["输入生日和最关心的问题", "情感合盘", "事业选择", "财运窗口", "Ask AI Master", "宜行动", "避开", "中文", "产品亮点", "准确性如何处理"],
+    zhForbidden: ["Ask your most important life question", "Love compatibility", "Career decision", "Money window", "Best for", "planning · focused outreach", "Element", "Wood", "Direction", "East", "Choose one meaningful push", "Do not force a final answer"],
+    enExpected: ["Ask your most important life question", "Love compatibility", "Career decision", "Money window", "Ask AI master", "Move", "Avoid"],
   },
   {
     path: "/reading/result",
@@ -141,25 +141,33 @@ try {
     if (item.seedPreview) await seedReadingPreview(page, "zh-CN");
     if (item.seedHistory) await seedHistory(page);
     await page.goto(`${baseUrl}${item.path}`, { waitUntil: "networkidle" });
+    if (item.seedHistory) {
+      await page.waitForFunction(() => document.body.innerText.includes("最佳窗口"), undefined, { timeout: 10_000 });
+    }
     const zhText = await pageText(page);
     assertIncludes(zhText, item.zhExpected, `${item.path} zh-CN`);
     assertExcludes(zhText, item.zhForbidden, `${item.path} zh-CN`);
     if (item.backAria) {
-      const aria = await page.locator("button").first().getAttribute("aria-label");
+      const backControl = page.getByLabel(item.backAria.zh).first();
+      const aria = await backControl.getAttribute("aria-label");
       if (aria !== item.backAria.zh) {
-        throw new Error(`${item.path} zh-CN: expected back button aria-label ${JSON.stringify(item.backAria.zh)}, got ${JSON.stringify(aria)}`);
+        throw new Error(`${item.path} zh-CN: expected back control aria-label ${JSON.stringify(item.backAria.zh)}, got ${JSON.stringify(aria)}`);
       }
     }
 
     await setLocale(context, "en");
     if (item.seedPreview) await seedReadingPreview(page, "en");
     await page.goto(`${baseUrl}${item.path}`, { waitUntil: "networkidle" });
+    if (item.seedHistory) {
+      await page.waitForFunction(() => document.body.innerText.includes("Best window"), undefined, { timeout: 10_000 });
+    }
     const enText = await pageText(page);
     assertIncludes(enText, item.enExpected, `${item.path} en`);
     if (item.backAria) {
-      const aria = await page.locator("button").first().getAttribute("aria-label");
+      const backControl = page.getByLabel(item.backAria.en).first();
+      const aria = await backControl.getAttribute("aria-label");
       if (aria !== item.backAria.en) {
-        throw new Error(`${item.path} en: expected back button aria-label ${JSON.stringify(item.backAria.en)}, got ${JSON.stringify(aria)}`);
+        throw new Error(`${item.path} en: expected back control aria-label ${JSON.stringify(item.backAria.en)}, got ${JSON.stringify(aria)}`);
       }
     }
   }
