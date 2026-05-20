@@ -8,22 +8,24 @@ export default function AskMasterPage() {
       eventName="ask_master_preview"
       eyebrow="AI Master · 问事"
       title="Ask the AI Master for one decision, not a generic chat reply."
-      subtitle="Choose love, career, money, or relationship. The free preview gives a conclusion, risk, and next action; the full answer unlocks 3 reasons plus a 7/30-day plan."
+      subtitle="Start from a report clue, relationship tension, or money/career decision. The free preview gives a conclusion, risk, and next action; the full answer unlocks 3 reasons plus a 7/30-day plan."
       badge="Free structured answer preview"
       fields={[
         { name: "domain", label: "Question domain", placeholder: "", type: "select", options: ["Love", "Career", "Money", "Relationship", "Other"], required: true },
+        { name: "context", label: "What should the Master use as context?", placeholder: "", type: "select", options: ["My destiny report", "Relationship match", "Today’s ritual", "A new situation"], required: true },
         { name: "question", label: "Your one focused question", placeholder: "Should I take the offer this month?", required: true },
       ]}
       submitLabel="Get free AI Master preview"
-      initialValues={{ domain: "Career", question: "Should I take the offer this month?" }}
+      initialValues={{ domain: "Career", context: "My destiny report", question: "Should I take the offer this month?" }}
       buildResult={(values) => {
         const domain = values.domain || "Career";
         const question = values.question || "your next move";
+        const context = values.context || "My destiny report";
         return {
-          scoreLabel: `${domain} clarity`,
+          scoreLabel: `${domain} clarity · ${context}`,
           score: domain === "Money" ? "Caution" : "Clear",
           summary: `For “${question}”, the safer answer is yes only if you make a small reversible move instead of asking for final commitment now.`,
-          chips: [domain, "3 reasons", "Risk checked", "7/30-day plan", "Best time 15:00-17:00"],
+          chips: [domain, context, "3 reasons", "Risk checked", "7/30-day plan", "Best time 15:00-17:00"],
           advice: [
             "Conclusion: proceed with one small reversible move.",
             "Reason 1: the signal is positive, but only when the ask is specific.",
@@ -33,6 +35,17 @@ export default function AskMasterPage() {
             "7-day action: ask for one concrete next step; 30-day action: review the pattern before escalating.",
             "Today’s timing: good for outreach at 15:00-17:00; avoid late-night decisions after 22:00.",
           ],
+          sections: [
+            { title: "Context carried forward", body: `The Master reads this as ${context.toLowerCase()} follow-up, so users do not feel dropped into a blank chatbot.` },
+            { title: "What makes this a product", body: "The answer is not open chat: it has a conclusion, 3 reasons, a risk boundary, and a timed action plan." },
+            { title: "Full answer unlock", body: "$2.99 or 1 AI Master credit unlocks the complete reasoning and follow-up prompt." },
+          ],
+          microCard: {
+            label: "AI Master decision card",
+            keyword: domain,
+            line: "One clear answer, one risk boundary, one next action.",
+            watermark: "YiShun · AI Master",
+          },
         };
       }}
       shareText={(values, result) => `YiShun Ask Master preview for ${values.domain}: ${result.summary}`}
@@ -40,7 +53,7 @@ export default function AskMasterPage() {
       paidBullets={["Full conclusion and 3-evidence reasoning", "Risk and boundary check", "7/30 day action plan", "Today’s good/avoid timing", "Follow-up question prompt"]}
       nextHref="/paywall?product=ask_master&source=ask_master"
       nextLabel="Unlock full AI Master answer · $2.99"
-      helper="AI Master answers cost $2.99 or 1 question credit. Full Report unlock is separate, so users always know what they are buying."
+      helper="AI Master is a structured follow-up to the report, relationship match, or ritual. Answers cost $2.99 or 1 question credit; Full Report unlock is separate, so users always know what they are buying."
     />
   );
 }

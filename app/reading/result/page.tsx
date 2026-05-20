@@ -602,8 +602,8 @@ export default function ReadingResultPage() {
                 >
                   {isZh ? "解锁完整报告 · $4.99" : "Unlock Full Report · $4.99"}
                 </StripeCheckoutButton>
-                <Link href="/ai-question?source=reading_result_teaser" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-bold text-secondary">
-                  {isZh ? `使用 1 次问事｜余额 ${askCredits}` : `Use 1 credit · balance ${askCredits}`}
+                <Link href="/ask-master?source=reading_result_teaser" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-bold text-secondary">
+                  {isZh ? `问 AI 大师接着解读｜余额 ${askCredits}` : `Ask AI Master from this report · balance ${askCredits}`}
                 </Link>
                 <Link href="/membership?source=reading_result_teaser" className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-bold text-gray-200">
                   {isZh ? "会员持续解锁 · $9.99/月" : "Membership · $9.99/mo"}
@@ -642,6 +642,23 @@ export default function ReadingResultPage() {
                 <button onClick={handleDownloadShareImage} className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">{isZh ? "下载 SVG 长图" : "Download SVG card"}</button>
               </div>
               {savedMessage && <p className="mt-4 rounded-xl border border-secondary/30 bg-secondary/10 p-3 text-sm text-secondary">{savedMessage}</p>}
+            </section>
+
+            <section className="rounded-[2rem] border border-[#e0bd72]/20 bg-[#e0bd72]/[0.07] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.24em] text-[#e0bd72]">{isZh ? "下一步不是工具菜单" : "Next step, not a tool menu"}</p>
+              <h2 className="mt-3 text-2xl font-heading font-bold text-white">{isZh ? "把这份预览继续变成可保存、可追问、可分享的产品。" : "Turn this teaser into something you can save, question, and share."}</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  [isZh ? "完整报告" : "Full report", isZh ? "解锁性格、爱情、事业、财富和未来90天。" : "Unlock personality, love, career, wealth, and next-90-day chapters.", "/paywall?product=report_single&source=result_next_step"],
+                  [isZh ? "AI 大师问事" : "AI Master", isZh ? "带着当前报告问一个具体问题，得到结论、风险和行动计划。" : "Ask one focused question with report context: answer, risk, action plan.", "/ask-master?source=result_next_step"],
+                  [isZh ? "关系合盘" : "Relationship match", isZh ? "邀请对方查看关系节奏，保存或分享结果。" : "Invite another person, save the match, and share the result.", "/compatibility?source=result_next_step"],
+                ].map(([title, body, href]) => (
+                  <Link key={title} href={href} className="rounded-3xl border border-white/10 bg-black/20 p-4 transition hover:-translate-y-0.5 hover:border-[#e0bd72]/35 hover:bg-black/30">
+                    <p className="text-sm font-black text-white">{title}</p>
+                    <p className="mt-2 text-xs leading-5 text-gray-300">{body}</p>
+                  </Link>
+                ))}
+              </div>
             </section>
 
             <PaymentValueMatrix isEnglish={!isZh} credits={askCredits} compact source="reading_result" />
