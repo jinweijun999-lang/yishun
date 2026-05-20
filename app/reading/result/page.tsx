@@ -542,6 +542,7 @@ export default function ReadingResultPage() {
                 <div className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
                   <p className="text-xs uppercase tracking-[0.18em] text-accent">{isZh ? "问事次数" : "Ask credits"}</p>
                   <p className="mt-1 text-2xl font-heading font-bold text-white">{askCredits}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-gray-400">{isZh ? "用于单独问事，不用于完整报告解锁" : "For separate questions, not Full Report unlocks"}</p>
                 </div>
               </div>
               <div className="mt-5 grid sm:grid-cols-3 gap-3">
@@ -566,6 +567,25 @@ export default function ReadingResultPage() {
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {["personality", "love", "career", "wealth", "helpful_people", "future_90_days", ...lockedModules].slice(0, 9).map((item) => (
                     <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-gray-200">🔒 {item.replaceAll("_", " ")}</div>
+                  ))}
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {(isZh
+                    ? [
+                        ["免费摘要", "保留今日窗口、避开事项和一个可执行动作。"],
+                        ["完整报告", "单次解锁深度章节、未来节奏和可保存清单。"],
+                        ["问事次数", "只用于单独提问，不会被完整报告消耗。"],
+                      ]
+                    : [
+                        ["Free teaser", "Keeps today’s window, avoid note, and one practical action."],
+                        ["Full report", "One-time unlock for deep chapters, future rhythm, and a saveable checklist."],
+                        ["Ask credits", "Used only for separate questions; Full Report will not consume them."],
+                      ]
+                  ).map(([title, body]) => (
+                    <div key={title} className="rounded-2xl border border-[#e0bd72]/20 bg-[#e0bd72]/10 p-3">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e0bd72]">{title}</p>
+                      <p className="mt-2 text-xs leading-5 text-gray-200">{body}</p>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -690,8 +710,8 @@ export default function ReadingResultPage() {
       score_label: isZh ? `${preview.dailySignal.score}/100 清晰度` : `${preview.dailySignal.score}/100 clarity`,
     };
     const fallbackText = isZh
-      ? `${persona.share}｜清晰度 ${preview.dailySignal.score}/100｜最佳 ${preview.dailySignal.bestHour}｜避免 ${localizedAction(preview.dailySignal.avoid, true)} #每日时机`
-      : `${persona.share} | clarity ${preview.dailySignal.score}/100 | Best ${preview.dailySignal.bestHour} | Avoid ${toSentenceCase(preview.dailySignal.avoid)} #DailyTiming`;
+      ? `${persona.share}｜清晰度 ${preview.dailySignal.score}/100｜最佳 ${preview.dailySignal.bestHour}｜避免 ${localizedAction(preview.dailySignal.avoid, true)} #易顺命格卡`
+      : `${persona.share} | clarity ${preview.dailySignal.score}/100 | Best ${preview.dailySignal.bestHour} | Avoid ${toSentenceCase(preview.dailySignal.avoid)} #YiShunDestinyCard`;
     let shareUrl = window.location.origin;
     let shareId: string | undefined;
     track("share_create_click", { source_screen: "bazi_result", card_type: "daily_luck", template_id: "mystic", anonymous_id: anonymousId });
@@ -1009,6 +1029,25 @@ export default function ReadingResultPage() {
               </div>
             </section>
 
+            <section className="mt-5 rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.24em] text-secondary/90">{isZh ? "下一步消费级入口" : "Next consumer paths"}</p>
+              <h2 className="mt-2 text-2xl font-heading font-bold text-white">{isZh ? "看完免费摘要后，继续问事、合盘、抽签或生成命格卡。" : "After the free teaser, continue into Q&A, compatibility, ritual, or a destiny card."}</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                {[
+                  [isZh ? "问 AI 大师" : "Ask AI Master", isZh ? "带着这份报告问事业、感情、财富或下一步。" : "Ask career, love, money, or next-step questions with this report context.", "/ask-master?source=reading_result_next"],
+                  [isZh ? "关系合盘" : "Compatibility", isZh ? "测情侣、朋友或合作关系的吸引点与冲突点。" : "Check attraction, friction, and next moves for love, friends, or work.", "/compatibility?source=reading_result_next"],
+                  [isZh ? "抽签仪式" : "Ritual draw", isZh ? "作为每日回访副线：抽签、解签、做一件事。" : "A return loop: draw, interpret, and take one grounded action.", "/daily-ritual?source=reading_result_next"],
+                  [isZh ? "命格分享卡" : "Destiny share card", isZh ? "生成不暴露生日和出生地的分享卡。" : "Create a share card without exposing birth date or birthplace.", "/profile-card?source=reading_result_next"],
+                ].map(([title, body, href]) => (
+                  <Link key={title} href={href} className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:-translate-y-0.5 hover:border-[#e0bd72]/45 hover:bg-white/[0.07]">
+                    <p className="text-sm font-black text-white">{title}</p>
+                    <p className="mt-2 text-xs leading-5 text-gray-400">{body}</p>
+                    <span className="mt-3 inline-flex text-xs font-black text-[#e0bd72]">{isZh ? "继续 →" : "Continue →"}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 [isZh ? "先稳住" : "Steady first", emotionalRead],
@@ -1040,7 +1079,7 @@ export default function ReadingResultPage() {
           <section className="ys-share-card rounded-3xl p-5 sm:p-6" aria-label="Shareable YiShun timing card">
             <div className="mx-auto max-w-sm rounded-[2rem] border border-white/15 bg-black/25 p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.25em] text-accent">{isZh ? "易顺时机卡" : "YiShun Timing Card"}</p>
+                <p className="text-xs uppercase tracking-[0.25em] text-accent">{isZh ? "易顺命格卡" : "YiShun Destiny Card"}</p>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs">{todayKey()}</span>
               </div>
               <p className="mt-5 text-5xl font-heading font-bold text-glow">{preview.dailySignal.score}</p>

@@ -48,9 +48,9 @@ const loadingSteps = {
 };
 
 const zh = {
-  heroLabel: "每日回访入口",
-  heroTitle: "60 秒找到今天最适合的行动时机。",
-  heroDesc: "只填写必要信息。易顺会给你一个最佳时段、一个避开时段，以及今天可以尝试的一步行动。",
+  heroLabel: "完整命运报告入口",
+  heroTitle: "60 秒生成你的免费命运预览。",
+  heroDesc: "只填写必要出生信息。易顺先给你免费摘要：今日窗口、避开事项和一个行动；完整报告会展开性格、爱情、事业、财富、贵人与未来节奏。",
   loadingNote: "易顺用于自我反思，不做宿命式判断。",
   step: "步骤",
   birthTitle: "第一步：出生时间。",
@@ -83,7 +83,7 @@ const zh = {
   other: "不想透露",
   female: "女性",
   male: "男性",
-  submit: "找到我的最佳时机",
+  submit: "生成免费命运预览",
 };
 
 const currentYear = new Date().getFullYear();
@@ -414,12 +414,12 @@ export default function ReadingStartPage() {
 
         <section className="max-w-3xl mx-auto px-4 py-5 sm:py-8 space-y-5 sm:space-y-6">
           <div className="ys-panel overflow-hidden rounded-[2rem] p-5 sm:p-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-accent/80">{isZh ? "每日决策引导" : "Daily decision guide"}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-accent/80">{isZh ? zh.heroLabel : "Full destiny report entry"}</p>
             <h1 className="mt-3 text-2xl font-heading font-bold leading-tight text-white text-glow sm:text-4xl">
-              {step === 3 ? (isZh ? "选择今天要把握的时机。" : "Choose what you want to time today.") : (isZh ? zh.heroTitle : "Find today’s best timing in 60 seconds.")}
+              {step === 3 ? (isZh ? "选择完整报告先关注的主题。" : "Choose the first focus for your destiny preview.") : (isZh ? zh.heroTitle : "Generate your free destiny preview in 60 seconds.")}
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-300">
-              {step === 3 ? (isZh ? "结果会聚焦到一个最佳窗口、一个避开窗口和一项行动建议。" : "The result stays focused: one best window, one avoid window, and one action.") : (isZh ? zh.heroDesc : "Enter only what we need. YiShun gives you one best window, one avoid window, and one action to try today.")}
+              {step === 3 ? (isZh ? "免费摘要先给一个最佳窗口、避开事项和行动建议；完整报告再展开命运章节。" : "The free teaser starts with one best window, one avoid note, and one action; the full report unlocks the deeper destiny chapters.") : (isZh ? zh.heroDesc : "Enter only the essential birth details. YiShun starts with a free teaser — today’s window, avoid note, and one action — then locks the deeper personality, love, career, wealth, helpers, and future-rhythm report behind checkout or membership.")}
             </p>
           </div>
 
@@ -427,7 +427,7 @@ export default function ReadingStartPage() {
             {[
               isZh ? ["为什么要生日", "用来建立个人节律，不会展示在分享卡。"] : ["Why birth date", "It sets the personal rhythm and never appears on public cards."],
               isZh ? ["为什么要城市", "只用于校准时区/真太阳时，可跳过高级字段。"] : ["Why city", "It tunes timezone and solar-time precision; advanced fields are optional."],
-              isZh ? ["为什么要焦点", "让报告先给行动建议，而不是堆命盘术语。"] : ["Why focus", "It makes the report action-first instead of chart-first."],
+              isZh ? ["为什么要焦点", "让免费摘要先给行动建议，完整报告再展开深度章节。"] : ["Why focus", "It makes the free teaser action-first before the locked full report expands the deeper modules."],
             ].map(([title, body]) => (
               <div key={title} className="ys-panel-soft rounded-3xl p-4">
                 <p className="text-xs font-black text-[#e0bd72]">{title}</p>
@@ -493,10 +493,10 @@ export default function ReadingStartPage() {
                     {isZh ? zh.unknownTime : "I’m not sure — use an estimated noon chart."}
                   </label>
                   <AppActionBar
-                    primaryLabel={isZh ? zh.continue : "Continue"}
+                    primaryLabel={isZh ? zh.submit : "Generate free destiny preview"}
                     primaryIcon="◌"
-                    onPrimary={() => nextStep(2)}
-                    disabled={!birthDate}
+                    onPrimary={() => void submitReading()}
+                    disabled={!birthDate || isSubmitting}
                     disabledReason={isZh ? "请先选择出生日期。" : "Please choose your birth date first."}
                     secondaryLabel={isZh ? "查看示例" : "View sample"}
                     secondaryIcon="□"
@@ -504,7 +504,8 @@ export default function ReadingStartPage() {
                     tertiaryLabel={isZh ? "草稿" : "Draft"}
                     tertiaryIcon="▣"
                     onTertiary={saveDraft}
-                    hint={draftStatus ?? (isZh ? "下一步只需城市；高级字段可跳过。" : "Next: city only. Advanced fields are optional.")}
+                    loading={isSubmitting}
+                    hint={draftStatus ?? (isZh ? "生成后直接进入免费摘要；城市和主题可之后再补，完整报告仍需解锁。" : "We’ll take you straight to the free teaser; city and focus can be refined later, and the full report stays locked until unlock.")}
                   />
                 </div>
               )}

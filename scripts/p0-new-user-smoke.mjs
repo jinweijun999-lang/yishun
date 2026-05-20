@@ -101,10 +101,7 @@ async function runCase(browser, testCase) {
   await selects.nth(2).selectOption("20");
   await selects.nth(3).selectOption("08");
   await selects.nth(4).selectOption("30");
-  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? "继续" : "Continue" }).click();
-  await page.getByPlaceholder(testCase.locale === "zh-CN" ? "城市，国家" : "City, country").fill("Shanghai, China");
-  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? "继续" : "Continue" }).click();
-  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? /找到我的最佳时机|继续查看结果/ : /Find my best timing|Continue to result/ }).click();
+  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? /生成免费命运预览|继续/ : /Generate free destiny preview|Continue/ }).click();
   await page.waitForURL("**/reading/result", { timeout: 15000 });
   await page.waitForLoadState("networkidle");
   await page.waitForFunction(() => !document.body.innerText.includes("Loading your signal") && !document.body.innerText.includes("正在加载你的信号"), null, { timeout: 10000 });
