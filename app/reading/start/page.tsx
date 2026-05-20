@@ -392,10 +392,7 @@ export default function ReadingStartPage() {
       }
       const remaining = Math.max(0, 950 - (Date.now() - startedAt));
       window.setTimeout(() => {
-        router.push("/reading/result");
-        window.setTimeout(() => {
-          if (window.location.pathname !== "/reading/result") window.location.assign("/reading/result");
-        }, 800);
+        window.location.assign("/reading/result");
       }, remaining);
     } catch (err) {
       setError(err instanceof Error ? err.message : apiErrorToMessage("PREVIEW_FAILED", isZh));
