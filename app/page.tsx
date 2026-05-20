@@ -33,10 +33,10 @@ function track(event: string, properties: Record<string, unknown> = {}) {
 
 const copy = {
   en: {
-    eyebrow: "Love · Career · Money answers · Today action timing card · Full report · AI question · Love match · Ritual draw · Share card",
-    title: "Generate today’s action timing card in 60 seconds.",
+    eyebrow: "Full destiny report · AI question · Love match · Ritual draw · Share card · Daily timing support",
+    title: "Unlock your full destiny report, then ask the AI master what to do next.",
     subtitle:
-      "Enter your birth profile once. YiShun turns it into a clear today card: what to do now, the best action window, what to avoid, and one next step you can save or share. Ask your most important life question for a Career decision, Money window, or Love compatibility.",
+      "Enter your birth profile once. YiShun turns it into a complete destiny preview with love, career, money, helpful people, and next-90-day signals — then lets you ask a focused question, check a relationship, draw a ritual sign, or save a privacy-safe share card.",
     primary: "Ask AI master",
     open: "Open my destiny preview",
     sample: "View locked report preview",
@@ -88,13 +88,13 @@ const copy = {
     proofTitle: "Built for overseas users who need clarity, not superstition",
     proof: ["Clear today judgment", "Best action window", "Privacy-safe share card", "Save and revisit"],
     learn: "Learn the BaZi basics",
-    powered: "Daily action timing card · for reflection and planning only",
+    powered: "Full destiny report · AI master · love match · ritual draw · for reflection and planning only",
   },
   zh: {
-    eyebrow: "今日行动时机卡 · 完整报告 · AI问事 · 关系合盘 · 抽签 · 分享卡",
-    title: "60 秒生成今日行动时机卡。",
+    eyebrow: "完整命运报告 · AI问事 · 关系合盘 · 抽签 · 分享卡 · 每日时机辅助",
+    title: "先看完整命运报告，再问 AI 大师下一步怎么走。",
     subtitle:
-      "填写一次出生资料，易顺给你一张清晰的今日卡：今天该抓住什么、最佳行动时间、要避开什么，以及可以保存/分享的一步建议。",
+      "填写一次出生资料，易顺先给你完整命运预览：性格、爱情、事业、财富、贵人和未来90天，再继续问事、测关系、抽签，或保存一张隐私安全的分享卡。",
     primary: "问 AI 大师",
     open: "打开命运预览",
     sample: "查看锁定报告预览",
@@ -141,7 +141,7 @@ const copy = {
     proofTitle: "面向海外用户：要清晰，不要迷信感",
     proof: ["今日判断清晰", "最佳行动窗口", "隐私安全分享", "保存并复访"],
     learn: "了解八字基础",
-    powered: "今日行动时机卡 · 仅供自我反思和计划参考",
+    powered: "完整命运报告 · AI大师 · 关系合盘 · 抽签 · 仅供自我反思和计划参考",
   },
 };
 
@@ -246,7 +246,7 @@ export default function Home() {
                 onClick={() => track("home_primary_reading_cta_click", { source: "home_primary_cta" })}
                 className="rounded-2xl bg-[#e0bd72] px-5 py-3 text-sm font-black text-[#10130f] shadow-[0_18px_45px_rgba(224,189,114,0.22)] transition hover:-translate-y-0.5"
               >
-                {isZh ? "开始免费今日信号" : "Start my free daily signal"}
+                {isZh ? "开始免费命运预览" : "Start my free destiny preview"}
               </Link>
               <Link href="/reports?source=home_primary_cta" className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-[#d8d0bf] hover:bg-white/5">
                 {isZh ? "查看报告样例" : "View report sample"}
@@ -266,15 +266,15 @@ export default function Home() {
                   </h2>
                   <p className="mt-3 max-w-sm text-sm leading-6 text-[#a9a18f]">
                     {isZh
-                      ? "首页要让用户立刻知道：输入出生资料后，会得到今日判断、最佳行动时间、避开事项和一步建议。"
-                      : "The first screen shows the product promise: birth profile in, today judgment, best action window, avoid note, and one next step out."}
+                      ? "首页要让用户立刻知道：输入出生资料后，主线是完整命运报告，并继续进入问事、合盘、抽签和分享。"
+                      : "The first screen shows the product promise: birth profile in, full destiny report preview out, then continue into AI question, love match, ritual draw, and sharing."}
                   </p>
                   <div className="mt-4 grid gap-2 rounded-3xl border border-[#e0bd72]/20 bg-black/25 p-3 text-xs text-[#efe6d2] sm:grid-cols-2">
                     {[
-                      [isZh ? "今日判断" : "Today judgment", isZh ? "推进 / 等待 / 修复 / 守界限" : "Act / wait / repair / protect"],
-                      [isZh ? "最佳行动时间" : "Best action window", isZh ? "给出今天最适合推进的时段" : "The best window to move today"],
-                      [isZh ? "避免事项" : "Avoid note", isZh ? "提醒今天最容易踩坑的动作" : "The move most likely to backfire"],
-                      [isZh ? "一步建议" : "One next step", isZh ? "保存、分享或继续深入探索" : "Save, share, or explore deeper"],
+                      [isZh ? "完整报告" : "Full report", isZh ? "性格 / 爱情 / 事业 / 财富 / 贵人" : "Personality / love / career / wealth / helpers"],
+                      [isZh ? "AI问事" : "AI question", isZh ? "结论、3条依据、风险和行动方案" : "Conclusion, 3 reasons, risk, action plan"],
+                      [isZh ? "关系合盘" : "Love match", isZh ? "缘分分、吸引点、冲突点" : "Score, attraction, conflict"],
+                      [isZh ? "抽签分享" : "Ritual share", isZh ? "每日仪式、保存分享、引导复访" : "Daily ritual, save/share, return loop"],
                     ].map(([label, body]) => (
                       <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
                         <p className="font-black text-white">{label}</p>

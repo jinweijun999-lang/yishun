@@ -391,7 +391,12 @@ export default function ReadingStartPage() {
         });
       }
       const remaining = Math.max(0, 950 - (Date.now() - startedAt));
-      window.setTimeout(() => router.push("/reading/result"), remaining);
+      window.setTimeout(() => {
+        router.push("/reading/result");
+        window.setTimeout(() => {
+          if (window.location.pathname !== "/reading/result") window.location.assign("/reading/result");
+        }, 800);
+      }, remaining);
     } catch (err) {
       setError(err instanceof Error ? err.message : apiErrorToMessage("PREVIEW_FAILED", isZh));
       track("birth_form_error", { step, reason: err instanceof Error ? err.message : "unknown" });
@@ -584,7 +589,7 @@ export default function ReadingStartPage() {
                     tertiaryLabel={isZh ? "草稿" : "Draft"}
                     tertiaryIcon="▣"
                     onTertiary={saveDraft}
-                    primaryLabel={isZh ? zh.submit : "Find my best timing"}
+                    primaryLabel={isZh ? "继续查看结果" : "Continue to result"}
                     primaryIcon="◌"
                     onPrimary={() => void submitReading()}
                     loading={isSubmitting}

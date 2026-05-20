@@ -91,7 +91,7 @@ async function runCase(browser, testCase) {
   if (testCase.locale === "en" && !homeText.includes("Privacy boundary")) throw new Error("EN home trust/privacy copy missing");
   await page.screenshot({ path: path.join(EVIDENCE_DIR, `${testCase.label}-01-home.png`), fullPage: true });
 
-  await page.getByRole("link", { name: testCase.locale === "zh-CN" ? /开始免费今日信号|生成我的信号/ : /Start my free daily signal|Create your signal/ }).first().click();
+  await page.getByRole("link", { name: testCase.locale === "zh-CN" ? /开始免费今日信号|开始免费命运预览|生成我的信号/ : /Start my free daily signal|Start my free destiny preview|Create your signal/ }).first().click();
   await page.waitForURL("**/reading/start", { timeout: 10000 });
   await assertNoHorizontalScroll(page, `${testCase.label} start`);
 
@@ -104,7 +104,7 @@ async function runCase(browser, testCase) {
   await page.getByRole("button", { name: testCase.locale === "zh-CN" ? "继续" : "Continue" }).click();
   await page.getByPlaceholder(testCase.locale === "zh-CN" ? "城市，国家" : "City, country").fill("Shanghai, China");
   await page.getByRole("button", { name: testCase.locale === "zh-CN" ? "继续" : "Continue" }).click();
-  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? "找到我的最佳时机" : "Find my best timing" }).click();
+  await page.getByRole("button", { name: testCase.locale === "zh-CN" ? /找到我的最佳时机|继续查看结果/ : /Find my best timing|Continue to result/ }).click();
   await page.waitForURL("**/reading/result", { timeout: 15000 });
   await page.waitForLoadState("networkidle");
   await page.waitForFunction(() => !document.body.innerText.includes("Loading your signal") && !document.body.innerText.includes("正在加载你的信号"), null, { timeout: 10000 });

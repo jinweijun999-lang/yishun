@@ -33,11 +33,12 @@ for (const [name, file, needles] of coverage) {
 }
 
 const home = read("app/page.tsx");
-for (const needle of ["Ask your most important life question", "Love compatibility", "Career decision", "Money window", "Ask AI master", "Love · Career · Money answers", "3-minute strong experiences", "Tarot / Oracle / Coin", "$0.99-style deep report"]) {
-  assert(home.includes(needle), "Home must expose clear Love/Career/Money answer positioning", { needle });
+for (const needle of ["Unlock your full destiny report", "complete destiny preview", "love, career, money", "Ask AI master", "Love match", "Full destiny report", "3-minute strong experiences", "Tarot / Oracle / Coin", "$0.99-style deep report"]) {
+  assert(home.includes(needle), "Home must expose full-report-led Love/Career/Money answer positioning", { needle });
 }
-assert(!home.includes("Know today’s best timing"), "Home H1 must not use vague best-timing positioning");
-assert(!home.includes("Trusted Eastern timing rules · BaZi + Five Elements · Gemini explanation"), "Hero eyebrow must not stack concepts before user value");
+for (const forbidden of ["Know today’s best timing", "Generate today’s action timing card", "60 秒生成今日行动时机卡", "Trusted Eastern timing rules · BaZi + Five Elements · Gemini explanation"]) {
+  assert(!home.includes(forbidden), "Home hero must not regress to Daily Timing or vague concept-stack positioning", { forbidden });
+}
 
 const membership = read("app/membership/page.tsx");
 for (const needle of ["View benefits first · purchase after sign-in", "View benefits", "Sign in to purchase", "Checkout is locked until you sign in", "checkout fulfillment"]) {
