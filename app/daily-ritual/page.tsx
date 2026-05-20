@@ -37,10 +37,10 @@ export default function DailyRitualPage() {
         };
       }}
       shareText={(values, result) => `YiShun daily ritual for ${values.focus}: ${result.summary}`}
-      paidTitle="Unlock the deep sign text + 7/30 day timing"
+      paidTitle="Unlock deep sign text + 7/30 day timing"
       paidBullets={["Deep sign interpretation", "Love / career / wealth split", "7-day action calendar", "30-day avoid windows", "Re-draw / wish reading"]}
       nextHref="/paywall?product=daily_ritual&source=daily_ritual"
-      nextLabel="Unlock deep sign"
+      nextLabel="Unlock ritual depth · $2.99"
       helper="Daily Timing is only used as the best-time signal inside the ritual; it is not the main product path."
     />
   );

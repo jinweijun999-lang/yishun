@@ -36,6 +36,16 @@ export default function CompatibilityPage() {
             "Should you advance? Yes, but only with a reversible next step.",
             "Best communication window: 19:00-21:00; avoid testing them after midnight.",
           ],
+          sections: [
+            { title: "Relationship verdict", body: "Advance softly: one reversible invitation beats a heavy relationship talk." },
+            { title: "Paid depth", body: "$4.99 unlocks 30/90-day trend, repair scripts, reunion probability, and best timing to advance." },
+          ],
+          microCard: {
+            label: `${you} × ${them}`,
+            keyword: score,
+            line: "Spark is real; pressure is the risk.",
+            watermark: "YiShun · Relationship match",
+          },
         };
       }}
       shareText={(values, result) => `YiShun compatibility for ${values.you || "me"} × ${values.them || "them"}: ${result.summary}`}

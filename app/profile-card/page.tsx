@@ -40,10 +40,10 @@ export default function ProfileCardPage() {
         };
       }}
       shareText={(values, result) => `My YiShun destiny card: ${values.nickname || "I"} · ${result.score} · ${result.summary}`}
-      paidTitle="Unlock the full profile report"
+      paidTitle="Unlock the full destiny profile report"
       paidBullets={["Personality chapter", "Love / career / wealth chapters", "Helpful people and opportunity windows", "Future 90-day forecast", "Blind spot repair plan"]}
       nextHref="/paywall?product=profile_card&source=profile_card"
-      nextLabel="Unlock full profile"
+      nextLabel="Unlock full profile · $4.99"
       helper="The free share card is intentionally incomplete: useful identity signal now, deeper destiny report after unlock."
     />
   );
