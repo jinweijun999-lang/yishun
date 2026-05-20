@@ -6,15 +6,15 @@ export default function AskMasterPage() {
   return (
     <InteractiveBanglistPage
       eventName="ask_master_preview"
-      eyebrow="Ask one thing · 问一件事"
-      title="Ask one focused question and get a bounded answer."
-      subtitle="Ask Master is the AI companion module: choose a domain and ask one question. The free preview gives conclusion, risk, and action; full answer uses Ask Credit."
-      badge="Mock-safe answer preview"
+      eyebrow="AI Master · 问事"
+      title="Ask the AI Master for one decision, not a generic chat reply."
+      subtitle="Choose love, career, money, or relationship. The free preview gives a conclusion, risk, and next action; the full answer unlocks 3 reasons plus a 7/30-day plan."
+      badge="Free structured answer preview"
       fields={[
         { name: "domain", label: "Question domain", placeholder: "", type: "select", options: ["Love", "Career", "Money", "Relationship", "Other"], required: true },
         { name: "question", label: "Your one focused question", placeholder: "Should I take the offer this month?", required: true },
       ]}
-      submitLabel="Preview Ask Master answer"
+      submitLabel="Get free AI Master preview"
       initialValues={{ domain: "Career", question: "Should I take the offer this month?" }}
       buildResult={(values) => {
         const domain = values.domain || "Career";
@@ -39,8 +39,8 @@ export default function AskMasterPage() {
       paidTitle="Use Ask Credit for the full AI Master answer"
       paidBullets={["Full conclusion and 3-evidence reasoning", "Risk and boundary check", "7/30 day action plan", "Today’s good/avoid timing", "Follow-up question prompt"]}
       nextHref="/paywall?product=ask_master&source=ask_master"
-      nextLabel="Use Ask Credit"
-      helper="Ask Credit is separate from Full Report entitlement. D1 preview does not charge, mutate credits, or call production payment."
+      nextLabel="Unlock full AI Master answer · $2.99"
+      helper="AI Master answers cost $2.99 or 1 question credit. Full Report unlock is separate, so users always know what they are buying."
     />
   );
 }

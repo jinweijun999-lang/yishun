@@ -600,13 +600,13 @@ export default function ReadingResultPage() {
                   className="rounded-2xl bg-gradient-to-r from-secondary to-accent px-4 py-3 text-center text-sm font-black text-white"
                   fallbackLabel={isZh ? "支付暂未配置，请先保存摘要。" : "Checkout is not configured. Save your teaser first."}
                 >
-                  {isZh ? "购买完整报告（不扣问事次数）" : "Buy Full Report / Unlock Full Report (no ask credits used)"}
+                  {isZh ? "解锁完整报告 · $4.99" : "Unlock Full Report · $4.99"}
                 </StripeCheckoutButton>
                 <Link href="/ai-question?source=reading_result_teaser" className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-center text-sm font-bold text-secondary">
                   {isZh ? `使用 1 次问事｜余额 ${askCredits}` : `Use 1 credit · balance ${askCredits}`}
                 </Link>
                 <Link href="/membership?source=reading_result_teaser" className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-bold text-gray-200">
-                  {isZh ? "查看会员权益" : "Compare membership"}
+                  {isZh ? "会员持续解锁 · $9.99/月" : "Membership · $9.99/mo"}
                 </Link>
               </div>
               <p className="mt-4 text-xs leading-5 text-gray-500">{localizedDisclaimer(teaser.disclaimer, isZh)}</p>

@@ -208,7 +208,7 @@ export default function Home() {
         </header>
 
         <section className="mx-auto grid max-w-6xl gap-8 px-4 pb-10 pt-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:pb-16 lg:pt-14">
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="relative z-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#c2a067]/20 bg-[#c2a067]/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-[#d8bd7a]">
               <span className="h-2 w-2 rounded-full bg-[#7aa48c] shadow-[0_0_18px_rgba(122,164,140,0.8)]" />
               {c.eyebrow}
@@ -225,29 +225,29 @@ export default function Home() {
                 ["💞", isZh ? "测我和 TA" : "Check me and TA", isZh ? "缘分分、冲突点、是否推进。" : "Match score, conflict, advance or pause.", "/compatibility?source=home_rank", "border border-[#f4a6b8]/30 bg-[#f4a6b8]/10 text-[#f5efe1]"],
                 ["🃏", isZh ? "今日抽一签" : "Draw today’s sign", isZh ? "选主题、抽签、解签、今日行动。" : "Choose theme, draw, interpret, act today.", "/daily-ritual?source=home_rank", "border border-[#7aa48c]/35 bg-[#7aa48c]/10 text-[#f5efe1]"],
               ].map(([icon, label, body, href, tone]) => (
-                <Link
+                <a
                   key={label}
                   href={href}
                   onClick={() => track("consumer_rank_entry_click", { source: "home_rank_grid", label })}
-                  className={`group rounded-3xl px-5 py-4 transition hover:-translate-y-0.5 ${tone}`}
+                  className={`group block rounded-3xl px-5 py-4 transition hover:-translate-y-0.5 ${tone}`}
                 >
                   <span className="text-xl">{icon}</span>
                   <span className="mt-3 block text-sm font-black">{label}</span>
                   <span className="mt-2 block text-xs leading-5 opacity-80">{body}</span>
                   <span className="mt-3 inline-flex text-xs font-black transition group-hover:translate-x-1">Start free →</span>
-                </Link>
+                </a>
               ))}
             </div>
             <p className="mt-4 max-w-xl text-xs leading-5 text-[#9d9688]">{isZh ? "主入口：完整报告、AI问事、关系合盘。次入口：抽签、分享卡、每日时机。" : "Primary paths: full report, AI question, and love match. Secondary paths: ritual draw, share card, and daily timing."}</p>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#9d9688]">{c.trust}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link
+              <a
                 href="/reading/start"
                 onClick={() => track("home_primary_reading_cta_click", { source: "home_primary_cta" })}
-                className="rounded-2xl bg-[#e0bd72] px-5 py-3 text-sm font-black text-[#10130f] shadow-[0_18px_45px_rgba(224,189,114,0.22)] transition hover:-translate-y-0.5"
+                className="inline-flex rounded-2xl bg-[#e0bd72] px-5 py-3 text-sm font-black text-[#10130f] shadow-[0_18px_45px_rgba(224,189,114,0.22)] transition hover:-translate-y-0.5"
               >
                 {isZh ? "开始免费命运预览" : "Start my free destiny preview"}
-              </Link>
+              </a>
               <Link href="/reports?source=home_primary_cta" className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-[#d8d0bf] hover:bg-white/5">
                 {isZh ? "查看报告样例" : "View report sample"}
               </Link>
@@ -255,7 +255,7 @@ export default function Home() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.08, duration: 0.55 }} className="relative">
-            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#c2a067]/20 via-transparent to-[#5e8a72]/20 blur-2xl" />
+            <div className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#c2a067]/20 via-transparent to-[#5e8a72]/20 blur-2xl" />
             <article className="ys-share-card relative overflow-hidden rounded-[2rem] p-5 backdrop-blur-2xl md:p-6">
               <div className="absolute right-[-4rem] top-[-4rem] h-40 w-40 rounded-full border border-[#c2a067]/20" />
               <div className="flex items-start justify-between gap-4">

@@ -7,21 +7,21 @@ export default function CompatibilityPage() {
     <InteractiveBanglistPage
       eventName="complete_compatibility"
       eyebrow="Compatibility · 测我和 TA"
-      title="Check the spark, the friction, and the next move with TA."
-      subtitle="Enter two nicknames and a relationship mode. The free preview returns a match signal, attraction, conflict, and one next move; deep trend stays locked."
-      badge="Free compatibility preview"
+      title="Check your relationship spark, friction, and next move."
+      subtitle="Enter two real nicknames and a relationship mode. The free preview returns a match signal, attraction, conflict, and one next move; deep trend stays locked."
+      badge="Free relationship preview"
       fields={[
-        { name: "you", label: "Your nickname", placeholder: "Me", required: true },
-        { name: "them", label: "TA nickname", placeholder: "TA", required: true },
-        { name: "theirBirthday", label: "TA birthday or age cue", placeholder: "1998-08-08 or unknown", required: false },
+        { name: "you", label: "Your nickname", placeholder: "e.g. Luna", required: true },
+        { name: "them", label: "Their nickname", placeholder: "e.g. Alex", required: true },
+        { name: "theirBirthday", label: "Their birthday or age cue", placeholder: "1998-08-08 or unknown", required: false },
         { name: "theirGender", label: "TA gender / energy", placeholder: "", type: "select", options: ["Unknown", "Feminine", "Masculine", "Non-binary"], required: false },
         { name: "mode", label: "Relationship mode", placeholder: "", type: "select", options: ["Love", "Friend", "Work", "Unclear"], required: true },
       ]}
-      submitLabel="Check free compatibility"
-      initialValues={{ you: "Me", them: "TA", theirBirthday: "unknown", theirGender: "Unknown", mode: "Love" }}
+      submitLabel="Reveal free relationship signal"
+      initialValues={{ you: "Luna", them: "Alex", theirBirthday: "unknown", theirGender: "Unknown", mode: "Love" }}
       buildResult={(values) => {
         const you = values.you || "You";
-        const them = values.them || "TA";
+        const them = values.them || "them";
         const mode = values.mode || "Love";
         const score = mode === "Work" ? "71%" : mode === "Friend" ? "80%" : "76%";
         return {
@@ -38,11 +38,11 @@ export default function CompatibilityPage() {
           ],
         };
       }}
-      shareText={(values, result) => `YiShun compatibility for ${values.you || "me"} × ${values.them || "TA"}: ${result.summary}`}
+      shareText={(values, result) => `YiShun compatibility for ${values.you || "me"} × ${values.them || "them"}: ${result.summary}`}
       paidTitle="Unlock 30/90 day relationship depth"
       paidBullets={["Future 30/90 day relationship trend", "Conflict repair scripts", "Reunion / advance probability", "Best timing to advance", "Partner profile library"]}
       nextHref="/paywall?product=compatibility&source=compatibility"
-      nextLabel="Unlock relationship depth"
+      nextLabel="Unlock 30/90-day relationship report · $4.99"
       helper="Partner details are used only for this lightweight preview in D1; the page does not persist a partner profile."
     />
   );
