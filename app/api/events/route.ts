@@ -31,6 +31,22 @@ const PRIVATE_KEYS = new Set([
   "location",
 ]);
 
+const PRIVATE_KEY_PATTERNS = [
+  /email/i,
+  /phone/i,
+  /birth/i,
+  /address/i,
+  /location/i,
+  /latitude/i,
+  /longitude/i,
+  /postal/i,
+  /zip/i,
+];
+
+function isPrivateKey(key: string) {
+  return PRIVATE_KEYS.has(key) || PRIVATE_KEY_PATTERNS.some((pattern) => pattern.test(key));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -51,7 +67,7 @@ function redactPrivateFields(value: unknown, depth = 0): unknown {
       .slice(0, 80)
       .map(([key, nested]) => [
         key,
-        PRIVATE_KEYS.has(key) ? "[redacted]" : redactPrivateFields(nested, depth + 1),
+        isPrivateKey(key) ? "[redacted]" : redactPrivateFields(nested, depth + 1),
       ]),
   );
 }
