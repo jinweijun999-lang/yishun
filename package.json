@@ -11,6 +11,7 @@
     "smoke:stripe-webhook": "node scripts/stripe-webhook-entitlement-smoke.mjs",
     "smoke:i18n-language": "node scripts/i18n-language-switch-smoke.mjs",
     "smoke:i18n-ux": "node scripts/i18n-ux-copy-smoke.mjs",
+    "smoke:consumer-copy": "node scripts/consumer-copy-smoke.mjs",
     "smoke:p0-new-user": "node scripts/p0-new-user-smoke.mjs",
     "audit:buttons": "node scripts/yishun-core-button-audit.mjs",
     "qa:regression": "node qa-regression.cjs",

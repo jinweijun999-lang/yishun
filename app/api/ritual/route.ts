@@ -7,7 +7,7 @@ const ORACLE_LINES = [
     title: "Quiet growth",
     summary: "A calm step is stronger than a dramatic promise today.",
     action: "Choose one practical action you can finish in the next 30 minutes.",
-    basis: "Daily ritual placeholder uses YiShun reflection rules only; it does not read private birth data or make deterministic claims.",
+    basis: "Daily ritual uses YiShun reflection rules only; it does not read private birth data or make deterministic claims.",
   },
   {
     id: "oracle-clear-boundary",

@@ -33,8 +33,8 @@ export default function TermsPage() {
             </p>
             <h2 className="text-xl font-heading font-semibold text-white">App payment boundary</h2>
             <p>
-              P0 keeps paid reports, subscriptions, rewarded ads, Stripe, Apple IAP, Google Play Billing, and ad SDKs in mock
-              or planning state. iOS digital content must use Apple In-App Purchase before public App Store submission.
+              Digital purchases are fulfilled only after payment provider confirmation. If a checkout cannot be verified,
+              YiShun will not unlock paid reports, membership, or Ask Credits until the order is confirmed.
             </p>
           </section>
         </article>

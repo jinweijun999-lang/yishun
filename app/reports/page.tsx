@@ -596,7 +596,7 @@ export default function ReportsPage() {
         )}
 
         <YiShunBottomActionBar
-          statusText={isEnglish ? "Reports are saved locally in this P0 build. Manage or continue when ready." : "P0 阶段报告保存在本设备；可继续查看或管理。"}
+          statusText={isEnglish ? "Reports are saved on this device. Manage or continue when ready." : "报告保存在本设备；可继续查看或管理。"}
           primary={{
             label: isEnglish ? "Continue reading" : "继续查看",
             icon: "□",

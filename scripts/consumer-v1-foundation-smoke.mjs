@@ -9,7 +9,7 @@ const checks = [
   ["support ticket store", "lib/support-ticket-store.ts", ["SupportTicketStore", "memory-local-v1", "dbSupportTicketStore", "emailPresent"]],
   ["relationship page", "app/relationship-lite/page.tsx", ["Relationship Lite", "not persist"]],
   ["relationship api", "app/api/relationship-lite/route.ts", ["persistsPartnerPrivateData", "computeRelationshipLite"]],
-  ["ai question page", "app/ai-question/page.tsx", ["Mock paid execute", "rollback", "will not deduct credits"]],
+  ["ai question page", "app/ai-question/page.tsx", ["AI Master Question", "If execution fails, the reserved credit is returned", "Credit-safety contract verified"]],
   ["ai question api", "app/api/ai-question/route.ts", ["mockPaidQuestionAdapter", "stripeSandboxCheckoutAdapter", "noDeductionGuarantee", "chargePerformed: false"]],
   ["ai question adapter", "lib/ai-question-payment.ts", ["reserve-credit -> execute-reading -> capture-credit | release-reservation", "MOCK_EXECUTION_FAILURE_RELEASED_RESERVATION"]],
   ["stripe sandbox adapter", "lib/stripe-sandbox-adapter.ts", ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "chargePerformed: false", "LIVE_CHARGE_NOT_ALLOWED_IN_V1_LOCAL_ADAPTER"]],
