@@ -13,7 +13,7 @@ function isSupportedLocale(value: string | null | undefined) {
   return SUPPORTED_LOCALES.includes(value as (typeof SUPPORTED_LOCALES)[number]);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   if (isSupportedLocale(cookieLocale)) {
     return NextResponse.next();
