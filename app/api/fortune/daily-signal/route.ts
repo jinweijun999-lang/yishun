@@ -26,7 +26,7 @@ export async function GET() {
     },
     notes: [
       timezoneOffsetContract,
-      "P0 accepts an inline birthProfile and returns mocked rewarded-ad/paywall metadata; no real Stripe or ad SDK is called.",
+      "This endpoint accepts an inline birthProfile and returns a free daily signal plus paid-report metadata when available.",
     ],
   });
 }

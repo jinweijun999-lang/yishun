@@ -33,8 +33,8 @@ export function createLocalSupportTicket(input: SupportTicketInput) {
   return {
     id: `YS-${day}-${(hash >>> 0).toString(16).toUpperCase().slice(0, 6)}`,
     category: input.category,
-    status: "received_local_mock",
-    nextStep: input.locale === "zh" ? "我们已生成追踪编号；正式客服系统接入后会同步工单。" : "We generated a tracking ID; the production support desk can sync this ticket later.",
-    privacy: "V1 local mock does not persist payment secrets, tokens, cookies, or full private profile data.",
+    status: "received",
+    nextStep: input.locale === "zh" ? "我们已生成追踪编号；请保存它以便后续沟通。" : "We generated a tracking ID; please save it for follow-up.",
+    privacy: "YiShun does not store payment secrets, tokens, cookies, or full private profile data in support tickets.",
   };
 }

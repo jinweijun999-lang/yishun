@@ -38,8 +38,8 @@ function getConsumptionLinks(product?: string) {
     };
   }
   return {
-    title: "Payment test completed",
-    body: "This success page confirms the checkout redirect path is wired. Fulfillment should be finalized after webhook verification before production use.",
+    title: "Checkout received",
+    body: "YiShun is checking the order status. Paid access appears after the payment provider confirms fulfillment.",
     primaryHref: "/reading/start?source=checkout_success",
     primaryLabel: "Start free summary",
     secondaryHref: "/membership?source=checkout_success",
@@ -59,7 +59,7 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-secondary/20 text-3xl">
             ✓
           </div>
-          <p className="text-xs uppercase tracking-[0.25em] text-secondary/80">Stripe Test Checkout</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-secondary/80">Checkout</p>
           <h1 className="mt-3 text-2xl font-heading font-bold text-white">{nextStep.title}</h1>
           <p className="mt-3 text-sm leading-6 text-gray-300">{nextStep.body}</p>
           <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-left text-xs text-gray-400">

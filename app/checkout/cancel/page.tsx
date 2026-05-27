@@ -16,10 +16,10 @@ export default async function CheckoutCancelPage({ searchParams }: PageProps) {
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-3xl">
             ↩
           </div>
-          <p className="text-xs uppercase tracking-[0.25em] text-accent/80">Stripe Test Checkout</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-accent/80">Checkout</p>
           <h1 className="mt-3 text-2xl font-heading font-bold text-white">Checkout canceled</h1>
           <p className="mt-3 text-sm leading-6 text-gray-300">
-            No test payment was completed. You can return to the YiShun web flow and try again when ready.
+            No payment was completed. You can return to YiShun and try again when ready.
           </p>
           {product && <p className="mt-4 text-xs text-gray-500">Canceled product: {product}</p>}
           <div className="mt-6 grid gap-3 sm:grid-cols-2">

@@ -362,10 +362,10 @@ export default function ProfilePage() {
               <div id="feedback-support" className="glass card p-6 sm:p-8">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-secondary">Feedback / Support · 客服反馈</p>
                 <h2 className="mt-2 text-xl font-heading font-bold text-white text-glow">
-                  Help improve YiShun V1
+                  Help improve YiShun
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-gray-400">
-                  Report confusing readings, payment/order questions, or content issues. The local mock API returns a tracking ID now and can be connected to a production support desk later.
+                  Report confusing readings, payment or order questions, and content issues. We will give you a tracking ID so follow-up is easier.
                 </p>
                 <form onSubmit={handleSupportSubmit} className="mt-5 grid gap-3">
                   <select

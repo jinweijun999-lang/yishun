@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (process.env.YISHUN_ENABLE_REWARDED_ADS !== "1") {
     return NextResponse.json({
       error: "REWARDED_ADS_DISABLED",
-      message: "Rewarded ads are disabled for the current P0 paid-product boundary; this route does not grant credits or entitlement.",
+      message: "Rewarded ads are currently unavailable; this route does not grant credits or paid access.",
     }, { status: 410 });
   }
 

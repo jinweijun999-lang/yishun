@@ -17,7 +17,7 @@ export default function TarotHubPage() {
           <div className="glass card p-6 sm:p-8">
             <p className="text-xs font-black uppercase tracking-[0.28em] text-violet-200">Tarot / 灵签 / 铜钱卦</p>
             <h1 className="mt-3 text-4xl font-heading font-bold text-white text-glow">A fast divination hub that leads into paid Ask AI or a deep report.</h1>
-            <p className="mt-3 text-sm leading-6 text-gray-300">These are P0 entry points for competitors’ strongest hooks. They do not grant paid credits by themselves; checkout and fulfillment remain separated.</p>
+            <p className="mt-3 text-sm leading-6 text-gray-300">Choose a quick symbolic prompt, then continue into a focused AI reflection or a deeper birth-chart report when you are ready.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {paths.map(([icon, title, body, mode]) => (
