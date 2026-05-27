@@ -44,7 +44,7 @@ const copy = {
     login: "Sign in",
     signedIn: "Signed in",
     trust: "Privacy boundary: public cards never show birth date, birth place, email, or private chart details. Not fortune-telling — a structured reflection tool for timing, priorities, and decisions.",
-    heroCardLabel: "Four榜单入口 · Free first · Paid depth",
+    heroCardLabel: "Four entry paths · Free first · Paid depth",
     clarity: "Timing clarity",
     bestFor: "Best for",
     bestHour: "Best window",
@@ -234,7 +234,7 @@ export default function Home() {
                   <span className="text-xl">{icon}</span>
                   <span className="mt-3 block text-sm font-black">{label}</span>
                   <span className="mt-2 block text-xs leading-5 opacity-80">{body}</span>
-                  <span className="mt-3 inline-flex text-xs font-black transition group-hover:translate-x-1">Start free →</span>
+                  <span className="mt-3 inline-flex text-xs font-black transition group-hover:translate-x-1">{isZh ? "免费开始 →" : "Start free →"}</span>
                 </a>
               ))}
             </div>

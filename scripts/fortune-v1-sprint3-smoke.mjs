@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from "node:fs";
 
 const checks = [
-  ["AI question confirmation page", "app/ai-question/page.tsx", ["Ask with confirmation before any charge", "Mock paid execute", "Future live adapter"]],
-  ["AI question route", "app/api/ai-question/route.ts", ["stripeSandboxCheckoutAdapter", "sandbox_checkout_ready_no_charge", "noDeductionGuarantee"]],
+  ["AI question confirmation page", "app/ai-question/page.tsx", ["Check your balance first", "Ask with credit", "Credit safety"]],
+  ["AI question route", "app/api/ai-question/route.ts", ["stripeSandboxCheckoutAdapter", "checkout_ready_no_charge", "noDeductionGuarantee"]],
   ["Daily Timing page", "app/daily-timing/page.tsx", ["traceable daily timing", "Generate traceable daily timing"]],
   ["Relationship Lite page", "app/relationship-lite/page.tsx", ["Relationship Lite", "not persist"]],
   ["Feedback route", "app/api/support/feedback/route.ts", ["supportTicketStore", "support-ticket-persistence-v1"]],

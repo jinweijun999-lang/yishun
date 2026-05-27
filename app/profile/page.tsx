@@ -63,12 +63,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const response = await fetch("/api/profile");
+      const response = await fetch("/api/profile?silent=1");
+      const data = await response.json();
+      if (data.authenticated === false) {
+        router.push("/login?returnTo=/profile");
+        return;
+      }
       if (!response.ok) {
         router.push("/login");
         return;
       }
-      const data = await response.json();
       setProfile(data.profile);
       setBirthDate(data.profile.birthDate ?? "");
       setBirthTime(data.profile.birthTime ?? "");

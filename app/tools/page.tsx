@@ -122,7 +122,7 @@ export default function ToolsPage() {
     {
       id: "tarot-divination",
       icon: "🃏",
-      title: "Tarot / 灵签 / 铜钱卦",
+      title: isEnglish ? "Tarot / Oracle / Coin" : "塔罗 / 灵签 / 铜钱卦",
       description: "Reserved divination hub: quick card, oracle stick, and coin-style prompts leading into Ask AI.",
       href: "/tarot",
       cta: "Open divination hub",

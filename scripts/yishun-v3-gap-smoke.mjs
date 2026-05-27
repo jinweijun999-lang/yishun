@@ -61,7 +61,12 @@ const checkoutSmoke = await postJson('/api/stripe/checkout', {
 });
 assert([200, 502, 503].includes(checkoutSmoke.response.status), 'checkout must return a controlled JSON response', checkoutSmoke);
 if (checkoutSmoke.response.status === 200) {
-  assert(typeof checkoutSmoke.body.url === 'string' && checkoutSmoke.body.url.startsWith('https://'), 'configured checkout must return redirect URL', checkoutSmoke.body);
+  const sandboxPending = checkoutSmoke.body.code === 'checkout_sandbox_pending' && checkoutSmoke.body.chargePerformed === false;
+  if (sandboxPending) {
+    assert(typeof checkoutSmoke.body.url === 'string' && checkoutSmoke.body.url.includes('/checkout/sandbox'), 'sandbox checkout must return local pending URL', checkoutSmoke.body);
+  } else {
+    assert(typeof checkoutSmoke.body.url === 'string' && checkoutSmoke.body.url.startsWith('https://'), 'configured checkout must return redirect URL', checkoutSmoke.body);
+  }
 } else {
   assert(typeof checkoutSmoke.body.error === 'string' && checkoutSmoke.body.error.length > 0, 'unconfigured checkout must return friendly error', checkoutSmoke.body);
   assert(!String(checkoutSmoke.body.error).includes('STRIPE_SECRET_KEY'), 'checkout user error must not expose secret env names', checkoutSmoke.body);

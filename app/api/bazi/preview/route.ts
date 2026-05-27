@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
         creditPolicy: "Ask credits are only for AI questions; they do not unlock Full Report.",
       },
       freeSummary,
+      trueSolarTime: preview.trueSolarTime,
       dailySignal: {
         score: dailySignal.score,
         bestFor: dailySignal.bestFor.slice(0, 3),

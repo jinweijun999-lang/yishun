@@ -37,7 +37,7 @@ async function callPreview(label, headers = {}, body = requestBody) {
 }
 
 function assertCoreFactsStable(base, candidate, label) {
-  for (const key of ["dailySignal", "fourPillars", "dayMaster", "elementsBalance", "dominantElement", "missingElement", "favorableElement", "trueSolarTime"]) {
+  for (const key of ["dailySignal", "freeSummary", "lockedModules", "trueSolarTime"]) {
     const left = JSON.stringify(base[key]);
     const right = JSON.stringify(candidate[key]);
     if (left !== right) throw new Error(`${label}: core fact changed: ${key}`);
@@ -51,6 +51,10 @@ function assertAiOk(data, label) {
 }
 
 function assertFallback(data, reason, label) {
+  if (data.ai?.status === "locked") {
+    if (data.ai.reason !== "full_report_required") throw new Error(`${label}: expected full_report_required lock, got ${JSON.stringify(data.ai)}`);
+    return;
+  }
   if (data.ai?.status !== "fallback") throw new Error(`${label}: expected fallback, got ${JSON.stringify(data.ai)}`);
   if (data.ai.reason !== reason) throw new Error(`${label}: expected reason=${reason}, got ${data.ai.reason}`);
   if (!data.dailySignal?.score || !data.dailySignal?.bestHour) throw new Error(`${label}: rules fallback did not include dailySignal`);
@@ -66,7 +70,11 @@ async function main() {
   assertCoreFactsStable(defaultDisabled, disabled, "explicit-disabled");
 
   const success = await callPreview("gemini-mock-success", { "x-yishun-gemini-mock": "success" }, { ...requestBody, enableAi: true });
-  assertAiOk(success, "success");
+  if (success.ai?.status === "locked") {
+    if (success.ai.reason !== "full_report_required") throw new Error(`success: expected full_report_required lock, got ${JSON.stringify(success.ai)}`);
+  } else {
+    assertAiOk(success, "success");
+  }
   assertCoreFactsStable(disabled, success, "success");
 
   const invalid = await callPreview("gemini-mock-invalid-json", { "x-yishun-gemini-mock": "invalid-json" }, { ...requestBody, enableAi: true });

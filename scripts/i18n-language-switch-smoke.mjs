@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const baseUrl = process.env.YISHUN_BASE_URL ?? "http://localhost:3000";
+const baseUrl = process.env.YISHUN_BASE_URL ?? process.env.BASE_URL ?? "http://localhost:3000";
 
 async function expectText(locator, expected, label) {
   await locator.waitFor({ state: "visible", timeout: 10_000 });
@@ -21,20 +21,20 @@ try {
   await page.context().clearCookies();
   await page.reload({ waitUntil: "networkidle" });
 
-  await expectPageText(page, "Today’s Decision Brief", "initial English home stable copy");
+  await expectPageText(page, "Unlock your full destiny report", "initial English home stable copy");
 
   await page.getByLabel(/Language|语言/).selectOption("zh-CN");
-  await expectPageText(page, "今日决策简报", "en -> zh home stable copy");
-  await expectPageText(page, "开始免费今日信号", "en -> zh CTA");
+  await expectPageText(page, "先看完整命运报告", "en -> zh home stable copy");
+  await expectPageText(page, "开始免费命运预览", "en -> zh CTA");
 
   await page.reload({ waitUntil: "networkidle" });
-  await expectPageText(page, "今日决策简报", "zh persists after refresh");
+  await expectPageText(page, "先看完整命运报告", "zh persists after refresh");
 
   await page.getByLabel(/Language|语言/).selectOption("en");
-  await expectPageText(page, "Today’s Decision Brief", "zh -> en home stable copy");
+  await expectPageText(page, "Unlock your full destiny report", "zh -> en home stable copy");
 
   await page.reload({ waitUntil: "networkidle" });
-  await expectPageText(page, "Today’s Decision Brief", "en persists after refresh");
+  await expectPageText(page, "Unlock your full destiny report", "en persists after refresh");
 
   console.log("i18n language switch smoke passed", { baseUrl });
 } finally {
