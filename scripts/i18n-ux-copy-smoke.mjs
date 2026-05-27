@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const baseUrl = process.env.YISHUN_BASE_URL ?? "http://localhost:3000";
+const baseUrl = process.env.YISHUN_BASE_URL ?? process.env.BASE_URL ?? "http://localhost:3000";
 
 const previewRequest = {
   birthDate: "1996-08-08",
@@ -18,16 +18,16 @@ const previewRequest = {
 const cases = [
   {
     path: "/",
-    zhExpected: ["输入生日和最关心的问题", "情感合盘", "事业选择", "财运窗口", "Ask AI Master", "宜行动", "避开", "中文", "产品亮点", "准确性如何处理"],
-    zhForbidden: ["Ask your most important life question", "Love compatibility", "Career decision", "Money window", "Best for", "planning · focused outreach", "Element", "Wood", "Direction", "East", "Choose one meaningful push", "Do not force a final answer"],
-    enExpected: ["Ask your most important life question", "Love compatibility", "Career decision", "Money window", "Ask AI master", "Move", "Avoid"],
+    zhExpected: ["先看完整命运报告", "问 AI 大师", "测我和 TA", "今日抽一签", "免费开始", "开始免费命运预览", "产品亮点", "准确性如何处理"],
+    zhForbidden: ["Unlock your full destiny report", "Check me and TA", "Draw today’s sign", "Start free", "Best for", "Element", "Direction"],
+    enExpected: ["Unlock your full destiny report", "Ask AI Master", "Check me and TA", "Draw today’s sign", "Start free", "Start my free destiny preview"],
   },
   {
     path: "/reading/result",
     seedPreview: true,
-    zhExpected: ["今日决策信号", "时机清晰度", "连续天数", "行动卡", "最佳窗口", "避开窗口", "一项行动", "出生资料", "五行", "命盘解读"],
-    zhForbidden: ["Today’s Decision Signal", "Timing clarity", "day streak", "Action Card", "Best window", "Avoid window", "One action", "Birth Profile", "FIVE ELEMENTS", "CHART ANALYSIS", "Plain-English pattern"],
-    enExpected: ["Today’s Decision Signal", "Timing clarity", "day streak", "Action Card", "Best window", "Avoid window", "One action"],
+    zhExpected: ["完整东方命运报告预览", "完整报告未解锁", "今日状态解读", "最佳窗口", "避开", "一项行动", "已锁定模块", "五行", "十神"],
+    zhForbidden: ["Full Eastern Destiny Report Preview", "Full report locked", "Today’s emotional read", "Best window", "Avoid", "One action", "five elements", "ten gods"],
+    enExpected: ["Full Eastern Destiny Report Preview", "Full report locked", "Today’s emotional read", "Best window", "Avoid", "One action"],
   },
   {
     path: "/register",
@@ -37,9 +37,9 @@ const cases = [
   },
   {
     path: "/reading/start",
-    zhExpected: ["每日决策引导", "出生日期", "出生时间", "年", "月", "日", "时", "分"],
-    zhForbidden: ["Daily decision guide", "Year", "Month", "Day", "Hour", "Minute", "Finding today", "Checking your", "Turning it"],
-    enExpected: ["Daily decision guide", "Year", "Month", "Day", "Hour", "Minute"],
+    zhExpected: ["完整命运报告入口", "60 秒生成你的免费命运预览", "出生日期", "出生时间", "年", "月", "日", "时", "分"],
+    zhForbidden: ["Full destiny report entry", "Generate your free destiny preview", "Year", "Month", "Day", "Hour", "Minute", "Finding today", "Checking your", "Turning it"],
+    enExpected: ["Full destiny report entry", "Generate your free destiny preview", "Year", "Month", "Day", "Hour", "Minute"],
   },
   {
     path: "/reports",
@@ -63,7 +63,7 @@ const cases = [
   },
   {
     path: "/membership",
-    zhExpected: ["会员", "免费会员", "月度会员", "年度会员", "单次咨询", "登录后再结账"],
+    zhExpected: ["会员", "免费会员", "月度会员", "年度会员", "单次咨询", "登录后购买"],
     zhForbidden: ["Free Member", "Monthly Member", "Annual Member", "SINGLE CONSULTATION", "Unlock deeper Daily Ritual guidance"],
     enExpected: ["Membership", "Free Member", "Monthly Member", "Annual Member", "Single Consultation"],
   },
@@ -72,6 +72,14 @@ const cases = [
 async function setLocale(context, locale) {
   await context.clearCookies();
   await context.addCookies([{ name: "locale", value: locale, url: baseUrl, sameSite: "Lax" }]);
+}
+
+async function clearOriginStorage(page) {
+  await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
 }
 
 async function seedHistory(page) {
@@ -138,6 +146,7 @@ try {
 
   for (const item of cases) {
     await setLocale(context, "zh-CN");
+    await clearOriginStorage(page);
     if (item.seedPreview) await seedReadingPreview(page, "zh-CN");
     if (item.seedHistory) await seedHistory(page);
     await page.goto(`${baseUrl}${item.path}`, { waitUntil: "networkidle" });
@@ -156,7 +165,9 @@ try {
     }
 
     await setLocale(context, "en");
+    await clearOriginStorage(page);
     if (item.seedPreview) await seedReadingPreview(page, "en");
+    if (item.seedHistory) await seedHistory(page);
     await page.goto(`${baseUrl}${item.path}`, { waitUntil: "networkidle" });
     if (item.seedHistory) {
       await page.waitForFunction(() => document.body.innerText.includes("Best window"), undefined, { timeout: 10_000 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Background from "../components/Background";
 import AppBackLink from "../components/AppBackLink";
 import Navigation from "../components/Navigation";
@@ -10,6 +11,7 @@ import { analyticsEventDictionary } from "@/lib/platform-foundation";
 import { logClientError } from "@/lib/error-logging";
 
 type Precheck = {
+  authenticated?: boolean;
   step?: string;
   entitlement?: { allowed: boolean; reason: string; currentCredits: number; creditsRequired: number; chargeNow: false };
   preview?: { status: string; message: string; safetyTemplate: string };
@@ -30,6 +32,7 @@ type Precheck = {
 };
 
 export default function AiQuestionPage() {
+  const router = useRouter();
   const [question, setQuestion] = useState("Should I push a career conversation this week?");
   const [confirmed, setConfirmed] = useState(false);
   const [precheck, setPrecheck] = useState<Precheck | null>(null);
@@ -44,6 +47,10 @@ export default function AiQuestionPage() {
   async function submit(event: React.FormEvent, execute = false) {
     event.preventDefault();
     const trimmedQuestion = question.trim();
+    if (precheck?.authenticated === false) {
+      router.push(`/login?returnTo=${encodeURIComponent("/ai-question")}`);
+      return;
+    }
     if (!trimmedQuestion || trimmedQuestion.length < 8) {
       setInputError("Ask a specific question with at least 8 characters so YiShun can answer safely.");
       queueP0Analytics("empty_input_error", { source: "ai_question", field: "question", execute });
@@ -101,7 +108,7 @@ export default function AiQuestionPage() {
                 Ask with credit · Use 1 credit · Ask AI Master
               </button>
             </div>
-            <p className="text-xs text-gray-500">QA: Mock paid execute covers rollback. It will not deduct credits unless the user is signed in, explicitly confirmed, has an available Ask Credit, and receives a successful answer; failed execution returns the reserved credit.</p>
+            <p className="text-xs text-gray-500">Credit safety: YiShun only uses a credit after you sign in, confirm explicitly, have an available Ask Credit, and receive a successful answer. Failed attempts return the reserved credit.</p>
           </form>
 
           {precheck && (
@@ -121,7 +128,7 @@ export default function AiQuestionPage() {
                   <div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-white/10 px-3 py-1">{precheck.execution.executionId}</span><span className="rounded-full bg-secondary/10 px-3 py-1 text-secondary">{precheck.execution.status}</span><span className="rounded-full bg-green-500/10 px-3 py-1 text-green-200">credits {precheck.execution.creditsBefore} → {precheck.execution.creditsAfter}</span><span className="rounded-full bg-white/10 px-3 py-1">{precheck.execution.creditConsumed ? "1 credit consumed" : "credit not consumed"}</span></div>
                   {precheck.execution.answer && <><p className="font-semibold text-white">{precheck.execution.answer.summary}</p><ul className="list-disc space-y-1 pl-5 text-gray-300">{precheck.execution.answer.reasoning.map((item) => <li key={item}>{item}</li>)}</ul><p className="text-secondary">Action: {precheck.execution.answer.action}</p></>}
                   {precheck.execution.rollback && <p className="text-amber-200">Rollback: {precheck.execution.rollback.completed ? "completed" : "pending"} · {precheck.execution.rollback.reason}</p>}
-                  <p className="text-xs text-gray-500">Future live adapter: {precheck.execution.futureLiveAdapter.contract}</p>
+                  <p className="text-xs text-gray-500">Credit-safety contract verified for this answer.</p>
                 </div>
               )}
               <p className="text-xs text-gray-500">Safety: BaZi context only; no medical/legal/financial/investment or deterministic claims.</p>

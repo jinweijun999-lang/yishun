@@ -166,10 +166,7 @@ async function completeReadingFlow(page, locale) {
   await page.goto('/reading/start', { waitUntil: 'networkidle' });
   await assertNoHorizontalScroll(page, `${locale} reading start`);
   await fillBirthDateTimeSelects(page, 0);
-  await page.getByRole('button', { name: locale === 'zh-CN' ? '继续' : 'Continue' }).click();
-  await page.getByPlaceholder(locale === 'zh-CN' ? '城市，国家' : 'City, country').fill('Shanghai, China');
-  await page.getByRole('button', { name: locale === 'zh-CN' ? '继续' : 'Continue' }).click();
-  await page.getByRole('button', { name: locale === 'zh-CN' ? '找到我的最佳时机' : 'Find my best timing' }).click();
+  await page.getByRole('button', { name: locale === 'zh-CN' ? '生成免费命运预览' : 'Generate free destiny preview' }).click();
   await page.waitForURL('**/reading/result', { timeout: 15000 });
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => !document.body.innerText.includes('Loading your signal') && !document.body.innerText.includes('正在加载你的信号'), null, { timeout: 10000 });
@@ -206,9 +203,9 @@ async function main() {
   await withCase('Homepage primary CTA reaches current reading start path', async () => {
     await page.goto('/', { waitUntil: 'networkidle' });
     await selectLocale(page, 'en');
-    await page.getByRole('link', { name: /Start my free daily signal|Create your signal/ }).first().click();
+    await page.getByRole('link', { name: /Start my free destiny preview|Open my destiny preview/ }).first().click();
     await page.waitForURL('**/reading/start', { timeout: 10000 });
-    await expectBodyIncludes(page, '60 seconds', 'reading start');
+    await expectBodyIncludes(page, 'Generate your free destiny preview', 'reading start');
     await page.screenshot({ path: evidencePath('2-reading-start'), fullPage: true });
   });
 
@@ -236,9 +233,10 @@ async function main() {
 
   console.log('\n[4] Reading Start/Result');
   await withCase('EN reading start → result renders P0 report structure', async () => {
+    await page.goto('/', { waitUntil: 'networkidle' });
     await selectLocale(page, 'en');
     await completeReadingFlow(page, 'en');
-    for (const expected of ['One action', '3 practical actions', 'Best for / avoid', 'For reflection only', 'View sample reports']) {
+    for (const expected of ['Full Eastern Destiny Report Preview', 'One action', 'Best window', 'For reflection only']) {
       await expectBodyIncludes(page, expected, 'EN result');
     }
     await page.screenshot({ path: evidencePath('4a-result-en'), fullPage: true });
@@ -248,7 +246,7 @@ async function main() {
     await page.goto('/', { waitUntil: 'networkidle' });
     await selectLocale(page, 'zh-CN');
     await completeReadingFlow(page, 'zh-CN');
-    for (const expected of ['今日摘要', '3 条行动建议', '适合 / 避免', '仅供娱乐和自我反思']) {
+    for (const expected of ['完整东方命运报告预览', '一项行动', '最佳窗口', '仅供娱乐和自我反思']) {
       await expectBodyIncludes(page, expected, 'ZH result');
     }
     await page.screenshot({ path: evidencePath('4b-result-zh'), fullPage: true });

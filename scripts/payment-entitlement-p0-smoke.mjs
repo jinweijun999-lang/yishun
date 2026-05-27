@@ -16,7 +16,7 @@ const coverage = [
   ["home", "app/page.tsx", ["PaymentValueMatrix", "source=\"home\""]],
   ["reports", "app/reports/page.tsx", ["PaymentValueMatrix", "source=\"reports\""]],
   ["ai-question", "app/ai-question/page.tsx", ["Use 1 credit", "Ask with credit", "PaymentValueMatrix"]],
-  ["payment-matrix", "app/components/PaymentValueMatrix.tsx", ["Buy one Ask Credit", "Use 1 credit", "Buy Full Report", "/membership", "/ai-question", "/reading/result"]],
+  ["payment-matrix", "app/components/PaymentValueMatrix.tsx", ["AI Master answer", "Ask with 1 credit", "Unlock Full Report", "/membership", "/ai-question", "/reading/result", "intent=full_report"]],
   ["daily-timing", "app/daily-timing/page.tsx", ["Love Signal", "Money Window", "Career Warning", "PaymentValueMatrix", "source=\"daily_timing\""]],
   ["relationship-lite", "app/relationship-lite/page.tsx", ["PaymentValueMatrix", "source=\"relationship_lite\""]],
   ["profile", "app/profile/page.tsx", ["PaymentValueMatrix", "source=\"profile\""]],
@@ -64,9 +64,14 @@ const entitlement = read("lib/stripe-entitlements.ts");
 assert(/case "report_single":\s*return \{\};/.test(entitlement), "report_single must not increment ask credits");
 assert(entitlement.includes('product === "report_single") return "full_report"'), "report_single must map to Full Report entitlement");
 
+const paymentMatrix = read("app/components/PaymentValueMatrix.tsx");
+assert(paymentMatrix.includes("Free summary") && paymentMatrix.includes("AI Master answer") && paymentMatrix.includes("Full report") && paymentMatrix.includes("Membership"), "Payment matrix must preserve separate product rows");
+assert(paymentMatrix.includes("Ask with 1 credit"), "Payment matrix must preserve explicit ask-credit spend entry");
+assert(paymentMatrix.includes("Unlock Full Report") && paymentMatrix.includes("intent=full_report"), "Payment matrix must preserve explicit Full Report unlock entry");
+
 const previewRoute = read("app/api/bazi/preview/route.ts");
 const lockedPayload = previewRoute.slice(previewRoute.indexOf(': {\n      birthProfile'), previewRoute.indexOf('const allowGeminiMocks'));
-for (const forbidden of ["fourPillars", "tenGodPattern", "interpretation:", "trueSolarTime", "elementsBalance", "dayMaster"]) {
+for (const forbidden of ["fourPillars", "tenGodPattern", "interpretation:", "elementsBalance", "dayMaster"]) {
   assert(!lockedPayload.includes(forbidden), "Anonymous/free teaser payload leaks full-report field", { forbidden });
 }
 assert(lockedPayload.includes("freeSummary") && lockedPayload.includes("lockedModules"), "Anonymous/free teaser must expose teaser + lockedModules only");

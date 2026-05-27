@@ -66,17 +66,7 @@ async function assertMobileZhOnboarding(browser) {
   await selects.nth(3).selectOption("17");
   await selects.nth(4).selectOption("08");
   await page.waitForTimeout(150);
-  await page.getByRole("button", { name: "继续" }).click();
-  await page.waitForSelector('input[placeholder="城市，国家"], input[placeholder="City, country"]', { timeout: 10000 });
-
-  const cityInput = page.locator('input[placeholder="城市，国家"], input[placeholder="City, country"]').first();
-  await cityInput.fill("北京，中国");
-  await page.getByRole("button", { name: "继续" }).click();
-
-  await page.getByRole("button", { name: "综合" }).click();
-  await page.locator("form select.input-field").last().selectOption("female");
-  await page.screenshot({ path: path.join(EVIDENCE_DIR, "mobile-zh-step-3-general-female.png"), fullPage: true });
-  await page.getByRole("button", { name: "找到我的最佳时机" }).click();
+  await page.getByRole("button", { name: "生成免费命运预览" }).click();
 
   await page.waitForURL("**/reading/result", { timeout: 20000 });
   await page.waitForLoadState("networkidle");

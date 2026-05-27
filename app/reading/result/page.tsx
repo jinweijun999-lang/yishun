@@ -503,6 +503,22 @@ export default function ReadingResultPage() {
   if (!hasFullReport) {
     const teaser = preview.freeSummary ?? preview.dailySignal;
     const lockedModules = preview.lockedModules ?? ["four_pillars", "five_elements", "ten_gods", "interpretation_basis", "deep_daily_signal", "seven_day_plan"];
+    const lockedModuleLabels: Record<string, string> = isZh
+      ? {
+          personality: "性格",
+          love: "爱情",
+          career: "事业",
+          wealth: "财富",
+          helpful_people: "贵人",
+          future_90_days: "未来90天",
+          four_pillars: "四柱",
+          five_elements: "五行",
+          ten_gods: "十神",
+          interpretation_basis: "解读依据",
+          deep_daily_signal: "深度今日信号",
+          seven_day_plan: "七日计划",
+        }
+      : {};
     const askCredits = preview.access?.askCredits ?? 0;
     const entitlementStatus = preview.access?.fullReportEntitlement?.status ?? "locked";
     return (
@@ -537,7 +553,7 @@ export default function ReadingResultPage() {
               <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
                 <div>
                   <span className="text-5xl font-heading font-bold text-white text-glow sm:text-6xl">{teaser.score}</span>
-                  <span className="pb-3 text-sm text-gray-400"> / 100 {isZh ? "清晰度" : "clarity"}</span>
+                  <span className="pb-3 text-sm text-gray-400"> / 100 {isZh ? "时机清晰度" : "timing clarity"}</span>
                 </div>
                 <div className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
                   <p className="text-xs uppercase tracking-[0.18em] text-accent">{isZh ? "问事次数" : "Ask credits"}</p>
@@ -566,7 +582,7 @@ export default function ReadingResultPage() {
                 </p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {["personality", "love", "career", "wealth", "helpful_people", "future_90_days", ...lockedModules].slice(0, 9).map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-gray-200">🔒 {item.replaceAll("_", " ")}</div>
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-gray-200">🔒 {lockedModuleLabels[item] ?? item.replaceAll("_", " ")}</div>
                   ))}
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">

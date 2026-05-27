@@ -26,7 +26,8 @@ assert.match(src.adapter, /Ask credits do not unlock the full report/, "adapter 
 // Result/report/profile UI must show teaser, locks, unlock CTA, and unlocked state.
 assert.match(src.result, /Free teaser/, "reading result must label teaser state");
 assert.match(src.result, /Locked Full Report modules/, "reading result must show locked modules");
-assert.match(src.result, /Buy Full Report \/ Unlock Full Report \(no ask credits used\)/, "reading result CTA must not mix ask credits with report unlock");
+assert.match(src.result, /Unlock Full Report/, "reading result must expose Full Report unlock CTA");
+assert.match(src.result, /does not consume ask credits|not Full Report unlocks/, "reading result must state Full Report unlock is separate from ask credits");
 assert.match(src.result, /Full report unlocked/, "reading result must support unlocked state");
 assert.match(src.reports, /Reports are split into Free teasers, Full Reports, and AI question records/, "reports page must split report categories");
 assert.match(src.profile, /Full Report entitlement/, "profile must expose full-report entitlement status");

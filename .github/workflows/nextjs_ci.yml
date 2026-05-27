@@ -116,7 +116,7 @@ jobs:
           set -e
           for i in $(seq 1 30); do
             if curl -fsS --max-time 10 http://127.0.0.1:3001/ >/dev/null \
-              && curl -fsS --max-time 10 http://127.0.0.1:3001/api/kanban/status >/dev/null \
+              && curl -fsS --max-time 10 http://127.0.0.1:3001/api/health >/dev/null \
               && sudo -n -u yishun pm2 describe yishun-nextjs >/dev/null; then
               exit 0
             fi

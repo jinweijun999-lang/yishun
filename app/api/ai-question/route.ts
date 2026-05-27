@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     authenticated: true,
     credits: user?.consultationCredits ?? 0,
     entitlement: checkQuestionEntitlement(user?.consultationCredits ?? 0, false),
-    paymentFlow: "precheck -> explicit confirmation -> sandbox checkout adapter -> mock paid execution -> rollback on failure; no credits deducted before explicit execution",
+    paymentFlow: "precheck -> explicit confirmation -> checkout preparation -> paid execution -> rollback on failure; no credits deducted before explicit execution",
     noDeductionGuarantee: "No Ask Credit is deducted during precheck, confirmation, or checkout preparation. A credit is reserved only for explicit execute=true and is returned on failed execution.",
     stripeSandbox: {
       chargePerformed: false,
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
         noDeductionGuarantee: "No Ask Credit is deducted during precheck, confirmation, or checkout preparation. A credit is reserved only for explicit execute=true and is returned on failed execution.",
         preview: {
           question,
-          status: entitlement.allowed ? "ready_for_mock_paid_execution" : confirmed ? "sandbox_checkout_ready_no_charge" : "precheck_only",
+          status: entitlement.allowed ? "ready_for_paid_execution" : confirmed ? "checkout_ready_no_charge" : "precheck_only",
           safetyTemplate: promptTemplates.aiQuestionSafety,
           message: entitlement.allowed
-            ? "Entitlement confirmed. Continue to mock paid execution. V1 will not deduct credits."
+            ? "Entitlement confirmed. Continue when you are ready. YiShun only uses a credit after a successful answer."
             : confirmed
-              ? "Sandbox checkout adapter is prepared for configuration; it does not read secrets or charge in V1."
+              ? "Checkout preparation is ready. No credit has been used yet."
               : "Review the credit requirement and confirm before any paid execution. No credit has been deducted.",
         },
       });

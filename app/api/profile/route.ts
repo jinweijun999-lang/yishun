@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   const session = await getSessionPayload(request);
   if (!session) {
+    if (request.nextUrl.searchParams.get("silent") === "1") {
+      return NextResponse.json({ authenticated: false, error: t("errors.unauthorized") });
+    }
     return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });
   }
 
@@ -49,6 +52,7 @@ export async function GET(request: NextRequest) {
   const fullReportEntitlement = await getFullReportEntitlementForUser(syncedUser.id, syncedUser.planTier);
 
   return NextResponse.json({
+    authenticated: true,
     profile: {
       email: syncedUser.email,
       birthDate: syncedUser.birthDate,

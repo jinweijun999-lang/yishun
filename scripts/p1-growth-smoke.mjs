@@ -62,7 +62,8 @@ await page.evaluate((preview) => {
 }, samplePreview);
 await page.reload({ waitUntil: 'networkidle' });
 await bodyIncludes(page, 'Share today');
-await bodyIncludes(page, 'View sample reports');
+await bodyIncludes(page, 'Full Eastern Destiny Report Preview');
+await bodyIncludes(page, 'Save today card');
 await page.getByRole('button', { name: /Share today|Copy or system-share/i }).first().click();
 await page.waitForFunction(() => document.body.innerText.includes('Share link ready') || document.body.innerText.includes('Copied / shared'), null, { timeout: 10000 });
 await page.screenshot({ path: shot('p1-result-share'), fullPage: true });
