@@ -14,9 +14,16 @@ Client events now attach safe product/session/source/page/device metadata before
 
 ## Verification
 
-- Pending in this run: `npm run audit:analytics-contract`
-- Pending in this run: `npm run lint`
-- Pending in this run: daily report sample using enriched analytics rows
+- `npm run audit:analytics-contract` passed.
+- `npm run audit:production-config` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npx next build --webpack` passed and included `/api/events`, `/api/health`, checkout, success, membership, reports, and share routes.
+- Sample enriched analytics rows passed through `REPORT_DATE=2026-05-28 YISHUN_REPORT_NO_NETWORK=1 npm run report:yishun-daily`, producing:
+  - `checkout_started=1`
+  - `entitlement_granted=1`
+  - `traffic_sources.csv` source `tiktok=3`
+  - `retention.csv` `anonymous_visitors=1`, `sessions=1`
 
 ## Risks
 
@@ -25,4 +32,4 @@ Client events now attach safe product/session/source/page/device metadata before
 
 ## Next Action
 
-Run the analytics contract audit and daily report smoke, then fold this gate into the release checklist before staging verification.
+Fold `npm run audit:analytics-contract` into the release checklist before staging verification and connect the production analytics sink to the daily report cadence.
