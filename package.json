@@ -27,7 +27,8 @@
     "smoke:yishun-d3-gaps": "node scripts/yishun-d3-gap-smoke.mjs",
     "report:yishun-daily": "node scripts/yishun-daily-data-report.mjs",
     "audit:production-config": "node scripts/yishun-production-config-audit.mjs",
-    "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs"
+    "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs",
+    "audit:monitoring-contract": "node scripts/yishun-monitoring-contract-audit.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
