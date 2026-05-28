@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionPayload } from "@/lib/auth";
+import { getRequestBaseUrl } from "@/lib/public-url";
 import { stripeSandboxCheckoutAdapter } from "@/lib/stripe-sandbox-adapter";
 
 export const runtime = "nodejs";
@@ -39,9 +40,7 @@ function isCheckoutProduct(value: unknown): value is CheckoutProduct {
 }
 
 function getSiteUrl(request: NextRequest) {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configuredUrl) return configuredUrl.replace(/\/$/, "");
-  return request.nextUrl.origin;
+  return getRequestBaseUrl(request.nextUrl.origin);
 }
 
 function getStripeSecretKey() {

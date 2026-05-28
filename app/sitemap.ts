@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getPublicBaseUrl } from "@/lib/public-url";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://11263.com";
+const siteUrl = getPublicBaseUrl();
 
 const routes = [
   "",

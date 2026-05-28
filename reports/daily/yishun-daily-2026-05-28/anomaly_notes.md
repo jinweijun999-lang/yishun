@@ -1,0 +1,3 @@
+- Health check skipped for this local report run.
+- No analytics events found for the report date.
+- Stripe webhook DB summary unavailable: DATABASE_URL not configured; Stripe webhook summary skipped
