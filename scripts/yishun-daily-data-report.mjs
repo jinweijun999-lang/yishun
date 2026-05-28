@@ -20,6 +20,7 @@ const EVENT_ALIASES = {
   paid_report_viewed: ["paid_report_viewed"],
   daily_card_viewed: ["daily_card_viewed", "daily_timing_view", "ritual_view"],
   return_visit: ["return_visit", "reports_open", "streak_view"],
+  saved_report: ["saved_report", "save_result", "save_click", "save"],
   share_clicked: ["share_clicked", "share_click", "share", "share_create_click", "share_landing_cta_click"],
   share_page_created: ["share_page_created", "share_link_created"],
   share_page_viewed: ["share_page_viewed", "share_landing_view"],
@@ -245,6 +246,7 @@ function analystQuestions({ analytics, notes }) {
   const questions = [
     "Which channel produced the highest reading_start_clicked to reading_preview_generated conversion?",
     "Where do users drop between pricing_viewed, checkout_started, and entitlement_granted?",
+    "Which save surface creates the most saved_report retention signals?",
     "Which pages produce share_clicked events and should get stronger share CTAs?",
   ];
   if (analytics.acceptedEvents === 0) questions.unshift("Is the production analytics file sink receiving events today?");
@@ -284,6 +286,7 @@ async function main() {
     ["sessions", analytics.sessions],
     ["daily_card_viewed", analytics.canonical.find((item) => item.event === "daily_card_viewed")?.count || 0],
     ["return_visit", analytics.canonical.find((item) => item.event === "return_visit")?.count || 0],
+    ["saved_report", analytics.canonical.find((item) => item.event === "saved_report")?.count || 0],
   ]));
   await writeFile(path.join(reportDir, "traffic_sources.csv"), csv([
     ["source", "events"],
@@ -318,6 +321,7 @@ async function main() {
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${analytics.canonical.find((item) => item.event === "entitlement_granted")?.count || 0}
+- Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
 - Stripe webhook summary: ${stripe.available ? "available" : "unavailable"}
 
 ## Today Actions
