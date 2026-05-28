@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionPayload } from "@/lib/auth";
 import { getLocaleFromRequest, translate } from "@/lib/i18n";
+import { getRequestBaseUrl } from "@/lib/public-url";
 import { stripeSandboxCheckoutAdapter } from "@/lib/stripe-sandbox-adapter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function getSiteUrl(request: NextRequest) {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configuredUrl) return configuredUrl.replace(/\/$/, "");
-  return request.nextUrl.origin;
+  return getRequestBaseUrl(request.nextUrl.origin);
 }
 
 export async function POST(request: NextRequest) {

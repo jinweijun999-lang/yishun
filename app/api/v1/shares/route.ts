@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestBaseUrl } from "@/lib/public-url";
 import { createShareId, normalizeCreateShareInput, shareExpiresAt } from "@/lib/share-links";
 
 export const runtime = "nodejs";
 
 function getBaseUrl(request: NextRequest) {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (configured) return configured;
-  return request.nextUrl.origin;
+  return getRequestBaseUrl(request.nextUrl.origin);
 }
 
 export async function POST(request: NextRequest) {

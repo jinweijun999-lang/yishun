@@ -1,0 +1,7 @@
+{
+  "date": "2026-05-28",
+  "healthLatencyMs": null,
+  "healthOk": null,
+  "acceptedAnalyticsEvents": 0,
+  "note": "API latency and frontend performance need external APM/rum integration for p95 reporting."
+}

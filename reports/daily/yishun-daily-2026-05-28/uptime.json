@@ -1,0 +1,9 @@
+{
+  "ok": null,
+  "skipped": true,
+  "url": "https://11263.com/api/health",
+  "checkedAt": "2026-05-28T03:58:35.011Z",
+  "latencyMs": null,
+  "response": null,
+  "error": "network check skipped"
+}

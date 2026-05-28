@@ -7,6 +7,7 @@ import {
   resolveLocale,
   type Locale,
 } from "@/lib/i18n";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import "./globals.css";
 
 function getMetadata(locale: Locale): Metadata {
@@ -14,7 +15,7 @@ function getMetadata(locale: Locale): Metadata {
     return {
       title: "YiShun | Eastern Astrology for Better Timing",
       description: "Turn your birth time into today’s decision signal with BaZi, Five Elements, and true solar time.",
-      metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://11263.com"),
+      metadataBase: new URL(getPublicBaseUrl()),
       applicationName: "YiShun",
       appleWebApp: {
         capable: true,

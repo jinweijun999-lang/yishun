@@ -24,7 +24,10 @@
     "smoke:fortune-v1-s5": "node scripts/fortune-v1-s5-consumer-grade-smoke.mjs",
     "smoke:payment-entitlement-p0b": "node scripts/payment-entitlement-p0b-smoke.mjs",
     "smoke:p0-payment-entitlement": "node scripts/payment-entitlement-p0-smoke.mjs",
-    "smoke:yishun-d3-gaps": "node scripts/yishun-d3-gap-smoke.mjs"
+    "smoke:yishun-d3-gaps": "node scripts/yishun-d3-gap-smoke.mjs",
+    "report:yishun-daily": "node scripts/yishun-daily-data-report.mjs",
+    "audit:production-config": "node scripts/yishun-production-config-audit.mjs",
+    "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

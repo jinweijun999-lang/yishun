@@ -1,0 +1,4 @@
+- Is the production analytics file sink receiving events today?
+- Which channel produced the highest reading_start_clicked to reading_preview_generated conversion?
+- Where do users drop between pricing_viewed, checkout_started, and entitlement_granted?
+- Which pages produce share_clicked events and should get stronger share CTAs?
