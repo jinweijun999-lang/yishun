@@ -17,6 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: yishun_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d yishun_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yishun_ci?schema=public
       AUTH_SECRET: ci-build-secret
@@ -39,8 +54,29 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Apply CI database migrations
+        run: npx prisma migrate deploy
+
       - name: Lint
         run: npm run lint
+
+      - name: Production config audit
+        run: npm run audit:production-config
+
+      - name: Analytics contract audit
+        run: npm run audit:analytics-contract
+
+      - name: Payment entitlement smoke
+        run: npm run smoke:p0-payment-entitlement
+
+      - name: Stripe webhook entitlement smoke
+        run: npm run smoke:stripe-webhook
+
+      - name: Stripe secret literal check
+        run: node scripts/stripe-sandbox-secret-check.mjs
+
+      - name: Foundation smoke
+        run: npm test
 
       - name: Build
         run: npm run build
