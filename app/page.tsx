@@ -9,6 +9,7 @@ import Navigation from "./components/Navigation";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import PaymentValueMatrix from "./components/PaymentValueMatrix";
 import { useI18n } from "./components/LocaleProvider";
+import { queueP0Analytics } from "@/lib/p0-analytics";
 import { YISHUN_EVENTS, trackYiShunEvent } from "@/lib/p1-analytics";
 
 type ProfileData = {
@@ -29,6 +30,7 @@ function track(event: string, properties: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   console.info("[YiShun funnel]", event, properties);
   window.dispatchEvent(new CustomEvent("yishun:analytics", { detail: { event, properties } }));
+  queueP0Analytics(event, properties);
 }
 
 const copy = {
