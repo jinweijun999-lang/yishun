@@ -20,6 +20,7 @@ const EVENT_ALIASES = {
   paid_report_viewed: ["paid_report_viewed"],
   daily_card_viewed: ["daily_card_viewed", "daily_timing_view", "ritual_view"],
   return_visit: ["return_visit", "reports_open", "streak_view"],
+  saved_report: ["saved_report", "save_result", "save_click", "save"],
   share_clicked: ["share_clicked", "share_click", "share", "share_create_click", "share_landing_cta_click"],
   share_page_created: ["share_page_created", "share_link_created"],
   share_page_viewed: ["share_page_viewed", "share_landing_view"],
@@ -155,10 +156,15 @@ function property(event, key) {
   return isRecord(event.properties) ? event.properties[key] : undefined;
 }
 
+function eventValue(event, key) {
+  const nested = property(event, key);
+  return nested === undefined || nested === null || nested === "" ? event[key] : nested;
+}
+
 function topValues(events, keys, limit = 20) {
   const values = events.map((event) => {
     for (const key of keys) {
-      const value = cleanString(property(event, key), "");
+      const value = cleanString(eventValue(event, key), "");
       if (value) return value;
     }
     return "unknown";
@@ -166,6 +172,24 @@ function topValues(events, keys, limit = 20) {
   return [...countBy(values).entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit);
+}
+
+function topCampaigns(events, limit = 30) {
+  const values = events.map((event) => {
+    const source = cleanString(eventValue(event, "utm_source"), "") || cleanString(eventValue(event, "source"), "unknown");
+    return JSON.stringify([
+      source,
+      cleanString(eventValue(event, "utm_medium"), "unknown"),
+      cleanString(eventValue(event, "utm_campaign"), "unknown"),
+    ]);
+  });
+  return [...countBy(values).entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([key, count]) => {
+      const [source, medium, campaign] = JSON.parse(key);
+      return [source, medium, campaign, count];
+    });
 }
 
 function analyticsSummary(events) {
@@ -177,6 +201,7 @@ function analyticsSummary(events) {
     sessions: sessions.size,
     canonical: canonicalEventCounts(events),
     trafficSources: topValues(events, ["utm_source", "source", "referrer"]),
+    trafficCampaigns: topCampaigns(events),
     topPages: topValues(events, ["page", "pathname", "route"]),
   };
 }
@@ -245,6 +270,7 @@ function analystQuestions({ analytics, notes }) {
   const questions = [
     "Which channel produced the highest reading_start_clicked to reading_preview_generated conversion?",
     "Where do users drop between pricing_viewed, checkout_started, and entitlement_granted?",
+    "Which save surface creates the most saved_report retention signals?",
     "Which pages produce share_clicked events and should get stronger share CTAs?",
   ];
   if (analytics.acceptedEvents === 0) questions.unshift("Is the production analytics file sink receiving events today?");
@@ -284,10 +310,15 @@ async function main() {
     ["sessions", analytics.sessions],
     ["daily_card_viewed", analytics.canonical.find((item) => item.event === "daily_card_viewed")?.count || 0],
     ["return_visit", analytics.canonical.find((item) => item.event === "return_visit")?.count || 0],
+    ["saved_report", analytics.canonical.find((item) => item.event === "saved_report")?.count || 0],
   ]));
   await writeFile(path.join(reportDir, "traffic_sources.csv"), csv([
     ["source", "events"],
     ...analytics.trafficSources,
+  ]));
+  await writeFile(path.join(reportDir, "traffic_campaigns.csv"), csv([
+    ["utm_source", "utm_medium", "utm_campaign", "events"],
+    ...analytics.trafficCampaigns,
   ]));
   await writeFile(path.join(reportDir, "top_pages.csv"), csv([
     ["page", "events"],
@@ -318,6 +349,7 @@ async function main() {
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${analytics.canonical.find((item) => item.event === "entitlement_granted")?.count || 0}
+- Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
 - Stripe webhook summary: ${stripe.available ? "available" : "unavailable"}
 
 ## Today Actions
@@ -334,6 +366,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - funnel.csv
 - retention.csv
 - traffic_sources.csv
+- traffic_campaigns.csv
 - top_pages.csv
 - anomaly_notes.md
 - analyst_questions.md

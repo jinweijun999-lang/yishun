@@ -33,6 +33,7 @@ reports/daily/yishun-daily-YYYY-MM-DD/
   funnel.csv
   retention.csv
   traffic_sources.csv
+  traffic_campaigns.csv
   top_pages.csv
   anomaly_notes.md
   analyst_questions.md
@@ -43,7 +44,7 @@ reports/daily/yishun-daily-YYYY-MM-DD/
 - `/api/health` uptime status and latency.
 - Analytics funnel counts using the canonical 14-day plan event names with aliases for current YiShun events.
 - Retention proxy counts from daily-card and return-visit events.
-- Traffic source and top-page aggregates without exposing raw visitor IDs.
+- Traffic source, UTM campaign, and top-page aggregates from nested `properties` or top-level event exports without exposing raw visitor IDs.
 - Read-only Stripe webhook fulfillment counts when `DATABASE_URL` is configured.
 - Failure rows from analytics and webhook records.
 
