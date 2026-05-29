@@ -29,7 +29,8 @@
     "audit:production-config": "node scripts/yishun-production-config-audit.mjs",
     "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs",
     "audit:monitoring-contract": "node scripts/yishun-monitoring-contract-audit.mjs",
-    "audit:growth-ops": "node scripts/yishun-growth-ops-contract-audit.mjs"
+    "audit:growth-ops": "node scripts/yishun-growth-ops-contract-audit.mjs",
+    "audit:stripe-contract": "node scripts/yishun-stripe-contract-audit.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

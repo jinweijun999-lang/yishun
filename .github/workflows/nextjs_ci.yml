@@ -72,6 +72,9 @@ jobs:
       - name: Growth ops contract audit
         run: npm run audit:growth-ops
 
+      - name: Stripe payment contract audit
+        run: npm run audit:stripe-contract
+
       - name: Payment entitlement smoke
         run: npm run smoke:p0-payment-entitlement
 
