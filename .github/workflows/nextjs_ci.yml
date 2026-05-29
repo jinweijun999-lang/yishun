@@ -69,6 +69,9 @@ jobs:
       - name: Monitoring contract audit
         run: npm run audit:monitoring-contract
 
+      - name: Growth ops contract audit
+        run: npm run audit:growth-ops
+
       - name: Payment entitlement smoke
         run: npm run smoke:p0-payment-entitlement
 

@@ -169,6 +169,18 @@ function topValues(events, keys, limit = 20) {
     .slice(0, limit);
 }
 
+function topCampaigns(events, limit = 30) {
+  const values = events.map((event) => [
+    cleanString(property(event, "utm_source") || event.source, "unknown"),
+    cleanString(property(event, "utm_medium"), "unknown"),
+    cleanString(property(event, "utm_campaign"), "unknown"),
+  ].join("|"));
+  return [...countBy(values).entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([key, count]) => [...key.split("|"), count]);
+}
+
 function analyticsSummary(events) {
   const anonymousIds = new Set(events.map((event) => cleanString(event.anonymous_id, "")).filter(Boolean));
   const sessions = new Set(events.map((event) => cleanString(property(event, "session_id"), "")).filter(Boolean));
@@ -178,6 +190,7 @@ function analyticsSummary(events) {
     sessions: sessions.size,
     canonical: canonicalEventCounts(events),
     trafficSources: topValues(events, ["utm_source", "source", "referrer"]),
+    trafficCampaigns: topCampaigns(events),
     topPages: topValues(events, ["page", "pathname", "route"]),
   };
 }
@@ -292,6 +305,10 @@ async function main() {
     ["source", "events"],
     ...analytics.trafficSources,
   ]));
+  await writeFile(path.join(reportDir, "traffic_campaigns.csv"), csv([
+    ["utm_source", "utm_medium", "utm_campaign", "events"],
+    ...analytics.trafficCampaigns,
+  ]));
   await writeFile(path.join(reportDir, "top_pages.csv"), csv([
     ["page", "events"],
     ...analytics.topPages,
@@ -338,6 +355,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - funnel.csv
 - retention.csv
 - traffic_sources.csv
+- traffic_campaigns.csv
 - top_pages.csv
 - anomaly_notes.md
 - analyst_questions.md

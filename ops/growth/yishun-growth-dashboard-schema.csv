@@ -1,0 +1,22 @@
+YiShun growth dashboard schema
+field,source,definition,owner,review_cadence
+date,daily report,Asia/Shanghai report date,data,daily
+channel,utm_source,Acquisition source such as seo tiktok instagram youtube reddit xiaohongshu,data,daily
+medium,utm_medium,Acquisition medium such as organic short_video community social or seo_page,data,daily
+campaign,utm_campaign,Content campaign slug from every public post and share link,growth,daily
+landing_page,page,First YiShun page observed for the session,data,daily
+visitors,anonymous_id,Distinct anonymous visitors in the report window,data,daily
+sessions,session_id,Distinct sessions in the report window,data,daily
+activation_clicks,reading_start_clicked,Users who clicked into the reading start flow,product,daily
+birth_submits,birth_info_submitted,Users who submitted the onboarding form,product,daily
+previews,reading_preview_generated,Free preview reports generated,product,daily
+saved_reports,saved_report,Report-save retention signals from saved_report save_result save_click and save,product,daily
+shares,share_clicked,Share CTA clicks and share creation intent,growth,daily
+share_page_views,share_page_viewed,Visits to public share landing pages,growth,daily
+pricing_views,pricing_viewed,Users viewing paid value or pricing,growth,daily
+checkout_starts,checkout_started,Stripe checkout start events in test or production mode,revenue,daily
+entitlements,entitlement_granted,Webhook-backed entitlement grants,revenue,daily
+webhook_failures,webhook_failed,Stripe webhook failures from analytics or DB summary,sre,daily
+primary_kpi,reading_preview_generated / anonymous_id,Visitor to first-value completion rate,product,daily
+retention_kpi,saved_report / reading_preview_generated,Saved-report rate after preview,product,daily
+revenue_kpi,entitlement_granted / checkout_started,Checkout fulfillment rate,revenue,daily
