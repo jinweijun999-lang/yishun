@@ -156,10 +156,15 @@ function property(event, key) {
   return isRecord(event.properties) ? event.properties[key] : undefined;
 }
 
+function eventValue(event, key) {
+  const nested = property(event, key);
+  return nested === undefined || nested === null || nested === "" ? event[key] : nested;
+}
+
 function topValues(events, keys, limit = 20) {
   const values = events.map((event) => {
     for (const key of keys) {
-      const value = cleanString(property(event, key), "");
+      const value = cleanString(eventValue(event, key), "");
       if (value) return value;
     }
     return "unknown";
@@ -170,11 +175,14 @@ function topValues(events, keys, limit = 20) {
 }
 
 function topCampaigns(events, limit = 30) {
-  const values = events.map((event) => [
-    cleanString(property(event, "utm_source") || event.source, "unknown"),
-    cleanString(property(event, "utm_medium"), "unknown"),
-    cleanString(property(event, "utm_campaign"), "unknown"),
-  ].join("|"));
+  const values = events.map((event) => {
+    const source = cleanString(eventValue(event, "utm_source"), "") || cleanString(eventValue(event, "source"), "unknown");
+    return [
+      source,
+      cleanString(eventValue(event, "utm_medium"), "unknown"),
+      cleanString(eventValue(event, "utm_campaign"), "unknown"),
+    ].join("|");
+  });
   return [...countBy(values).entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)

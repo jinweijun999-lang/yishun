@@ -33,6 +33,9 @@ for (const trackingNeedle of ["utm_source", "utm_medium", "utm_campaign", "readi
   assertContains("scripts/yishun-daily-data-report.mjs", trackingNeedle);
 }
 
+assertContains("scripts/yishun-daily-data-report.mjs", "traffic_campaigns.csv");
+assertContains("reports/yishun-daily-data-loop-20260528.md", "traffic_campaigns.csv");
+
 for (const copyNeedle of ["self-reflection", "not financial", "not medical", "not legal", "checkout", "save your report", "share"]) {
   assertContains("ops/growth/yishun-content-seed-pack.md", copyNeedle);
 }
