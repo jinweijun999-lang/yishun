@@ -177,16 +177,19 @@ function topValues(events, keys, limit = 20) {
 function topCampaigns(events, limit = 30) {
   const values = events.map((event) => {
     const source = cleanString(eventValue(event, "utm_source"), "") || cleanString(eventValue(event, "source"), "unknown");
-    return [
+    return JSON.stringify([
       source,
       cleanString(eventValue(event, "utm_medium"), "unknown"),
       cleanString(eventValue(event, "utm_campaign"), "unknown"),
-    ].join("|");
+    ]);
   });
   return [...countBy(values).entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
-    .map(([key, count]) => [...key.split("|"), count]);
+    .map(([key, count]) => {
+      const [source, medium, campaign] = JSON.parse(key);
+      return [source, medium, campaign, count];
+    });
 }
 
 function analyticsSummary(events) {
