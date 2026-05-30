@@ -139,6 +139,7 @@ for (const required of [
   "webhook_failed",
   "utm_source: \"stripe\"",
   "utm_medium: \"webhook\"",
+  "yishun_server_analytics_event",
 ]) {
   assert(serverAnalytics.includes(required), "Server analytics must preserve privacy-safe Stripe webhook funnel events", { required });
 }
