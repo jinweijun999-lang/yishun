@@ -1,5 +1,6 @@
-import { appendFile } from "fs/promises";
+import { appendFile, mkdir } from "fs/promises";
 import { createHash } from "crypto";
+import path from "node:path";
 
 type ServerAnalyticsEvent =
   | "checkout_completed"
@@ -70,11 +71,13 @@ export async function recordServerAnalyticsEvent(input: ServerAnalyticsInput) {
     product: event.properties.product,
     webhookStatus: event.properties.webhookStatus,
   });
+  console.info(JSON.stringify({ type: "yishun_server_analytics_event", event }));
 
   const filePath = process.env.YISHUN_ANALYTICS_FILE;
   if (!filePath) return;
 
   try {
+    await mkdir(path.dirname(filePath), { recursive: true });
     await appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
   } catch (error) {
     console.warn("server_analytics_file_sink_failed", error);

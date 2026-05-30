@@ -1,4 +1,5 @@
-import { appendFile } from "fs/promises";
+import { appendFile, mkdir } from "fs/promises";
+import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -103,9 +104,16 @@ function persistBestEffort(events: AnalyticsEvent[]) {
     accepted: events.length,
     events: events.map((event) => event.event),
   });
+  for (const event of events) {
+    console.info(JSON.stringify({ type: "yishun_analytics_event", event }));
+  }
 
   const filePath = process.env.YISHUN_ANALYTICS_FILE;
-  if (filePath) void appendFile(filePath, payload, "utf8").catch((error) => console.warn("analytics_file_sink_failed", error));
+  if (filePath) {
+    void mkdir(path.dirname(filePath), { recursive: true })
+      .then(() => appendFile(filePath, payload, "utf8"))
+      .catch((error) => console.warn("analytics_file_sink_failed", error));
+  }
 }
 
 export async function POST(request: NextRequest) {

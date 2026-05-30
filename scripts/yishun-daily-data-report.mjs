@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -47,6 +47,8 @@ function parseArgs() {
     noNetwork: args.has("--no-network") || process.env.YISHUN_REPORT_NO_NETWORK === "1",
     outRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     analyticsFile: process.env.YISHUN_ANALYTICS_FILE || "",
+    analyticsFiles: process.env.YISHUN_ANALYTICS_FILES || "",
+    analyticsDir: process.env.YISHUN_ANALYTICS_DIR || "",
     stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
     healthUrl: process.env.YISHUN_HEALTH_URL || DEFAULT_HEALTH_URL,
   };
@@ -63,6 +65,13 @@ function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function splitPathList(value) {
+  return String(value || "")
+    .split(/[,\n;]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function cleanString(value, fallback = "unknown") {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 140) : fallback;
 }
@@ -72,25 +81,128 @@ function eventDate(event) {
   return Number.isNaN(parsed.getTime()) ? cstDate() : cstDate(parsed);
 }
 
-async function readAnalyticsEvents(filePath, reportDate) {
-  if (!filePath || !existsSync(filePath)) {
-    return { events: [], note: filePath ? `analytics file not found: ${filePath}` : "YISHUN_ANALYTICS_FILE not configured" };
-  }
+function parseJsonMaybe(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
 
-  const text = await readFile(filePath, "utf8");
-  const events = [];
-  for (const line of text.split(/\r?\n/)) {
-    if (!line.trim()) continue;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const jsonStart = trimmed.indexOf("{");
+    const jsonEnd = trimmed.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd <= jsonStart) return null;
     try {
-      const event = JSON.parse(line);
-      if (isRecord(event) && cleanString(event.event, "") && eventDate(event) === reportDate) {
-        events.push(event);
-      }
+      return JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
     } catch {
-      // Ignore malformed analytics rows; the report records aggregate coverage only.
+      return null;
     }
   }
-  return { events, note: null };
+}
+
+function analyticsEventFromExportRecord(record) {
+  if (!isRecord(record)) return null;
+  if (typeof record.event === "string") return record;
+
+  if (
+    (record.type === "yishun_analytics_event" || record.type === "yishun_server_analytics_event") &&
+    isRecord(record.event)
+  ) {
+    return record.event;
+  }
+
+  if (isRecord(record.jsonPayload)) {
+    const nested = analyticsEventFromExportRecord(record.jsonPayload);
+    if (nested) return nested;
+  }
+
+  for (const key of ["textPayload", "message", "log"]) {
+    const parsed = parseJsonMaybe(record[key]);
+    const nested = analyticsEventFromExportRecord(parsed);
+    if (nested) return nested;
+  }
+
+  return null;
+}
+
+async function discoverAnalyticsFiles(config) {
+  const candidates = [
+    config.analyticsFile,
+    ...splitPathList(config.analyticsFiles),
+  ].filter(Boolean);
+  const notes = [];
+
+  if (config.analyticsDir) {
+    if (existsSync(config.analyticsDir)) {
+      const entries = await readdir(config.analyticsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile() && /\.(jsonl|ndjson|log)$/i.test(entry.name)) {
+          candidates.push(path.join(config.analyticsDir, entry.name));
+        }
+      }
+    } else {
+      notes.push(`analytics dir not found: ${config.analyticsDir}`);
+    }
+  }
+
+  const files = [...new Set(candidates)].filter((candidate) => {
+    const found = existsSync(candidate);
+    if (!found) notes.push(`analytics file not found: ${candidate}`);
+    return found;
+  });
+
+  if (files.length === 0 && !config.analyticsFile && !config.analyticsFiles && !config.analyticsDir) {
+    notes.push("YISHUN_ANALYTICS_FILE/YISHUN_ANALYTICS_FILES/YISHUN_ANALYTICS_DIR not configured");
+  }
+
+  return { files, notes };
+}
+
+async function readAnalyticsEvents(config, reportDate) {
+  const input = await discoverAnalyticsFiles(config);
+  const events = [];
+  let parsedRows = 0;
+  let malformedRows = 0;
+  let oldestEventAt = null;
+  let latestEventAt = null;
+
+  for (const filePath of input.files) {
+    const text = await readFile(filePath, "utf8");
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        const event = analyticsEventFromExportRecord(JSON.parse(line));
+        if (isRecord(event) && cleanString(event.event, "")) {
+          parsedRows += 1;
+          const rawTimestamp = event.ts || event.timestamp || null;
+          const parsedTimestamp = new Date(rawTimestamp || Date.now());
+          const eventAt = Number.isNaN(parsedTimestamp.getTime()) ? null : parsedTimestamp.toISOString();
+          if (eventAt && (!oldestEventAt || eventAt < oldestEventAt)) oldestEventAt = eventAt;
+          if (eventAt && (!latestEventAt || eventAt > latestEventAt)) latestEventAt = eventAt;
+          if (eventDate(event) === reportDate) events.push(event);
+        }
+      } catch {
+        malformedRows += 1;
+        // Ignore malformed analytics rows; the report records aggregate coverage only.
+      }
+    }
+  }
+
+  return {
+    events,
+    note: input.notes.join("; ") || null,
+    source: {
+      configured: Boolean(config.analyticsFile || config.analyticsFiles || config.analyticsDir),
+      available: input.files.length > 0,
+      files: input.files,
+      fileCount: input.files.length,
+      parsedRows,
+      malformedRows,
+      reportDateEvents: events.length,
+      oldestEventAt,
+      latestEventAt,
+    },
+  };
 }
 
 async function fetchHealth({ noNetwork, healthUrl }) {
@@ -368,11 +480,25 @@ function paymentReconciliation({ analytics, stripe }) {
   };
 }
 
-function anomalyNotes({ health, analytics, stripe, payment }) {
+function analyticsConfiguredInHealth(health) {
+  return health.response?.checks?.analytics === "configured";
+}
+
+function anomalyNotes({ health, analyticsInput, analytics, stripe, payment, reportDate }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
+  if (!analyticsInput.source.available) {
+    notes.push(`Analytics source unavailable for daily reporting: ${analyticsInput.note}`);
+  }
+  if (analyticsConfiguredInHealth(health) && !analyticsInput.source.available) {
+    notes.push("Production health reports analytics configured, but this report has no event export source; do not treat zero events as confirmed zero traffic.");
+  }
   if (analytics.acceptedEvents === 0) notes.push("No analytics events found for the report date.");
+  if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
+    notes.push(`Latest analytics export event is ${analyticsInput.source.latestEventAt}, outside report date ${reportDate}.`);
+  }
+  if (analyticsInput.source.malformedRows > 0) notes.push(`${analyticsInput.source.malformedRows} malformed analytics export rows were ignored.`);
   if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
   if (payment.analyticsEntitlementGranted === 0 && payment.webhookFulfilled > 0) {
     notes.push("Stripe webhook fulfillments supplied entitlement_granted counts not observed in browser analytics.");
@@ -402,17 +528,24 @@ async function main() {
   await mkdir(reportDir, { recursive: true });
 
   const [analyticsInput, health, stripe] = await Promise.all([
-    readAnalyticsEvents(config.analyticsFile, config.date),
+    readAnalyticsEvents(config, config.date),
     fetchHealth(config),
     readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile),
   ]);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
   const enrichedFunnelRows = funnelRows(analytics, payment);
-  const notes = anomalyNotes({ health, analytics, stripe, payment });
+  const analyticsSource = {
+    date: config.date,
+    healthAnalyticsStatus: health.response?.checks?.analytics || null,
+    note: analyticsInput.note,
+    ...analyticsInput.source,
+  };
+  const notes = anomalyNotes({ health, analyticsInput, analytics, stripe, payment, reportDate: config.date });
   const questions = analystQuestions({ analytics, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
+  await writeFile(path.join(reportDir, "analytics_source.json"), JSON.stringify(analyticsSource, null, 2));
   await writeFile(path.join(reportDir, "performance.json"), JSON.stringify({
     date: config.date,
     healthLatencyMs: health.latencyMs,
@@ -481,6 +614,7 @@ async function main() {
 
 - Health: ${health.ok === null ? "skipped" : health.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
+- Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}
@@ -495,6 +629,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 ## Files
 
 - uptime.json
+- analytics_source.json
 - performance.json
 - errors.jsonl
 - stripe_payments.csv
@@ -516,6 +651,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     date: config.date,
     analyticsEvents: analytics.acceptedEvents,
     healthOk: health.ok,
+    analyticsSourceAvailable: analyticsSource.available,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,
     paymentRisk: payment.risk,

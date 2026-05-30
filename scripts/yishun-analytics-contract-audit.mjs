@@ -38,7 +38,7 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "eventValue"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
@@ -51,8 +51,19 @@ for (const serverNeedle of [
   "anonymous_id",
   "utm_source: \"stripe\"",
   "page: \"/api/stripe/webhook\"",
+  "yishun_server_analytics_event",
+  "mkdir(path.dirname(filePath), { recursive: true })",
 ]) {
   assertContains("lib/server-analytics.ts", serverNeedle);
+}
+
+for (const ingestNeedle of [
+  "yishun_analytics_event",
+  "redactPrivateFields",
+  "JSON.stringify({ type:",
+  "mkdir(path.dirname(filePath), { recursive: true })",
+]) {
+  assertContains("app/api/events/route.ts", ingestNeedle);
 }
 
 for (const webhookNeedle of [
@@ -72,6 +83,9 @@ console.log(
         "browser_events_include_required_yishun_context",
         "analytics_ingest_redacts_private_birth_contact_location_fields",
         "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_payment_metrics",
+        "daily_report_surfaces_analytics_source_freshness",
+        "daily_report_reads_single_multi_file_and_directory_analytics_exports",
+        "analytics_file_sink_creates_parent_directory_before_append",
         "stripe_webhook_fulfillment_emits_privacy_safe_server_funnel_events",
       ],
     },

@@ -66,6 +66,7 @@ for (const webhookNeedle of [
 
 for (const serverAnalyticsNeedle of [
   "yishun_server_analytics",
+  "yishun_server_analytics_event",
   "checkout_completed",
   "entitlement_granted",
   "webhook_failed",
@@ -75,6 +76,8 @@ for (const serverAnalyticsNeedle of [
 }
 
 for (const reportNeedle of [
+  "yishun_analytics_event",
+  "yishun_server_analytics_event",
   "webhook_failed",
   "stripe_webhook_failures.csv",
   "Stripe webhook DB summary unavailable",
