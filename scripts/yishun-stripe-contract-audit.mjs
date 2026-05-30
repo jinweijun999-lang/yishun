@@ -19,6 +19,7 @@ const fullReportEntitlement = read("lib/full-report-entitlement.ts");
 const entitlementStatusRoute = read("app/api/entitlements/route.ts");
 const sandboxAdapter = read("lib/stripe-sandbox-adapter.ts");
 const webhookSmoke = read("scripts/stripe-webhook-entitlement-smoke.mjs");
+const dailyReport = read("scripts/yishun-daily-data-report.mjs");
 const prismaSchema = read("prisma/schema.prisma");
 const envExample = read(".env.example");
 const envLocalExample = read(".env.local.example");
@@ -45,6 +46,16 @@ assert(
   webhookSmoke.includes("Expected 4 fulfilled events plus 1 duplicate_session event"),
   "DB-backed webhook smoke must validate monthly, annual, ask-credit, full-report, and duplicate-session outcomes",
 );
+
+for (const required of [
+  "payment_reconciliation.json",
+  "webhookFulfilled",
+  "webhookDuplicateSessions",
+  "webhookHasCheckoutWithoutFulfillment",
+  "Payment reconciliation",
+]) {
+  assert(dailyReport.includes(required), "Daily report must reconcile checkout analytics against Stripe webhook fulfillment", { required });
+}
 
 for (const forbidden of ["ai_question_credit", "fulfilled: true", "consultationCredits: { increment"]) {
   const creditsRoute = read("app/api/credits/route.ts");
@@ -182,6 +193,7 @@ console.log(JSON.stringify({
     "read_only_entitlement_status",
     "webhook_event_storage",
     "db_backed_smoke_all_products",
+    "daily_payment_reconciliation",
     "ci_gate_registered",
   ],
 }, null, 2));

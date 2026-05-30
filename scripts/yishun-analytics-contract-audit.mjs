@@ -38,7 +38,7 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "eventValue"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "webhookFulfilled", "eventValue"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
@@ -49,7 +49,7 @@ console.log(
       checks: [
         "browser_events_include_required_yishun_context",
         "analytics_ingest_redacts_private_birth_contact_location_fields",
-        "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_metrics",
+        "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_payment_metrics",
       ],
     },
     null,

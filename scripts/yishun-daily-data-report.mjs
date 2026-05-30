@@ -47,6 +47,7 @@ function parseArgs() {
     noNetwork: args.has("--no-network") || process.env.YISHUN_REPORT_NO_NETWORK === "1",
     outRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     analyticsFile: process.env.YISHUN_ANALYTICS_FILE || "",
+    stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
     healthUrl: process.env.YISHUN_HEALTH_URL || DEFAULT_HEALTH_URL,
   };
 }
@@ -161,6 +162,42 @@ function eventValue(event, key) {
   return nested === undefined || nested === null || nested === "" ? event[key] : nested;
 }
 
+function parseStripeWebhookRecord(raw) {
+  if (!isRecord(raw)) return null;
+  const createdAt = cleanString(raw.createdAt ?? raw.created_at ?? raw.timestamp ?? raw.ts, "");
+  return {
+    id: cleanString(raw.id ?? raw.eventId ?? raw.event_id, ""),
+    stripeEventType: cleanString(raw.stripeEventType ?? raw.stripe_event_type ?? raw.type, "unknown"),
+    product: cleanString(raw.product, "unknown"),
+    status: cleanString(raw.status, "unknown"),
+    createdAt: createdAt || new Date().toISOString(),
+  };
+}
+
+async function readStripeWebhookEventsFile(filePath, reportDate) {
+  if (!filePath || !existsSync(filePath)) {
+    return {
+      available: false,
+      note: filePath ? `Stripe webhook events file not found: ${filePath}` : "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE not configured",
+      events: [],
+    };
+  }
+
+  const text = await readFile(filePath, "utf8");
+  const events = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const event = parseStripeWebhookRecord(JSON.parse(line));
+      if (event && cstDate(new Date(event.createdAt)) === reportDate) events.push(event);
+    } catch {
+      // Ignore malformed exported webhook rows; DB remains the preferred source.
+    }
+  }
+
+  return { available: true, note: null, events };
+}
+
 function topValues(events, keys, limit = 20) {
   const values = events.map((event) => {
     for (const key of keys) {
@@ -206,14 +243,43 @@ function analyticsSummary(events) {
   };
 }
 
-async function readStripeWebhookSummary(reportDate) {
-  if (!process.env.DATABASE_URL) {
+function canonicalCount(analytics, eventName) {
+  return analytics.canonical.find((item) => item.event === eventName)?.count || 0;
+}
+
+function stripeWebhookSummaryFromEvents(events, source) {
+  const rows = [...countBy(events.map((event) => `${event.product || "unknown"}|${event.status}`)).entries()]
+    .map(([key, count]) => {
+      const [product, status] = key.split("|");
+      return { product, status, count };
+    });
+  const failures = events
+    .filter((event) => /fail|error/i.test(event.status))
+    .map((event) => ({
+      id: event.id,
+      stripeEventType: event.stripeEventType,
+      product: event.product || "unknown",
+      status: event.status,
+      createdAt: event.createdAt,
+    }));
+  return { available: true, note: null, rows, failures, source };
+}
+
+async function readStripeWebhookSummary(reportDate, eventsFilePath) {
+  async function fileFallback(reason) {
+    const fileInput = await readStripeWebhookEventsFile(eventsFilePath, reportDate);
+    if (fileInput.available) return stripeWebhookSummaryFromEvents(fileInput.events, "file_export");
     return {
       available: false,
-      note: "DATABASE_URL not configured; Stripe webhook summary skipped",
+      note: `${reason}; ${fileInput.note}`,
       rows: [],
       failures: [],
+      source: "unavailable",
     };
+  }
+
+  if (!process.env.DATABASE_URL) {
+    return fileFallback("DATABASE_URL not configured");
   }
 
   try {
@@ -228,39 +294,65 @@ async function readStripeWebhookSummary(reportDate) {
     });
     await prisma.$disconnect();
 
-    const rows = [...countBy(events.map((event) => `${event.product || "unknown"}|${event.status}`)).entries()]
-      .map(([key, count]) => {
-        const [product, status] = key.split("|");
-        return { product, status, count };
-      });
-    const failures = events
-      .filter((event) => /fail|error/i.test(event.status))
-      .map((event) => ({
-        id: event.id,
-        stripeEventType: event.stripeEventType,
-        product: event.product || "unknown",
-        status: event.status,
-        createdAt: event.createdAt.toISOString(),
-      }));
-    return { available: true, note: null, rows, failures };
+    return stripeWebhookSummaryFromEvents(
+      events.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
+      "database",
+    );
   } catch (error) {
-    return {
-      available: false,
-      note: error instanceof Error ? error.message : "Stripe webhook summary failed",
-      rows: [],
-      failures: [],
-    };
+    return fileFallback(error instanceof Error ? error.message : "Stripe webhook summary failed");
   }
 }
 
-function anomalyNotes({ health, analytics, stripe }) {
+function stripeStatusCount(stripe, status) {
+  return stripe.rows
+    .filter((row) => row.status === status)
+    .reduce((sum, row) => sum + row.count, 0);
+}
+
+function paymentReconciliation({ analytics, stripe }) {
+  const checkoutStarted = canonicalCount(analytics, "checkout_started");
+  const checkoutCompleted = canonicalCount(analytics, "checkout_completed");
+  const entitlementGranted = canonicalCount(analytics, "entitlement_granted");
+  const webhookFulfilled = stripeStatusCount(stripe, "fulfilled");
+  const webhookDuplicateSessions = stripeStatusCount(stripe, "duplicate_session");
+  const webhookFailures = stripe.failures.length;
+  const analyticsHasCheckoutWithoutGrant = checkoutStarted > 0 && entitlementGranted === 0;
+  const webhookHasCheckoutWithoutFulfillment = checkoutStarted > 0 && stripe.available && webhookFulfilled === 0;
+  const webhookHasFailures = webhookFailures > 0;
+  const missingWebhookData = !stripe.available;
+
+  let risk = "clear";
+  if (webhookHasFailures || webhookHasCheckoutWithoutFulfillment) risk = "action_required";
+  else if (analyticsHasCheckoutWithoutGrant || missingWebhookData || webhookDuplicateSessions > 0) risk = "watch";
+
+  return {
+    risk,
+    checkoutStarted,
+    checkoutCompleted,
+    entitlementGranted,
+    webhookFulfilled,
+    webhookDuplicateSessions,
+    webhookFailures,
+    stripeSummaryAvailable: stripe.available,
+    stripeSummaryNote: stripe.note,
+    checks: {
+      analyticsHasCheckoutWithoutGrant,
+      webhookHasCheckoutWithoutFulfillment,
+      webhookHasFailures,
+      missingWebhookData,
+      duplicateSessionsObserved: webhookDuplicateSessions > 0,
+    },
+  };
+}
+
+function anomalyNotes({ health, analytics, stripe, payment }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
   if (analytics.acceptedEvents === 0) notes.push("No analytics events found for the report date.");
-  const checkoutStarted = analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0;
-  const entitlementGranted = analytics.canonical.find((item) => item.event === "entitlement_granted")?.count || 0;
-  if (checkoutStarted > 0 && entitlementGranted === 0) notes.push("Checkout starts were observed without matching entitlement_granted events.");
+  if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
+  if (payment.checks.webhookHasCheckoutWithoutFulfillment) notes.push("Checkout starts were observed but no fulfilled Stripe webhook rows were found for the report date.");
+  if (payment.checks.duplicateSessionsObserved) notes.push(`${payment.webhookDuplicateSessions} duplicate Stripe checkout session webhook rows were observed.`);
   if (!stripe.available) notes.push(`Stripe webhook DB summary unavailable: ${stripe.note}`);
   if (stripe.failures.length > 0) notes.push(`${stripe.failures.length} Stripe webhook failure rows found.`);
   return notes;
@@ -289,7 +381,8 @@ async function main() {
     readStripeWebhookSummary(config.date),
   ]);
   const analytics = analyticsSummary(analyticsInput.events);
-  const notes = anomalyNotes({ health, analytics, stripe });
+  const payment = paymentReconciliation({ analytics, stripe });
+  const notes = anomalyNotes({ health, analytics, stripe, payment });
   const questions = analystQuestions({ analytics, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
@@ -332,6 +425,19 @@ async function main() {
     ["id", "stripe_event_type", "product", "status", "created_at"],
     ...stripe.failures.map((event) => [event.id, event.stripeEventType, event.product, event.status, event.createdAt]),
   ]));
+  await writeFile(path.join(reportDir, "payment_reconciliation.json"), JSON.stringify(payment, null, 2));
+  await writeFile(path.join(reportDir, "payment_reconciliation.csv"), csv([
+    ["metric", "value"],
+    ["risk", payment.risk],
+    ["checkout_started", payment.checkoutStarted],
+    ["checkout_completed", payment.checkoutCompleted],
+    ["entitlement_granted", payment.entitlementGranted],
+    ["webhook_fulfilled", payment.webhookFulfilled],
+    ["webhook_duplicate_sessions", payment.webhookDuplicateSessions],
+    ["webhook_failures", payment.webhookFailures],
+    ["stripe_summary_available", payment.stripeSummaryAvailable],
+    ["stripe_summary_note", payment.stripeSummaryNote || ""],
+  ]));
   await writeFile(path.join(reportDir, "errors.jsonl"), [
     ...analyticsInput.events
       .filter((event) => /fail|error/i.test(cleanString(event.event, "")))
@@ -351,6 +457,7 @@ async function main() {
 - Entitlements granted: ${analytics.canonical.find((item) => item.event === "entitlement_granted")?.count || 0}
 - Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
 - Stripe webhook summary: ${stripe.available ? "available" : "unavailable"}
+- Payment reconciliation: ${payment.risk}
 
 ## Today Actions
 
@@ -363,6 +470,8 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - errors.jsonl
 - stripe_payments.csv
 - stripe_webhook_failures.csv
+- payment_reconciliation.json
+- payment_reconciliation.csv
 - funnel.csv
 - retention.csv
 - traffic_sources.csv
@@ -379,6 +488,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     analyticsEvents: analytics.acceptedEvents,
     healthOk: health.ok,
     stripeSummaryAvailable: stripe.available,
+    paymentRisk: payment.risk,
     notes,
   }, null, 2));
 }
