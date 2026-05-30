@@ -18,6 +18,7 @@ const entitlements = read("lib/stripe-entitlements.ts");
 const fullReportEntitlement = read("lib/full-report-entitlement.ts");
 const entitlementStatusRoute = read("app/api/entitlements/route.ts");
 const sandboxAdapter = read("lib/stripe-sandbox-adapter.ts");
+const webhookSmoke = read("scripts/stripe-webhook-entitlement-smoke.mjs");
 const prismaSchema = read("prisma/schema.prisma");
 const envExample = read(".env.example");
 const envLocalExample = read(".env.local.example");
@@ -37,7 +38,13 @@ for (const [product, priceEnv, mode] of checkoutProducts) {
   assert(entitlements.includes(`"${product}"`), "Webhook entitlement layer must recognize checkout product", { product });
   assert(envExample.includes(priceEnv), ".env.example must document every Stripe price env", { priceEnv });
   assert(envLocalExample.includes(priceEnv), ".env.local.example must document every Stripe price env", { priceEnv });
+  assert(webhookSmoke.includes(product), "DB-backed webhook smoke must exercise every checkout product", { product });
 }
+
+assert(
+  webhookSmoke.includes("Expected 4 fulfilled events plus 1 duplicate_session event"),
+  "DB-backed webhook smoke must validate monthly, annual, ask-credit, full-report, and duplicate-session outcomes",
+);
 
 for (const forbidden of ["ai_question_credit", "fulfilled: true", "consultationCredits: { increment"]) {
   const creditsRoute = read("app/api/credits/route.ts");
@@ -174,6 +181,7 @@ console.log(JSON.stringify({
     "full_report_recovery",
     "read_only_entitlement_status",
     "webhook_event_storage",
+    "db_backed_smoke_all_products",
     "ci_gate_registered",
   ],
 }, null, 2));
