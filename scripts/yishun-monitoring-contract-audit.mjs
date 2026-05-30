@@ -26,6 +26,8 @@ function assertMatches(file, pattern, label) {
 for (const healthNeedle of [
   "service: \"yishun\"",
   "version: appVersion()",
+  "process.env.YISHUN_RELEASE_SHA",
+  ".yishun-release-sha",
   "time: new Date().toISOString()",
   "checks: {",
   "database",
@@ -37,9 +39,14 @@ for (const healthNeedle of [
 }
 
 for (const deployNeedle of [
+  "YISHUN_RELEASE_SHA: ${{ github.sha }}",
+  "YISHUN_RELEASE_SHA=\"$YISHUN_RELEASE_SHA\"",
+  "printf \"%s\\n\" \"$YISHUN_RELEASE_SHA\" > .yishun-release-sha",
   "npx prisma migrate deploy",
   "pm2 restart yishun-nextjs --update-env",
-  "curl -fsS --max-time 10 http://127.0.0.1:3001/api/health",
+  "health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}",
+  "Verify public production health version",
+  "public health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}",
   "sudo -n -u yishun pm2 describe yishun-nextjs",
   "Smoke share landing API locally",
   "Smoke Bazi preview access boundary locally",

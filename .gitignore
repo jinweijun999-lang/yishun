@@ -18,6 +18,7 @@ yarn-error.log*
 
 # Local development
 .vercel
+.yishun-release-sha
 *.log
 dev_server.log
 server.log
