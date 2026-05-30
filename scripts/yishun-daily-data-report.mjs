@@ -344,10 +344,16 @@ function topCampaigns(events, limit = 30) {
 function analyticsSummary(events) {
   const anonymousIds = new Set(events.map((event) => cleanString(event.anonymous_id, "")).filter(Boolean));
   const sessions = new Set(events.map((event) => cleanString(property(event, "session_id"), "")).filter(Boolean));
+  const serverWebhookEntitlementGranted = events.filter((event) => {
+    const eventName = cleanString(event.event, "");
+    return EVENT_ALIASES.entitlement_granted.includes(eventName) &&
+      (cleanString(event.source, "") === "stripe_webhook" || cleanString(eventValue(event, "page"), "") === "/api/stripe/webhook");
+  }).length;
   return {
     acceptedEvents: events.length,
     anonymousVisitors: anonymousIds.size,
     sessions: sessions.size,
+    serverWebhookEntitlementGranted,
     canonical: canonicalEventCounts(events),
     trafficSources: topValues(events, ["utm_source", "source", "referrer"]),
     trafficCampaigns: topCampaigns(events),
@@ -426,7 +432,7 @@ function funnelRows(analytics, payment) {
     if (item.event === "entitlement_granted" && payment.webhookFulfilled > 0) {
       return {
         ...item,
-        count: item.count + payment.webhookFulfilled,
+        count: payment.entitlementGranted,
         aliases: [...item.aliases, "stripe_webhook_fulfilled"],
       };
     }
@@ -445,11 +451,15 @@ function paymentReconciliation({ analytics, stripe }) {
   const checkoutStarted = canonicalCount(analytics, "checkout_started");
   const checkoutCompleted = canonicalCount(analytics, "checkout_completed");
   const analyticsEntitlementGranted = canonicalCount(analytics, "entitlement_granted");
+  const analyticsWebhookEntitlementGranted = analytics.serverWebhookEntitlementGranted || 0;
+  const browserAnalyticsEntitlementGranted = Math.max(0, analyticsEntitlementGranted - analyticsWebhookEntitlementGranted);
   const webhookFulfilled = stripeStatusCount(stripe, "fulfilled");
   const webhookDuplicateSessions = stripeStatusCount(stripe, "duplicate_session");
   const webhookFailures = stripe.failures.length;
-  const entitlementGranted = analyticsEntitlementGranted + webhookFulfilled;
-  const analyticsHasCheckoutWithoutGrant = checkoutStarted > 0 && analyticsEntitlementGranted === 0;
+  const entitlementGranted = stripe.available
+    ? browserAnalyticsEntitlementGranted + webhookFulfilled
+    : analyticsEntitlementGranted;
+  const analyticsHasCheckoutWithoutGrant = checkoutStarted > 0 && entitlementGranted === 0;
   const webhookHasCheckoutWithoutFulfillment = checkoutStarted > 0 && stripe.available && webhookFulfilled === 0;
   const webhookHasFailures = webhookFailures > 0;
   const missingWebhookData = !stripe.available;
@@ -463,6 +473,8 @@ function paymentReconciliation({ analytics, stripe }) {
     checkoutStarted,
     checkoutCompleted,
     analyticsEntitlementGranted,
+    analyticsWebhookEntitlementGranted,
+    browserAnalyticsEntitlementGranted,
     entitlementGranted,
     webhookFulfilled,
     webhookDuplicateSessions,
@@ -500,7 +512,7 @@ function anomalyNotes({ health, analyticsInput, analytics, stripe, payment, repo
   }
   if (analyticsInput.source.malformedRows > 0) notes.push(`${analyticsInput.source.malformedRows} malformed analytics export rows were ignored.`);
   if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
-  if (payment.analyticsEntitlementGranted === 0 && payment.webhookFulfilled > 0) {
+  if (payment.browserAnalyticsEntitlementGranted === 0 && payment.webhookFulfilled > 0) {
     notes.push("Stripe webhook fulfillments supplied entitlement_granted counts not observed in browser analytics.");
   }
   if (payment.checks.webhookHasCheckoutWithoutFulfillment) notes.push("Checkout starts were observed but no fulfilled Stripe webhook rows were found for the report date.");
@@ -592,6 +604,8 @@ async function main() {
     ["checkout_started", payment.checkoutStarted],
     ["checkout_completed", payment.checkoutCompleted],
     ["analytics_entitlement_granted", payment.analyticsEntitlementGranted],
+    ["analytics_webhook_entitlement_granted", payment.analyticsWebhookEntitlementGranted],
+    ["browser_analytics_entitlement_granted", payment.browserAnalyticsEntitlementGranted],
     ["entitlement_granted", payment.entitlementGranted],
     ["webhook_fulfilled", payment.webhookFulfilled],
     ["webhook_duplicate_sessions", payment.webhookDuplicateSessions],
