@@ -59,8 +59,19 @@ for (const webhookNeedle of [
   "Stripe webhook fulfillment failed",
   "checkout.session.completed",
   "fulfillCheckoutSession",
+  "recordServerAnalyticsEvent",
 ]) {
   assertContains("app/api/stripe/webhook/route.ts", webhookNeedle);
+}
+
+for (const serverAnalyticsNeedle of [
+  "yishun_server_analytics",
+  "checkout_completed",
+  "entitlement_granted",
+  "webhook_failed",
+  "server_analytics_file_sink_failed",
+]) {
+  assertContains("lib/server-analytics.ts", serverAnalyticsNeedle);
 }
 
 for (const reportNeedle of [
@@ -97,6 +108,7 @@ console.log(
         "health_endpoint_exposes_safe_release_status",
         "deploy_workflow_verifies_local_health_and_core_smokes",
         "stripe_webhook_failures_are_visible_to_logs_and_daily_report",
+        "stripe_webhook_success_and_failure_emit_server_analytics_events",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },

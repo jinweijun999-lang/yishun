@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { fulfillCheckoutSession } from "@/lib/stripe-entitlements";
+import { recordServerAnalyticsEvent } from "@/lib/server-analytics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +78,12 @@ export async function POST(request: NextRequest) {
       stripeEventId: event.id,
       stripeEventType: event.type,
       error,
+    });
+    await recordServerAnalyticsEvent({
+      event: "webhook_failed",
+      stripeEventType: event.type,
+      webhookStatus: "exception",
+      reason: "fulfillment_exception",
     });
     return NextResponse.json({ error: "Stripe webhook fulfillment failed." }, { status: 500 });
   }
