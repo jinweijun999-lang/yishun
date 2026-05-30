@@ -22,6 +22,12 @@ function getEntitlementUpdate(product, now) {
         consultationCredits: { increment: 5 },
         lastCreditsAccruedAt: now,
       };
+    case "premium_annual":
+      return {
+        planTier: "annual",
+        consultationCredits: { increment: 15 },
+        lastCreditsAccruedAt: now,
+      };
     case "consultation_single":
       return { consultationCredits: { increment: 1 } };
     case "report_single":
