@@ -14,6 +14,7 @@ Useful environment:
 
 - `REPORT_DATE=YYYY-MM-DD` selects the Asia/Shanghai report day.
 - `YISHUN_ANALYTICS_FILE=/home/yishun/data/analytics-events.jsonl` reads the production file sink.
+- `YISHUN_STRIPE_WEBHOOK_EVENTS_FILE=/home/yishun/data/stripe-webhook-events.jsonl` reads a JSONL export of webhook rows when direct `DATABASE_URL` access is unavailable.
 - `YISHUN_HEALTH_URL=https://11263.com/api/health` overrides the health endpoint.
 - `YISHUN_DAILY_REPORT_DIR=reports/daily` changes the output root.
 - `YISHUN_REPORT_NO_NETWORK=1` skips the health probe for local smoke runs.
@@ -30,6 +31,8 @@ reports/daily/yishun-daily-YYYY-MM-DD/
   errors.jsonl
   stripe_payments.csv
   stripe_webhook_failures.csv
+  payment_reconciliation.json
+  payment_reconciliation.csv
   funnel.csv
   retention.csv
   traffic_sources.csv
@@ -46,6 +49,8 @@ reports/daily/yishun-daily-YYYY-MM-DD/
 - Retention proxy counts from daily-card and return-visit events.
 - Traffic source, UTM campaign, and top-page aggregates from nested `properties` or top-level event exports without exposing raw visitor IDs.
 - Read-only Stripe webhook fulfillment counts when `DATABASE_URL` is configured.
+- File-export fallback for Stripe webhook rows when `DATABASE_URL` is unavailable, so `entitlement_granted` and `webhook_failed` still appear in the daily funnel.
+- Payment reconciliation risk from checkout analytics versus fulfilled, duplicate, and failed Stripe webhook rows.
 - Failure rows from analytics and webhook records.
 
 ## Current Limits

@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { FULL_REPORT_ADAPTER_NOTE } from "@/lib/full-report-entitlement";
+import { recordServerAnalyticsEvent } from "@/lib/server-analytics";
 
 export type CheckoutProduct = "report_single" | "premium_monthly" | "premium_annual" | "consultation_single";
 
@@ -73,11 +74,29 @@ export async function fulfillCheckoutSession(params: {
   const { userId, product } = extractCheckoutEntitlement(session);
 
   if (!userId || !product) {
+    await recordServerAnalyticsEvent({
+      event: "webhook_failed",
+      userId,
+      checkoutSessionId: session.id,
+      product,
+      stripeEventType: eventType,
+      webhookStatus: "missing_user_or_product",
+      reason: "missing_user_or_product",
+    });
     return { fulfilled: false, reason: "missing_user_or_product", userId: userId ?? undefined };
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
+    await recordServerAnalyticsEvent({
+      event: "webhook_failed",
+      userId,
+      checkoutSessionId: session.id,
+      product,
+      stripeEventType: eventType,
+      webhookStatus: "user_not_found",
+      reason: "user_not_found",
+    });
     return { fulfilled: false, reason: "user_not_found", userId, product };
   }
 
@@ -129,11 +148,34 @@ export async function fulfillCheckoutSession(params: {
     return { fulfilled: true };
   });
 
-  return {
+  const fulfillment = {
     ...result,
     userId,
     product,
     entitlementKind: getEntitlementKind(product),
     note: product === "report_single" ? FULL_REPORT_ADAPTER_NOTE : undefined,
   };
+
+  if (fulfillment.fulfilled && !fulfillment.reason) {
+    await recordServerAnalyticsEvent({
+      event: "checkout_completed",
+      userId,
+      checkoutSessionId: session.id,
+      product,
+      entitlementKind: fulfillment.entitlementKind,
+      stripeEventType: eventType,
+      webhookStatus: "fulfilled",
+    });
+    await recordServerAnalyticsEvent({
+      event: "entitlement_granted",
+      userId,
+      checkoutSessionId: session.id,
+      product,
+      entitlementKind: fulfillment.entitlementKind,
+      stripeEventType: eventType,
+      webhookStatus: "fulfilled",
+    });
+  }
+
+  return fulfillment;
 }

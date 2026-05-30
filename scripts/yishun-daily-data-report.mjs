@@ -309,14 +309,35 @@ function stripeStatusCount(stripe, status) {
     .reduce((sum, row) => sum + row.count, 0);
 }
 
+function funnelRows(analytics, payment) {
+  return analytics.canonical.map((item) => {
+    if (item.event === "entitlement_granted" && payment.webhookFulfilled > 0) {
+      return {
+        ...item,
+        count: item.count + payment.webhookFulfilled,
+        aliases: [...item.aliases, "stripe_webhook_fulfilled"],
+      };
+    }
+    if (item.event === "webhook_failed" && payment.webhookFailures > 0) {
+      return {
+        ...item,
+        count: item.count + payment.webhookFailures,
+        aliases: [...item.aliases, "stripe_webhook_failure"],
+      };
+    }
+    return item;
+  });
+}
+
 function paymentReconciliation({ analytics, stripe }) {
   const checkoutStarted = canonicalCount(analytics, "checkout_started");
   const checkoutCompleted = canonicalCount(analytics, "checkout_completed");
-  const entitlementGranted = canonicalCount(analytics, "entitlement_granted");
+  const analyticsEntitlementGranted = canonicalCount(analytics, "entitlement_granted");
   const webhookFulfilled = stripeStatusCount(stripe, "fulfilled");
   const webhookDuplicateSessions = stripeStatusCount(stripe, "duplicate_session");
   const webhookFailures = stripe.failures.length;
-  const analyticsHasCheckoutWithoutGrant = checkoutStarted > 0 && entitlementGranted === 0;
+  const entitlementGranted = analyticsEntitlementGranted + webhookFulfilled;
+  const analyticsHasCheckoutWithoutGrant = checkoutStarted > 0 && analyticsEntitlementGranted === 0;
   const webhookHasCheckoutWithoutFulfillment = checkoutStarted > 0 && stripe.available && webhookFulfilled === 0;
   const webhookHasFailures = webhookFailures > 0;
   const missingWebhookData = !stripe.available;
@@ -329,11 +350,13 @@ function paymentReconciliation({ analytics, stripe }) {
     risk,
     checkoutStarted,
     checkoutCompleted,
+    analyticsEntitlementGranted,
     entitlementGranted,
     webhookFulfilled,
     webhookDuplicateSessions,
     webhookFailures,
     stripeSummaryAvailable: stripe.available,
+    stripeSummarySource: stripe.source || "unavailable",
     stripeSummaryNote: stripe.note,
     checks: {
       analyticsHasCheckoutWithoutGrant,
@@ -351,6 +374,9 @@ function anomalyNotes({ health, analytics, stripe, payment }) {
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
   if (analytics.acceptedEvents === 0) notes.push("No analytics events found for the report date.");
   if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
+  if (payment.analyticsEntitlementGranted === 0 && payment.webhookFulfilled > 0) {
+    notes.push("Stripe webhook fulfillments supplied entitlement_granted counts not observed in browser analytics.");
+  }
   if (payment.checks.webhookHasCheckoutWithoutFulfillment) notes.push("Checkout starts were observed but no fulfilled Stripe webhook rows were found for the report date.");
   if (payment.checks.duplicateSessionsObserved) notes.push(`${payment.webhookDuplicateSessions} duplicate Stripe checkout session webhook rows were observed.`);
   if (!stripe.available) notes.push(`Stripe webhook DB summary unavailable: ${stripe.note}`);
@@ -378,10 +404,11 @@ async function main() {
   const [analyticsInput, health, stripe] = await Promise.all([
     readAnalyticsEvents(config.analyticsFile, config.date),
     fetchHealth(config),
-    readStripeWebhookSummary(config.date),
+    readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile),
   ]);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
+  const enrichedFunnelRows = funnelRows(analytics, payment);
   const notes = anomalyNotes({ health, analytics, stripe, payment });
   const questions = analystQuestions({ analytics, notes });
 
@@ -395,7 +422,7 @@ async function main() {
   }, null, 2));
   await writeFile(path.join(reportDir, "funnel.csv"), csv([
     ["event", "count", "observed_aliases"],
-    ...analytics.canonical.map((item) => [item.event, item.count, item.aliases.join("|")]),
+    ...enrichedFunnelRows.map((item) => [item.event, item.count, item.aliases.join("|")]),
   ]));
   await writeFile(path.join(reportDir, "retention.csv"), csv([
     ["metric", "count"],
@@ -431,11 +458,13 @@ async function main() {
     ["risk", payment.risk],
     ["checkout_started", payment.checkoutStarted],
     ["checkout_completed", payment.checkoutCompleted],
+    ["analytics_entitlement_granted", payment.analyticsEntitlementGranted],
     ["entitlement_granted", payment.entitlementGranted],
     ["webhook_fulfilled", payment.webhookFulfilled],
     ["webhook_duplicate_sessions", payment.webhookDuplicateSessions],
     ["webhook_failures", payment.webhookFailures],
     ["stripe_summary_available", payment.stripeSummaryAvailable],
+    ["stripe_summary_source", payment.stripeSummarySource],
     ["stripe_summary_note", payment.stripeSummaryNote || ""],
   ]));
   await writeFile(path.join(reportDir, "errors.jsonl"), [
@@ -454,9 +483,9 @@ async function main() {
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
-- Entitlements granted: ${analytics.canonical.find((item) => item.event === "entitlement_granted")?.count || 0}
+- Entitlements granted: ${payment.entitlementGranted}
 - Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
-- Stripe webhook summary: ${stripe.available ? "available" : "unavailable"}
+- Stripe webhook summary: ${stripe.available ? `available (${payment.stripeSummarySource})` : "unavailable"}
 - Payment reconciliation: ${payment.risk}
 
 ## Today Actions
@@ -488,7 +517,9 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     analyticsEvents: analytics.acceptedEvents,
     healthOk: health.ok,
     stripeSummaryAvailable: stripe.available,
+    stripeSummarySource: payment.stripeSummarySource,
     paymentRisk: payment.risk,
+    entitlementsGranted: payment.entitlementGranted,
     notes,
   }, null, 2));
 }

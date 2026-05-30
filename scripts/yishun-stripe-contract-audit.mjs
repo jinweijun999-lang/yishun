@@ -20,6 +20,7 @@ const entitlementStatusRoute = read("app/api/entitlements/route.ts");
 const sandboxAdapter = read("lib/stripe-sandbox-adapter.ts");
 const webhookSmoke = read("scripts/stripe-webhook-entitlement-smoke.mjs");
 const dailyReport = read("scripts/yishun-daily-data-report.mjs");
+const serverAnalytics = read("lib/server-analytics.ts");
 const prismaSchema = read("prisma/schema.prisma");
 const envExample = read(".env.example");
 const envLocalExample = read(".env.local.example");
@@ -49,6 +50,10 @@ assert(
 
 for (const required of [
   "payment_reconciliation.json",
+  "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE",
+  "file_export",
+  "stripe_webhook_fulfilled",
+  "analyticsEntitlementGranted",
   "webhookFulfilled",
   "webhookDuplicateSessions",
   "webhookHasCheckoutWithoutFulfillment",
@@ -118,8 +123,24 @@ for (const required of [
   "case \"report_single\":\n      return {};",
   "product === \"report_single\") return \"full_report\"",
   "product === \"premium_monthly\" || product === \"premium_annual\") return \"membership\"",
+  "recordServerAnalyticsEvent",
+  "event: \"checkout_completed\"",
+  "event: \"entitlement_granted\"",
+  "event: \"webhook_failed\"",
 ]) {
   assert(entitlements.includes(required), "Fulfillment layer must preserve idempotent webhook entitlement contract", { required });
+}
+
+for (const required of [
+  "createHash",
+  "YISHUN_ANALYTICS_FILE",
+  "checkout_completed",
+  "entitlement_granted",
+  "webhook_failed",
+  "utm_source: \"stripe\"",
+  "utm_medium: \"webhook\"",
+]) {
+  assert(serverAnalytics.includes(required), "Server analytics must preserve privacy-safe Stripe webhook funnel events", { required });
 }
 
 for (const [product, , , entitlementKind] of checkoutProducts) {
@@ -189,6 +210,7 @@ console.log(JSON.stringify({
     "checkout_metadata",
     "webhook_signature_verification",
     "idempotent_fulfillment",
+    "privacy_safe_server_analytics_events",
     "full_report_recovery",
     "read_only_entitlement_status",
     "webhook_event_storage",
