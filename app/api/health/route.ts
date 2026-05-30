@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -10,11 +12,22 @@ function configured(...values: Array<string | undefined>) {
   return values.every((value) => Boolean(value && value.trim()));
 }
 
+function releaseMarkerVersion() {
+  try {
+    const version = readFileSync(path.join(process.cwd(), ".yishun-release-sha"), "utf8").trim();
+    return version || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function appVersion() {
   return (
+    process.env.YISHUN_RELEASE_SHA ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
     process.env.GITHUB_SHA ||
     process.env.NEXT_PUBLIC_APP_VERSION ||
+    releaseMarkerVersion() ||
     "unknown"
   );
 }
