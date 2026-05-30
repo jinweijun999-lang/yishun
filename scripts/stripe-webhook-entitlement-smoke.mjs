@@ -22,6 +22,12 @@ function getEntitlementUpdate(product, now) {
         consultationCredits: { increment: 5 },
         lastCreditsAccruedAt: now,
       };
+    case "premium_annual":
+      return {
+        planTier: "annual",
+        consultationCredits: { increment: 15 },
+        lastCreditsAccruedAt: now,
+      };
     case "consultation_single":
       return { consultationCredits: { increment: 1 } };
     case "report_single":
@@ -83,6 +89,14 @@ async function main() {
     userId: user.id,
     product: "consultation_single",
   });
+  const annual = await fulfill({
+    eventId: `evt_smoke_annual_${suffix}`,
+    eventType: "checkout.session.completed",
+    checkoutSessionId: `cs_smoke_annual_${suffix}`,
+    userId: user.id,
+    product: "premium_annual",
+    now: new Date("2026-05-12T00:00:00.000Z"),
+  });
   const report = await fulfill({
     eventId: `evt_smoke_report_${suffix}`,
     eventType: "checkout.session.completed",
@@ -111,24 +125,24 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
 
-  if (!premium.fulfilled || !consultation.fulfilled || !report.fulfilled || !duplicate.fulfilled) {
-    throw new Error(`Expected all smoke fulfillments to resolve: ${JSON.stringify({ premium, consultation, report, duplicate })}`);
+  if (!premium.fulfilled || !consultation.fulfilled || !annual.fulfilled || !report.fulfilled || !duplicate.fulfilled) {
+    throw new Error(`Expected all smoke fulfillments to resolve: ${JSON.stringify({ premium, consultation, annual, report, duplicate })}`);
   }
   if (duplicate.reason !== "session_already_fulfilled") {
     throw new Error(`Expected duplicate session guard, got ${duplicate.reason}`);
   }
-  if (updated.planTier !== "monthly") {
-    throw new Error(`Expected monthly planTier, got ${updated.planTier}`);
+  if (updated.planTier !== "annual") {
+    throw new Error(`Expected annual planTier after annual checkout, got ${updated.planTier}`);
   }
-  if (updated.consultationCredits !== 6) {
-    throw new Error(`Expected 6 consultation credits (monthly 5 + consultation 1; report_single must not add ask credits), got ${updated.consultationCredits}`);
+  if (updated.consultationCredits !== 21) {
+    throw new Error(`Expected 21 consultation credits (monthly 5 + consultation 1 + annual 15; report_single must not add ask credits), got ${updated.consultationCredits}`);
   }
   const reportEvent = events.find((event) => event.product === "report_single" && event.status === "fulfilled");
   if (!reportEvent) {
     throw new Error(`Expected report_single fulfilled event adapter record, got ${JSON.stringify(events)}`);
   }
-  if (events.length !== 4 || events.filter((event) => event.status === "fulfilled").length !== 3) {
-    throw new Error(`Expected 3 fulfilled events plus 1 duplicate_session event, got ${JSON.stringify(events)}`);
+  if (events.length !== 5 || events.filter((event) => event.status === "fulfilled").length !== 4) {
+    throw new Error(`Expected 4 fulfilled events plus 1 duplicate_session event, got ${JSON.stringify(events)}`);
   }
 
   console.log(JSON.stringify({
@@ -136,6 +150,7 @@ async function main() {
     userId: user.id,
     planTier: updated.planTier,
     consultationCredits: updated.consultationCredits,
+    verifiedProducts: ["premium_monthly", "consultation_single", "premium_annual", "report_single"],
     webhookEvents: events.map((event) => ({ id: event.id, product: event.product, status: event.status })),
   }));
 }
