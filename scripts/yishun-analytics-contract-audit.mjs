@@ -38,7 +38,7 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
@@ -48,6 +48,8 @@ for (const gcpExportNeedle of [
   "read",
   "YISHUN_GCP_PROJECT",
   "YISHUN_ANALYTICS_EXPORT_DIR",
+  "YISHUN_GCP_ANALYTICS_TIMEOUT_MS",
+  "gcloud logging read timed out",
   "yishun_analytics_event",
   "yishun_server_analytics_event",
 ]) {
@@ -58,6 +60,8 @@ for (const opsReviewNeedle of [
   "CODEX_BRIDGE_OUTBOX",
   "YISHUN_OPS_REPORT_FALLBACK_DIR",
   "payment_reconciliation.json",
+  "route_status.json",
+  "core route patrol failed",
   "analytics_source.json",
   "Daily operations risk",
   "writeResult",
@@ -67,7 +71,21 @@ for (const opsReviewNeedle of [
 }
 
 assertContains("package.json", "\"ops:daily-review\"");
+assertContains("package.json", "\"ops:daily-loop\"");
 assertContains("package.json", "\"export:gcp-analytics\"");
+
+for (const opsLoopNeedle of [
+  "scripts/yishun-export-gcp-analytics.mjs",
+  "scripts/yishun-daily-data-report.mjs",
+  "scripts/yishun-daily-ops-review.mjs",
+  "YISHUN_ANALYTICS_FILE",
+  "--allow-empty",
+  "analyticsSourceAvailable",
+  "routeStatusOk",
+  "reviewOutputPath",
+]) {
+  assertContains("scripts/yishun-daily-ops-loop.mjs", opsLoopNeedle);
+}
 
 for (const serverNeedle of [
   "checkout_completed",
@@ -122,7 +140,9 @@ console.log(
         "daily_report_surfaces_analytics_source_freshness",
         "daily_report_reads_single_multi_file_and_directory_analytics_exports",
         "daily_report_and_ops_review_honor_date_cli_argument",
+        "daily_ops_loop_exports_gcp_analytics_before_bridge_review",
         "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",
+        "gcp_analytics_export_times_out_for_unattended_runs",
         "analytics_file_sink_creates_parent_directory_before_append",
         "checkout_button_emits_checkout_failed_for_config_and_client_failures",
         "stripe_webhook_fulfillment_emits_privacy_safe_server_funnel_events",

@@ -78,16 +78,32 @@ function value(value, fallback = "unknown") {
   return String(value);
 }
 
-function assessRisk({ uptime, analyticsSource, payment, anomalies }) {
+function routeStatusSummary(routeStatus) {
+  if (!routeStatus || routeStatus.ok === undefined) return "unknown";
+  if (routeStatus.ok === null || routeStatus.skipped) return "skipped";
+  const failed = (routeStatus.routes || []).filter((route) => route.ok === false);
+  return routeStatus.ok ? `ok (${(routeStatus.routes || []).length} routes)` : `failed (${failed.length} routes)`;
+}
+
+function failedRouteLabels(routeStatus) {
+  return (routeStatus?.routes || [])
+    .filter((route) => route.ok === false)
+    .map((route) => `${route.route}=${route.status || route.error || "failed"}`);
+}
+
+function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }) {
   const actionRequired = [];
   const watch = [];
 
   if (uptime?.ok === false) actionRequired.push(`production health failed (${value(uptime.status || uptime.error)})`);
+  const failedRoutes = failedRouteLabels(routeStatus);
+  if (failedRoutes.length) actionRequired.push(`core route patrol failed (${failedRoutes.join(", ")})`);
   if (payment?.risk === "action_required") actionRequired.push("payment reconciliation is action_required");
   if (Number(payment?.webhookFailures || 0) > 0) actionRequired.push(`${payment.webhookFailures} Stripe webhook failures found`);
   if (payment?.checks?.webhookHasCheckoutWithoutFulfillment) actionRequired.push("checkout starts have no fulfilled webhook rows");
 
   if (uptime?.ok === null || uptime?.skipped) watch.push("health check was skipped");
+  if (routeStatus?.ok === null || routeStatus?.skipped) watch.push("core route patrol was skipped");
   if (payment?.risk === "watch") watch.push("payment reconciliation is watch");
   if (analyticsSource?.healthAnalyticsStatus === "configured" && analyticsSource?.available === false) {
     watch.push("production analytics is configured, but no export source was available to the report");
@@ -136,18 +152,19 @@ async function main() {
     throw new Error(`Daily report summary not found: ${summaryPath}. Run npm run report:yishun-daily first.`);
   }
 
-  const [summary, anomalyText, questionText, uptime, analyticsSource, payment] = await Promise.all([
+  const [summary, anomalyText, questionText, uptime, routeStatus, analyticsSource, payment] = await Promise.all([
     readText(summaryPath),
     readText(path.join(reportDir, "anomaly_notes.md")),
     readText(path.join(reportDir, "analyst_questions.md")),
     readJson(path.join(reportDir, "uptime.json"), {}),
+    readJson(path.join(reportDir, "route_status.json"), {}),
     readJson(path.join(reportDir, "analytics_source.json"), {}),
     readJson(path.join(reportDir, "payment_reconciliation.json"), {}),
   ]);
 
   const anomalies = bullets(anomalyText);
   const questions = bullets(questionText);
-  const risk = assessRisk({ uptime, analyticsSource, payment, anomalies });
+  const risk = assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies });
   const stamp = cstStamp();
   const fileName = `${stamp}-yishun-daily-ops-review.result.md`;
   const content = `# YiShun Daily Operations Review - ${config.date}
@@ -162,6 +179,8 @@ ${firstItems(risk.items, 6)}
 
 - Health: ${uptime?.ok === null ? "skipped" : uptime?.ok ? "ok" : "failed"}
 - Health URL: ${value(uptime?.url)}
+- Core routes: ${routeStatusSummary(routeStatus)}
+- Core route base URL: ${value(routeStatus?.baseUrl)}
 - Analytics source: ${analyticsSource?.available ? `available (${value(analyticsSource.reportDateEvents, "0")} report-date events, ${value(analyticsSource.parsedRows, "0")} parsed rows)` : "unavailable"}
 - Analytics health status: ${value(analyticsSource?.healthAnalyticsStatus)}
 - Payment reconciliation: ${value(payment?.risk)}
@@ -181,7 +200,7 @@ ${firstItems(questions, 6)}
 ## Verification
 
 - Read daily report package: \`${reportDir}\`
-- Parsed \`uptime.json\`, \`analytics_source.json\`, and \`payment_reconciliation.json\`
+- Parsed \`uptime.json\`, \`route_status.json\`, \`analytics_source.json\`, and \`payment_reconciliation.json\`
 - No Stripe live API calls, real charges/refunds, destructive database operations, force push, or production restarts were performed.
 
 ## Next Action
