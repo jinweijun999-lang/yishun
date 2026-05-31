@@ -21,6 +21,11 @@ function configured(...values: Array<string | undefined>) {
   return values.every((value) => Boolean(value && value.trim()));
 }
 
+function configStatus(...values: Array<string | undefined>): YiShunCheckStatus {
+  if (values.length > 0 && configured(...values)) return "configured";
+  return process.env.NODE_ENV === "production" ? "missing" : "not_configured";
+}
+
 function releaseMarkerVersion() {
   try {
     const version = readFileSync(path.join(process.cwd(), ".yishun-release-sha"), "utf8").trim();
@@ -54,19 +59,28 @@ async function databaseStatus(): Promise<YiShunCheckStatus> {
 
 export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
   const database = await databaseStatus();
-  const stripe = configured(
+  const stripe = configStatus(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     process.env.STRIPE_SECRET_KEY,
+    process.env.STRIPE_WEBHOOK_SECRET,
     process.env.STRIPE_PRICE_REPORT_SINGLE,
-  )
-    ? "configured"
-    : "not_configured";
+    process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+    process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
+    process.env.STRIPE_PRICE_CONSULTATION_SINGLE,
+  );
   const analytics = configured(process.env.NEXT_PUBLIC_YISHUN_ANALYTICS_ENDPOINT) ||
-    configured(process.env.YISHUN_ANALYTICS_FILE)
+    configured(process.env.YISHUN_ANALYTICS_FILE) ||
+    configured(process.env.YISHUN_ANALYTICS_FILES) ||
+    configured(process.env.YISHUN_ANALYTICS_DIR)
     ? "configured"
-    : "not_configured";
+    : configStatus();
+  const production = process.env.NODE_ENV === "production";
+  const databaseOk = database === "ok" || (!production && database === "not_configured");
+  const stripeOk = stripe === "configured" || (!production && stripe === "not_configured");
+  const analyticsOk = analytics === "configured" || (!production && analytics === "not_configured");
 
   return {
-    ok: database === "ok" || database === "not_configured",
+    ok: databaseOk && stripeOk && analyticsOk,
     service: "yishun",
     version: appVersion(),
     time: new Date().toISOString(),

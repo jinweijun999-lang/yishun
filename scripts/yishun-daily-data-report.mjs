@@ -136,7 +136,7 @@ async function discoverAnalyticsFiles(config) {
     if (existsSync(config.analyticsDir)) {
       const entries = await readdir(config.analyticsDir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.isFile() && /\.(jsonl|ndjson|log)$/i.test(entry.name)) {
+        if (entry.isFile() && /\.(json|jsonl|ndjson|log)$/i.test(entry.name)) {
           candidates.push(path.join(config.analyticsDir, entry.name));
         }
       }
@@ -158,6 +158,32 @@ async function discoverAnalyticsFiles(config) {
   return { files, notes };
 }
 
+function parseAnalyticsExportRecords(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return { records: [], malformedRows: 0 };
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return { records: parsed, malformedRows: 0 };
+    if (isRecord(parsed)) return { records: [parsed], malformedRows: 0 };
+  } catch {
+    // Fall back to line-oriented exports below.
+  }
+
+  const records = [];
+  let malformedRows = 0;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      records.push(JSON.parse(line));
+    } catch {
+      malformedRows += 1;
+    }
+  }
+
+  return { records, malformedRows };
+}
+
 async function readAnalyticsEvents(config, reportDate) {
   const input = await discoverAnalyticsFiles(config);
   const events = [];
@@ -168,10 +194,12 @@ async function readAnalyticsEvents(config, reportDate) {
 
   for (const filePath of input.files) {
     const text = await readFile(filePath, "utf8");
-    for (const line of text.split(/\r?\n/)) {
-      if (!line.trim()) continue;
+    const parsedExport = parseAnalyticsExportRecords(text);
+    malformedRows += parsedExport.malformedRows;
+
+    for (const record of parsedExport.records) {
       try {
-        const event = analyticsEventFromExportRecord(JSON.parse(line));
+        const event = analyticsEventFromExportRecord(record);
         if (isRecord(event) && cleanString(event.event, "")) {
           parsedRows += 1;
           const rawTimestamp = event.ts || event.timestamp || null;

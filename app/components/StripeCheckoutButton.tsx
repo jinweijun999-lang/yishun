@@ -48,6 +48,12 @@ export default function StripeCheckoutButton({
       const data = (await response.json()) as { url?: string; error?: string; code?: string };
 
       if (!response.ok || !data.url) {
+        queueP0Analytics("checkout_failed", {
+          product,
+          source: "stripe_checkout_button",
+          responseStatus: response.status,
+          code: data.code ?? "missing_checkout_url",
+        });
         setMessage(
           data.code === "checkout_config_missing" || data.code === "checkout_config_invalid"
             ? fallbackLabel
@@ -59,6 +65,11 @@ export default function StripeCheckoutButton({
       window.location.assign(data.url);
     } catch (error) {
       console.error("Failed to start Stripe checkout", error);
+      queueP0Analytics("checkout_failed", {
+        product,
+        source: "stripe_checkout_button",
+        reason: "network_or_client_exception",
+      });
       setMessage("Unable to start checkout. Please try again later.");
     } finally {
       setIsLoading(false);
