@@ -52,6 +52,8 @@ for (const required of [
   "payment_reconciliation.json",
   "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE",
   "file_export",
+  "analytics_export",
+  "stripeWebhookEventsFromAnalytics",
   "stripe_webhook_fulfilled",
   "analyticsEntitlementGranted",
   "webhookFulfilled",

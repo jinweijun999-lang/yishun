@@ -4,6 +4,24 @@ import path from "node:path";
 
 const DEFAULT_BASE_URL = "https://11263.com";
 const DEFAULT_TIMEOUT_MS = 10000;
+const DEFAULT_EVIDENCE_DIR = "reports/evidence";
+
+function timestampLabel() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
+function sanitizeLabel(label) {
+  return String(label || "")
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+}
+
+function defaultJsonOut(label) {
+  const safeLabel = sanitizeLabel(label) || `production-smoke-${timestampLabel()}`;
+  return path.join(DEFAULT_EVIDENCE_DIR, `yishun-production-smoke-${safeLabel}.json`);
+}
 
 function parseArgs() {
   const config = {
@@ -11,19 +29,30 @@ function parseArgs() {
     expectedSha: process.env.YISHUN_EXPECTED_RELEASE_SHA || process.env.YISHUN_RELEASE_SHA || "",
     timeoutMs: Number(process.env.YISHUN_PRODUCTION_SMOKE_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
     jsonOut: process.env.YISHUN_PRODUCTION_SMOKE_OUT || "",
+    label: process.env.YISHUN_PRODUCTION_SMOKE_LABEL || "",
+    analyticsProbe: process.env.YISHUN_PRODUCTION_ANALYTICS_PROBE === "1",
   };
 
-  for (const arg of process.argv.slice(2)) {
+  const args = process.argv.slice(2);
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
     if (arg.startsWith("--base-url=")) config.baseUrl = arg.slice("--base-url=".length);
     if (arg.startsWith("--expect-sha=")) config.expectedSha = arg.slice("--expect-sha=".length);
     if (arg.startsWith("--timeout-ms=")) config.timeoutMs = Number(arg.slice("--timeout-ms=".length));
     if (arg.startsWith("--json-out=")) config.jsonOut = arg.slice("--json-out=".length);
+    if (arg.startsWith("--label=")) config.label = arg.slice("--label=".length);
+    if (arg === "--label") config.label = args[index + 1] || "";
+    if (arg === "--analytics-probe") config.analyticsProbe = true;
   }
+
+  const label = sanitizeLabel(config.label);
 
   return {
     ...config,
     baseUrl: config.baseUrl.replace(/\/+$/, ""),
     timeoutMs: Number.isFinite(config.timeoutMs) && config.timeoutMs > 0 ? config.timeoutMs : DEFAULT_TIMEOUT_MS,
+    label,
+    jsonOut: config.jsonOut || defaultJsonOut(label),
   };
 }
 
@@ -33,18 +62,20 @@ async function writeJsonOut(filePath, payload) {
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
-async function fetchWithTimeout(url, timeoutMs) {
+async function fetchWithTimeout(url, timeoutMs, options = {}) {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
+      ...options,
       signal: controller.signal,
       cache: "no-store",
       redirect: "follow",
       headers: {
         "user-agent": "yishun-production-smoke/1.0",
+        ...(options.headers || {}),
       },
     });
     const contentType = response.headers.get("content-type") || "";
@@ -115,6 +146,51 @@ async function checkPage(config, route, requiredText) {
   };
 }
 
+async function checkAnalyticsIngest(config, health) {
+  const probeId = `prod-smoke-${Date.now().toString(36)}`;
+  const payload = {
+    event: "ops_health_ping",
+    anonymous_id: `ops_${probeId}`,
+    source: "production_smoke",
+    ts: new Date().toISOString(),
+    properties: {
+      product_id: "yishun",
+      anonymous_id: `ops_${probeId}`,
+      session_id: probeId,
+      utm_source: "production_smoke",
+      utm_medium: "ops",
+      utm_campaign: "analytics_ingest_probe",
+      country: "unknown",
+      locale: "ops",
+      device: "server",
+      page: "/api/events",
+      variant: "ops",
+      release_version: health.version,
+    },
+  };
+
+  const result = await fetchWithTimeout(`${config.baseUrl}/api/events`, config.timeoutMs, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  assert(result.ok, "Production analytics ingest endpoint must return 2xx", { status: result.status, url: result.url });
+  assert(result.body && typeof result.body === "object", "Production analytics ingest endpoint must return JSON");
+  assert(result.body.ok === true, "Production analytics ingest payload must be ok", { body: result.body });
+  assert(result.body.accepted === 1, "Production analytics ingest must accept one synthetic ops event", { body: result.body });
+
+  return {
+    route: "/api/events",
+    status: result.status,
+    latencyMs: result.latencyMs,
+    accepted: result.body.accepted,
+    dropped: result.body.dropped,
+    event: payload.event,
+    source: payload.source,
+    probeId,
+  };
+}
+
 async function main() {
   const config = parseArgs();
   const pages = [
@@ -131,13 +207,19 @@ async function main() {
   for (const [route, requiredText] of pages) {
     pageResults.push(await checkPage(config, route, requiredText));
   }
+  const analyticsIngest = config.analyticsProbe
+    ? await checkAnalyticsIngest(config, health)
+    : { skipped: true, reason: "analytics probe disabled" };
 
   const payload = {
     ok: true,
     baseUrl: config.baseUrl,
     checkedAt: new Date().toISOString(),
+    evidencePath: config.jsonOut,
+    label: config.label,
     health,
     pages: pageResults,
+    analyticsIngest,
   };
 
   await writeJsonOut(config.jsonOut, payload);
@@ -145,15 +227,18 @@ async function main() {
 }
 
 main().catch((error) => {
+  const config = parseArgs();
   const payload = {
     ok: false,
-    baseUrl: parseArgs().baseUrl,
+    baseUrl: config.baseUrl,
     checkedAt: new Date().toISOString(),
+    evidencePath: config.jsonOut,
+    label: config.label,
     message: error instanceof Error ? error.message : "Production smoke failed",
     details: error?.details || {},
   };
 
-  writeJsonOut(parseArgs().jsonOut, payload)
+  writeJsonOut(config.jsonOut, payload)
     .catch((writeError) => {
       console.error(JSON.stringify({
         ok: false,

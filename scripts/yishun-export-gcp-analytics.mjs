@@ -159,10 +159,13 @@ async function main() {
   await writeFile(metaPath, JSON.stringify({
     date: config.date,
     project: config.project,
+    start,
+    end,
     filter,
     entryCount: entries.length,
     eventCount: events.length,
     outputPath,
+    allowEmpty: config.allowEmpty,
     timeoutMs: config.timeoutMs,
     generatedAt: new Date().toISOString(),
   }, null, 2));
