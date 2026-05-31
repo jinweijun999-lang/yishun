@@ -139,6 +139,14 @@ function analyticsEventFromExportRecord(record) {
   return null;
 }
 
+function isOperationalAnalyticsEvent(event) {
+  const eventName = cleanString(event.event, "");
+  return eventName.startsWith("ops_") ||
+    cleanString(event.source, "") === "ops_probe" ||
+    cleanString(eventValue(event, "utm_source"), "") === "ops_probe" ||
+    cleanString(eventValue(event, "page"), "") === "/ops/analytics-probe";
+}
+
 async function discoverAnalyticsFiles(config) {
   const candidates = [
     config.analyticsFile,
@@ -243,6 +251,8 @@ async function readAnalyticsEvents(config, reportDate) {
   const events = [];
   let parsedRows = 0;
   let malformedRows = 0;
+  let rawReportDateEvents = 0;
+  let operationalProbeEvents = 0;
   let oldestEventAt = null;
   let latestEventAt = null;
 
@@ -261,7 +271,14 @@ async function readAnalyticsEvents(config, reportDate) {
           const eventAt = Number.isNaN(parsedTimestamp.getTime()) ? null : parsedTimestamp.toISOString();
           if (eventAt && (!oldestEventAt || eventAt < oldestEventAt)) oldestEventAt = eventAt;
           if (eventAt && (!latestEventAt || eventAt > latestEventAt)) latestEventAt = eventAt;
-          if (eventDate(event) === reportDate) events.push(event);
+          if (eventDate(event) === reportDate) {
+            rawReportDateEvents += 1;
+            if (isOperationalAnalyticsEvent(event)) {
+              operationalProbeEvents += 1;
+            } else {
+              events.push(event);
+            }
+          }
         }
       } catch {
         malformedRows += 1;
@@ -283,6 +300,8 @@ async function readAnalyticsEvents(config, reportDate) {
       parsedRows,
       malformedRows,
       reportDateEvents: events.length,
+      rawReportDateEvents,
+      operationalProbeEvents,
       oldestEventAt,
       latestEventAt,
       exportMeta,
@@ -737,12 +756,15 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
       notes.push(`GCP analytics export returned 0 Cloud Logging entries for ${meta.date || reportDate}.`);
     } else if (meta.eventCount === 0) {
       notes.push(`GCP analytics export returned ${meta.entryCount} Cloud Logging entries but 0 parsed YiShun events; inspect log payload shape.`);
-    } else if (meta.eventCount !== analyticsInput.source.reportDateEvents) {
-      notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.reportDateEvents} matched report date ${reportDate}.`);
+    } else if (meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
+      notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
     }
   }
   if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
     notes.push(`Latest analytics export event is ${analyticsInput.source.latestEventAt}, outside report date ${reportDate}.`);
+  }
+  if (analyticsInput.source.operationalProbeEvents > 0 && analytics.acceptedEvents === 0) {
+    notes.push(`${analyticsInput.source.operationalProbeEvents} operational analytics probe events were excluded from product funnel metrics.`);
   }
   if (analyticsInput.source.malformedRows > 0) notes.push(`${analyticsInput.source.malformedRows} malformed analytics export rows were ignored.`);
   if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
@@ -756,7 +778,7 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   return notes;
 }
 
-function analystQuestions({ analytics, notes }) {
+function analystQuestions({ analytics, analyticsInput, notes }) {
   const questions = [
     "Which channel produced the highest reading_start_clicked to reading_preview_generated conversion?",
     "Where do users drop between pricing_viewed, checkout_started, and entitlement_granted?",
@@ -764,6 +786,9 @@ function analystQuestions({ analytics, notes }) {
     "Which pages produce share_clicked events and should get stronger share CTAs?",
   ];
   if (analytics.acceptedEvents === 0) questions.unshift("Is the production analytics file sink receiving events today?");
+  if (analytics.acceptedEvents === 0 && analyticsInput.source.operationalProbeEvents > 0) {
+    questions.unshift("The analytics pipeline accepted ops probes; which product surfaces still need live event traffic?");
+  }
   if (notes.some((note) => note.includes("Checkout starts"))) questions.unshift("Do Stripe webhook records confirm entitlement fulfillment for observed checkout starts?");
   return questions;
 }
@@ -788,8 +813,9 @@ async function main() {
     note: analyticsInput.note,
     ...analyticsInput.source,
   };
+  const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
   const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date });
-  const questions = analystQuestions({ analytics, notes });
+  const questions = analystQuestions({ analytics, analyticsInput, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
   await writeFile(path.join(reportDir, "route_status.json"), JSON.stringify(routeStatus, null, 2));
@@ -871,7 +897,7 @@ async function main() {
 - Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
-- Analytics export meta: ${(analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).length ? (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
+- Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}

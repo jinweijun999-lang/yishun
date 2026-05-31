@@ -47,13 +47,18 @@ function runNode(args, { env = process.env } = {}) {
 
 function parseJsonObject(text) {
   const trimmed = text.trim();
-  const start = trimmed.lastIndexOf("{");
-  if (start === -1) return null;
-  try {
-    return JSON.parse(trimmed.slice(start));
-  } catch {
-    return null;
+
+  for (let index = 0; index < trimmed.length; index += 1) {
+    if (trimmed[index] !== "{") continue;
+    try {
+      const parsed = JSON.parse(trimmed.slice(index));
+      return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      // Keep scanning; child commands may print status lines before their final JSON object.
+    }
   }
+
+  return null;
 }
 
 async function runStep(label, args, options) {
