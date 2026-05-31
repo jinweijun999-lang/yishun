@@ -763,6 +763,9 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
     notes.push(`Latest analytics export event is ${analyticsInput.source.latestEventAt}, outside report date ${reportDate}.`);
   }
+  if (analyticsInput.source.operationalProbeEvents > 0 && analytics.acceptedEvents === 0) {
+    notes.push(`${analyticsInput.source.operationalProbeEvents} operational analytics probe events were excluded from product funnel metrics.`);
+  }
   if (analyticsInput.source.malformedRows > 0) notes.push(`${analyticsInput.source.malformedRows} malformed analytics export rows were ignored.`);
   if (payment.checks.analyticsHasCheckoutWithoutGrant) notes.push("Checkout starts were observed without matching entitlement_granted events.");
   if (payment.browserAnalyticsEntitlementGranted === 0 && payment.webhookFulfilled > 0) {
@@ -775,7 +778,7 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   return notes;
 }
 
-function analystQuestions({ analytics, notes }) {
+function analystQuestions({ analytics, analyticsInput, notes }) {
   const questions = [
     "Which channel produced the highest reading_start_clicked to reading_preview_generated conversion?",
     "Where do users drop between pricing_viewed, checkout_started, and entitlement_granted?",
@@ -783,6 +786,9 @@ function analystQuestions({ analytics, notes }) {
     "Which pages produce share_clicked events and should get stronger share CTAs?",
   ];
   if (analytics.acceptedEvents === 0) questions.unshift("Is the production analytics file sink receiving events today?");
+  if (analytics.acceptedEvents === 0 && analyticsInput.source.operationalProbeEvents > 0) {
+    questions.unshift("The analytics pipeline accepted ops probes; which product surfaces still need live event traffic?");
+  }
   if (notes.some((note) => note.includes("Checkout starts"))) questions.unshift("Do Stripe webhook records confirm entitlement fulfillment for observed checkout starts?");
   return questions;
 }
@@ -809,7 +815,7 @@ async function main() {
   };
   const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
   const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date });
-  const questions = analystQuestions({ analytics, notes });
+  const questions = analystQuestions({ analytics, analyticsInput, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
   await writeFile(path.join(reportDir, "route_status.json"), JSON.stringify(routeStatus, null, 2));
