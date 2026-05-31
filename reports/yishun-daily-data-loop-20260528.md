@@ -10,9 +10,18 @@ This adds a local daily data package generator for the YiShun 24h monitoring and
 npm run report:yishun-daily
 ```
 
+If production events are only available through Google Cloud Logging, export them first:
+
+```bash
+REPORT_DATE=YYYY-MM-DD npm run export:gcp-analytics -- --allow-empty
+YISHUN_ANALYTICS_FILE=output/yishun-analytics/yishun-analytics-gcp-YYYY-MM-DD.jsonl npm run report:yishun-daily
+```
+
 Useful environment:
 
 - `REPORT_DATE=YYYY-MM-DD` selects the Asia/Shanghai report day.
+- `YISHUN_GCP_PROJECT=bazifortune` selects the Cloud Logging project for `npm run export:gcp-analytics`.
+- `YISHUN_ANALYTICS_EXPORT_DIR=output/yishun-analytics` changes the GCP analytics export output directory.
 - `YISHUN_ANALYTICS_FILE=/home/yishun/data/analytics-events.jsonl` reads the production file sink.
 - `YISHUN_STRIPE_WEBHOOK_EVENTS_FILE=/home/yishun/data/stripe-webhook-events.jsonl` reads a JSONL export of webhook rows when direct `DATABASE_URL` access is unavailable.
 - `YISHUN_HEALTH_URL=https://11263.com/api/health` overrides the health endpoint.
@@ -46,6 +55,7 @@ reports/daily/yishun-daily-YYYY-MM-DD/
 
 - `/api/health` uptime status and latency.
 - Analytics funnel counts using the canonical 14-day plan event names with aliases for current YiShun events.
+- Google Cloud Logging exports containing `yishun_analytics_event` or `yishun_server_analytics_event` can be converted into the daily report input JSONL.
 - Retention proxy counts from daily-card and return-visit events.
 - Traffic source, UTM campaign, and top-page aggregates from nested `properties` or top-level event exports without exposing raw visitor IDs.
 - Read-only Stripe webhook fulfillment counts when `DATABASE_URL` is configured.
