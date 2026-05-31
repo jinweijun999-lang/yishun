@@ -60,13 +60,8 @@ async function databaseStatus(): Promise<YiShunCheckStatus> {
 export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
   const database = await databaseStatus();
   const stripe = configStatus(
-    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     process.env.STRIPE_SECRET_KEY,
-    process.env.STRIPE_WEBHOOK_SECRET,
     process.env.STRIPE_PRICE_REPORT_SINGLE,
-    process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-    process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
-    process.env.STRIPE_PRICE_CONSULTATION_SINGLE,
   );
   const analytics = configured(process.env.NEXT_PUBLIC_YISHUN_ANALYTICS_ENDPOINT) ||
     configured(process.env.YISHUN_ANALYTICS_FILE) ||
