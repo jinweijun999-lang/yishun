@@ -18,7 +18,7 @@ const copy = {
     unlockReport: "Unlock Full Report · $4.99",
     membership: "Compare monthly plan · $9.99",
     rows: [
-      ["Free summary", "$0 · Today’s best window, avoid boundary, one practical action, local save/share."],
+      ["Free summary", "$0 · Today’s best window, avoid boundary, one practical action, save and share."],
       ["AI Master answer", "$2.99 · One focused question with conclusion, risk check, and 7/30-day action plan."],
       ["Full report", "$4.99 · One-time 7-day timing plan, key dates, risk notes, and saveable checklist."],
       ["Membership", "$9.99/mo · Ongoing daily signals, monthly question credits, and history retention."],

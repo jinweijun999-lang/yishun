@@ -150,6 +150,9 @@ export default function MembershipPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-4"
           >
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-secondary">
+              YiShun
+            </p>
             <h2 className="text-2xl font-heading font-bold text-white text-glow">
               {t("nav.tab.membership")}
             </h2>
