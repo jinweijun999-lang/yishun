@@ -65,7 +65,6 @@ export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
     process.env.STRIPE_WEBHOOK_SECRET,
     process.env.STRIPE_PRICE_REPORT_SINGLE,
     process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-    process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
     process.env.STRIPE_PRICE_CONSULTATION_SINGLE,
   );
   const analytics = configured(process.env.NEXT_PUBLIC_YISHUN_ANALYTICS_ENDPOINT) ||
