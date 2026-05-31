@@ -94,6 +94,7 @@ for (const opsLoopNeedle of [
   "scripts/yishun-daily-ops-review.mjs",
   "YISHUN_ANALYTICS_FILE",
   "--allow-empty",
+  "Keep scanning",
   "analyticsSourceAvailable",
   "routeStatusOk",
   "reviewOutputPath",

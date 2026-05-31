@@ -135,6 +135,26 @@ for (const productionSmokeNeedle of [
   assertContains("scripts/yishun-production-smoke.mjs", productionSmokeNeedle);
 }
 
+for (const packageNeedle of [
+  "\"ops:analytics-probe\"",
+  "yishun-analytics-pipeline-probe.mjs",
+]) {
+  assertContains("package.json", packageNeedle);
+}
+
+for (const analyticsProbeNeedle of [
+  "ops_analytics_probe",
+  "/api/events",
+  "accepted !== 1",
+  "gcloud",
+  "logging",
+  "probe_id",
+  "cloudLogging",
+  "Analytics ingest accepted the probe, but Cloud Logging did not expose the probe event before the timeout.",
+]) {
+  assertContains("scripts/yishun-analytics-pipeline-probe.mjs", analyticsProbeNeedle);
+}
+
 for (const errorNeedle of [
   "redactErrorMessage",
   "redactErrorMetadata",
@@ -164,6 +184,7 @@ console.log(
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
         "production_smoke_writes_durable_json_evidence",
         "production_smoke_can_probe_analytics_ingest",
+        "analytics_pipeline_probe_checks_cloud_logging_visibility",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },

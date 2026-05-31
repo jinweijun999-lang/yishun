@@ -756,8 +756,8 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
       notes.push(`GCP analytics export returned 0 Cloud Logging entries for ${meta.date || reportDate}.`);
     } else if (meta.eventCount === 0) {
       notes.push(`GCP analytics export returned ${meta.entryCount} Cloud Logging entries but 0 parsed YiShun events; inspect log payload shape.`);
-    } else if (meta.eventCount !== analyticsInput.source.reportDateEvents) {
-      notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.reportDateEvents} matched report date ${reportDate}.`);
+    } else if (meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
+      notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
     }
   }
   if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
