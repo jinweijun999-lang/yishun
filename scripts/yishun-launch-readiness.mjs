@@ -11,7 +11,8 @@ if (args.has("--help")) {
   npm run launch:readiness:full
 
 Default gates are no-network/local-safe and stop on first failure.
-Use --full to add the production build gate.`);
+Use --full to add the production build gate.
+Use --consumer-ai-qa to add browser QA from mobile consumer personas.`);
   process.exit(0);
 }
 
@@ -37,6 +38,10 @@ const gates = [
 
 if (args.has("--full")) {
   gates.push(["production build", runNpm("build")]);
+}
+
+if (args.has("--consumer-ai-qa")) {
+  gates.push(["consumer-grade AI user QA", runNpm("qa:consumer-ai")]);
 }
 
 function runGate(name, command, commandArgs) {

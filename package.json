@@ -32,6 +32,7 @@
     "export:gcp-analytics": "node scripts/yishun-export-gcp-analytics.mjs",
     "ops:daily-review": "node scripts/yishun-daily-ops-review.mjs",
     "smoke:production": "node scripts/yishun-production-smoke.mjs",
+    "qa:consumer-ai": "node scripts/yishun-consumer-ai-qa.mjs",
     "audit:production-config": "node scripts/yishun-production-config-audit.mjs",
     "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs",
     "audit:monitoring-contract": "node scripts/yishun-monitoring-contract-audit.mjs",
