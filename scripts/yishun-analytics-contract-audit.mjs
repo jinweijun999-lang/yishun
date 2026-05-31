@@ -38,8 +38,18 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "stripeWebhookEventsFromAnalytics", "analytics_export", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
+}
+
+for (const exportMetaNeedle of [
+  "readAnalyticsExportMetadata",
+  ".meta.json",
+  "exportMeta",
+  "GCP analytics export returned 0 Cloud Logging entries",
+  "inspect log payload shape",
+]) {
+  assertContains("scripts/yishun-daily-data-report.mjs", exportMetaNeedle);
 }
 
 for (const gcpExportNeedle of [
@@ -50,6 +60,9 @@ for (const gcpExportNeedle of [
   "YISHUN_ANALYTICS_EXPORT_DIR",
   "YISHUN_GCP_ANALYTICS_TIMEOUT_MS",
   "gcloud logging read timed out",
+  "allowEmpty",
+  "start",
+  "end",
   "yishun_analytics_event",
   "yishun_server_analytics_event",
 ]) {

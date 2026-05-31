@@ -119,8 +119,18 @@ for (const reportNeedle of [
 
 for (const productionSmokeNeedle of [
   "YISHUN_PRODUCTION_SMOKE_OUT",
+  "YISHUN_PRODUCTION_SMOKE_LABEL",
+  "YISHUN_PRODUCTION_ANALYTICS_PROBE",
   "--json-out=",
+  "--label=",
+  "--analytics-probe",
+  "reports/evidence",
+  "yishun-production-smoke-",
   "writeJsonOut",
+  "ops_health_ping",
+  "/api/events",
+  "accepted === 1",
+  "analyticsIngest",
 ]) {
   assertContains("scripts/yishun-production-smoke.mjs", productionSmokeNeedle);
 }
@@ -153,6 +163,7 @@ console.log(
         "stripe_webhook_failures_are_visible_to_logs_and_daily_report",
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
         "production_smoke_writes_durable_json_evidence",
+        "production_smoke_can_probe_analytics_ingest",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },

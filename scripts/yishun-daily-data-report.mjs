@@ -150,7 +150,7 @@ async function discoverAnalyticsFiles(config) {
     if (existsSync(config.analyticsDir)) {
       const entries = await readdir(config.analyticsDir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.isFile() && /\.(json|jsonl|ndjson|log)$/i.test(entry.name)) {
+        if (entry.isFile() && /\.(json|jsonl|ndjson|log)$/i.test(entry.name) && !/\.meta\.json$/i.test(entry.name)) {
           candidates.push(path.join(config.analyticsDir, entry.name));
         }
       }
@@ -198,6 +198,46 @@ function parseAnalyticsExportRecords(text) {
   return { records, malformedRows };
 }
 
+async function readAnalyticsExportMetadata(files) {
+  const metadata = [];
+
+  for (const filePath of files) {
+    const parsed = path.parse(filePath);
+    const candidates = [
+      path.join(parsed.dir, `${parsed.name}.meta.json`),
+      `${filePath}.meta.json`,
+    ];
+    const metaPath = candidates.find((candidate) => existsSync(candidate));
+    if (!metaPath) continue;
+
+    try {
+      const parsedMeta = JSON.parse(await readFile(metaPath, "utf8"));
+      if (!isRecord(parsedMeta)) continue;
+      metadata.push({
+        sourceFile: filePath,
+        metaPath,
+        date: cleanString(parsedMeta.date, ""),
+        project: cleanString(parsedMeta.project, ""),
+        start: cleanString(parsedMeta.start, ""),
+        end: cleanString(parsedMeta.end, ""),
+        entryCount: Number(parsedMeta.entryCount || 0),
+        eventCount: Number(parsedMeta.eventCount || 0),
+        timeoutMs: Number(parsedMeta.timeoutMs || 0),
+        allowEmpty: Boolean(parsedMeta.allowEmpty),
+        generatedAt: cleanString(parsedMeta.generatedAt, ""),
+      });
+    } catch {
+      metadata.push({
+        sourceFile: filePath,
+        metaPath,
+        error: "analytics export metadata was not valid JSON",
+      });
+    }
+  }
+
+  return metadata;
+}
+
 async function readAnalyticsEvents(config, reportDate) {
   const input = await discoverAnalyticsFiles(config);
   const events = [];
@@ -230,6 +270,8 @@ async function readAnalyticsEvents(config, reportDate) {
     }
   }
 
+  const exportMeta = await readAnalyticsExportMetadata(input.files);
+
   return {
     events,
     note: input.notes.join("; ") || null,
@@ -243,6 +285,7 @@ async function readAnalyticsEvents(config, reportDate) {
       reportDateEvents: events.length,
       oldestEventAt,
       latestEventAt,
+      exportMeta,
     },
   };
 }
@@ -401,6 +444,52 @@ function parseStripeWebhookRecord(raw) {
   };
 }
 
+function isStripeWebhookAnalyticsEvent(event) {
+  return cleanString(event.source, "") === "stripe_webhook" ||
+    cleanString(eventValue(event, "page"), "") === "/api/stripe/webhook" ||
+    cleanString(eventValue(event, "webhookStatus"), "") !== "";
+}
+
+function stripeWebhookEventsFromAnalytics(events) {
+  const webhookEvents = events.filter(isStripeWebhookAnalyticsEvent);
+  const fulfilledSessionIds = new Set(
+    webhookEvents
+      .filter((event) => {
+        const eventName = cleanString(event.event, "");
+        const status = cleanString(eventValue(event, "webhookStatus"), "");
+        return eventName === "entitlement_granted" && status === "fulfilled";
+      })
+      .map((event) => cleanString(property(event, "session_id"), ""))
+      .filter(Boolean),
+  );
+
+  return webhookEvents
+    .filter((event) => {
+      const eventName = cleanString(event.event, "");
+      const status = cleanString(eventValue(event, "webhookStatus"), "");
+      if (eventName === "webhook_failed") return true;
+      if (eventName === "entitlement_granted" && status === "fulfilled") return true;
+      if (eventName === "checkout_completed" && status === "fulfilled") {
+        const sessionId = cleanString(property(event, "session_id"), "");
+        return !sessionId || !fulfilledSessionIds.has(sessionId);
+      }
+      return false;
+    })
+    .map((event) => {
+      const eventName = cleanString(event.event, "");
+      const webhookStatus = cleanString(eventValue(event, "webhookStatus"), "unknown");
+      return {
+        id: cleanString(eventValue(event, "stripeEventId"), "") ||
+          cleanString(property(event, "session_id"), "") ||
+          cleanString(event.ts, ""),
+        stripeEventType: cleanString(eventValue(event, "stripeEventType"), "unknown"),
+        product: cleanString(eventValue(event, "product"), "unknown"),
+        status: eventName === "webhook_failed" && webhookStatus === "unknown" ? "failed" : webhookStatus,
+        createdAt: cleanString(event.ts || event.timestamp, "") || new Date().toISOString(),
+      };
+    });
+}
+
 async function readStripeWebhookEventsFile(filePath, reportDate) {
   if (!filePath || !existsSync(filePath)) {
     return {
@@ -487,7 +576,7 @@ function stripeWebhookSummaryFromEvents(events, source) {
       return { product, status, count };
     });
   const failures = events
-    .filter((event) => /fail|error/i.test(event.status))
+    .filter((event) => !["fulfilled", "duplicate_session"].includes(event.status) || /fail|error/i.test(event.status))
     .map((event) => ({
       id: event.id,
       stripeEventType: event.stripeEventType,
@@ -498,17 +587,25 @@ function stripeWebhookSummaryFromEvents(events, source) {
   return { available: true, note: null, rows, failures, source };
 }
 
-async function readStripeWebhookSummary(reportDate, eventsFilePath) {
-  async function fileFallback(reason) {
-    const fileInput = await readStripeWebhookEventsFile(eventsFilePath, reportDate);
-    if (fileInput.available) return stripeWebhookSummaryFromEvents(fileInput.events, "file_export");
+async function readStripeWebhookSummary(reportDate, eventsFilePath, analyticsEvents = []) {
+  function analyticsFallback(reason) {
+    const analyticsWebhookEvents = stripeWebhookEventsFromAnalytics(analyticsEvents);
+    if (analyticsWebhookEvents.length > 0) {
+      return stripeWebhookSummaryFromEvents(analyticsWebhookEvents, "analytics_export");
+    }
     return {
       available: false,
-      note: `${reason}; ${fileInput.note}`,
+      note: reason,
       rows: [],
       failures: [],
       source: "unavailable",
     };
+  }
+
+  async function fileFallback(reason) {
+    const fileInput = await readStripeWebhookEventsFile(eventsFilePath, reportDate);
+    if (fileInput.available) return stripeWebhookSummaryFromEvents(fileInput.events, "file_export");
+    return analyticsFallback(`${reason}; ${fileInput.note}; no Stripe webhook server analytics events found`);
   }
 
   if (!process.env.DATABASE_URL) {
@@ -630,6 +727,20 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
     notes.push("Production health reports analytics configured, but this report has no event export source; do not treat zero events as confirmed zero traffic.");
   }
   if (analytics.acceptedEvents === 0) notes.push("No analytics events found for the report date.");
+  for (const meta of analyticsInput.source.exportMeta || []) {
+    if (meta.date && meta.date !== reportDate) continue;
+    if (meta.error) {
+      notes.push(`Analytics export metadata unreadable for ${meta.sourceFile}: ${meta.error}`);
+      continue;
+    }
+    if (meta.entryCount === 0) {
+      notes.push(`GCP analytics export returned 0 Cloud Logging entries for ${meta.date || reportDate}.`);
+    } else if (meta.eventCount === 0) {
+      notes.push(`GCP analytics export returned ${meta.entryCount} Cloud Logging entries but 0 parsed YiShun events; inspect log payload shape.`);
+    } else if (meta.eventCount !== analyticsInput.source.reportDateEvents) {
+      notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.reportDateEvents} matched report date ${reportDate}.`);
+    }
+  }
   if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
     notes.push(`Latest analytics export event is ${analyticsInput.source.latestEventAt}, outside report date ${reportDate}.`);
   }
@@ -662,11 +773,11 @@ async function main() {
   const reportDir = path.join(config.outRoot, `yishun-daily-${config.date}`);
   await mkdir(reportDir, { recursive: true });
 
-  const [analyticsInput, health, stripe] = await Promise.all([
+  const [analyticsInput, health] = await Promise.all([
     readAnalyticsEvents(config, config.date),
     fetchHealth(config),
-    readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile),
   ]);
+  const stripe = await readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile, analyticsInput.events);
   const routeStatus = await fetchRouteStatus(config);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
@@ -760,6 +871,7 @@ async function main() {
 - Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
+- Analytics export meta: ${(analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).length ? (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}
@@ -799,6 +911,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     healthOk: health.ok,
     routeStatusOk: routeStatus.ok,
     analyticsSourceAvailable: analyticsSource.available,
+    analyticsExportMeta: analyticsSource.exportMeta,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,
     paymentRisk: payment.risk,
