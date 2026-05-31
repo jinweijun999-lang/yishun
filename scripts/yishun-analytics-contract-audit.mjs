@@ -38,8 +38,20 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
+}
+
+for (const gcpExportNeedle of [
+  "gcloud",
+  "logging",
+  "read",
+  "YISHUN_GCP_PROJECT",
+  "YISHUN_ANALYTICS_EXPORT_DIR",
+  "yishun_analytics_event",
+  "yishun_server_analytics_event",
+]) {
+  assertContains("scripts/yishun-export-gcp-analytics.mjs", gcpExportNeedle);
 }
 
 for (const opsReviewNeedle of [
@@ -54,6 +66,7 @@ for (const opsReviewNeedle of [
 }
 
 assertContains("package.json", "\"ops:daily-review\"");
+assertContains("package.json", "\"export:gcp-analytics\"");
 
 for (const serverNeedle of [
   "checkout_completed",
@@ -79,6 +92,15 @@ for (const ingestNeedle of [
   assertContains("app/api/events/route.ts", ingestNeedle);
 }
 
+for (const checkoutNeedle of [
+  "checkout_start",
+  "checkout_failed",
+  "responseStatus",
+  "network_or_client_exception",
+]) {
+  assertContains("app/components/StripeCheckoutButton.tsx", checkoutNeedle);
+}
+
 for (const webhookNeedle of [
   "recordServerAnalyticsEvent",
   "event: \"checkout_completed\"",
@@ -98,7 +120,9 @@ console.log(
         "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_payment_metrics",
         "daily_report_surfaces_analytics_source_freshness",
         "daily_report_reads_single_multi_file_and_directory_analytics_exports",
+        "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",
         "analytics_file_sink_creates_parent_directory_before_append",
+        "checkout_button_emits_checkout_failed_for_config_and_client_failures",
         "stripe_webhook_fulfillment_emits_privacy_safe_server_funnel_events",
       ],
     },
