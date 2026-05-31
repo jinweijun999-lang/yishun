@@ -139,6 +139,14 @@ function analyticsEventFromExportRecord(record) {
   return null;
 }
 
+function isOperationalAnalyticsEvent(event) {
+  const eventName = cleanString(event.event, "");
+  return eventName.startsWith("ops_") ||
+    cleanString(event.source, "") === "ops_probe" ||
+    cleanString(eventValue(event, "utm_source"), "") === "ops_probe" ||
+    cleanString(eventValue(event, "page"), "") === "/ops/analytics-probe";
+}
+
 async function discoverAnalyticsFiles(config) {
   const candidates = [
     config.analyticsFile,
@@ -243,6 +251,8 @@ async function readAnalyticsEvents(config, reportDate) {
   const events = [];
   let parsedRows = 0;
   let malformedRows = 0;
+  let rawReportDateEvents = 0;
+  let operationalProbeEvents = 0;
   let oldestEventAt = null;
   let latestEventAt = null;
 
@@ -261,7 +271,14 @@ async function readAnalyticsEvents(config, reportDate) {
           const eventAt = Number.isNaN(parsedTimestamp.getTime()) ? null : parsedTimestamp.toISOString();
           if (eventAt && (!oldestEventAt || eventAt < oldestEventAt)) oldestEventAt = eventAt;
           if (eventAt && (!latestEventAt || eventAt > latestEventAt)) latestEventAt = eventAt;
-          if (eventDate(event) === reportDate) events.push(event);
+          if (eventDate(event) === reportDate) {
+            rawReportDateEvents += 1;
+            if (isOperationalAnalyticsEvent(event)) {
+              operationalProbeEvents += 1;
+            } else {
+              events.push(event);
+            }
+          }
         }
       } catch {
         malformedRows += 1;
@@ -283,6 +300,8 @@ async function readAnalyticsEvents(config, reportDate) {
       parsedRows,
       malformedRows,
       reportDateEvents: events.length,
+      rawReportDateEvents,
+      operationalProbeEvents,
       oldestEventAt,
       latestEventAt,
       exportMeta,
@@ -788,6 +807,7 @@ async function main() {
     note: analyticsInput.note,
     ...analyticsInput.source,
   };
+  const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
   const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date });
   const questions = analystQuestions({ analytics, notes });
 
@@ -871,7 +891,7 @@ async function main() {
 - Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
-- Analytics export meta: ${(analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).length ? (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date).map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
+- Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}
