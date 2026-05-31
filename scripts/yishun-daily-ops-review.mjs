@@ -33,8 +33,11 @@ function cstStamp(value = new Date()) {
 }
 
 function parseArgs() {
+  const rawArgs = process.argv.slice(2);
+  const dateFlagIndex = rawArgs.indexOf("--date");
+  const dateArg = dateFlagIndex >= 0 ? rawArgs[dateFlagIndex + 1] : rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
   return {
-    date: process.env.REPORT_DATE || cstDate(),
+    date: process.env.REPORT_DATE || (/^\d{4}-\d{2}-\d{2}$/.test(dateArg || "") ? dateArg : cstDate()),
     reportRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     outboxDir: process.env.CODEX_BRIDGE_OUTBOX || DEFAULT_OUTBOX,
     fallbackDir: process.env.YISHUN_OPS_REPORT_FALLBACK_DIR || DEFAULT_FALLBACK,

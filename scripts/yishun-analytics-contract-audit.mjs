@@ -38,7 +38,7 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "eventValue", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
@@ -61,6 +61,7 @@ for (const opsReviewNeedle of [
   "analytics_source.json",
   "Daily operations risk",
   "writeResult",
+  "rawArgs.indexOf(\"--date\")",
 ]) {
   assertContains("scripts/yishun-daily-ops-review.mjs", opsReviewNeedle);
 }
@@ -120,6 +121,7 @@ console.log(
         "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_payment_metrics",
         "daily_report_surfaces_analytics_source_freshness",
         "daily_report_reads_single_multi_file_and_directory_analytics_exports",
+        "daily_report_and_ops_review_honor_date_cli_argument",
         "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",
         "analytics_file_sink_creates_parent_directory_before_append",
         "checkout_button_emits_checkout_failed_for_config_and_client_failures",

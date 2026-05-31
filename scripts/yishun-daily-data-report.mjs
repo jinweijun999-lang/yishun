@@ -41,9 +41,12 @@ function cstDate(value = new Date()) {
 }
 
 function parseArgs() {
-  const args = new Set(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const args = new Set(rawArgs);
+  const dateFlagIndex = rawArgs.indexOf("--date");
+  const dateArg = dateFlagIndex >= 0 ? rawArgs[dateFlagIndex + 1] : rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
   return {
-    date: process.env.REPORT_DATE || cstDate(),
+    date: process.env.REPORT_DATE || (/^\d{4}-\d{2}-\d{2}$/.test(dateArg || "") ? dateArg : cstDate()),
     noNetwork: args.has("--no-network") || process.env.YISHUN_REPORT_NO_NETWORK === "1",
     outRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     analyticsFile: process.env.YISHUN_ANALYTICS_FILE || "",
