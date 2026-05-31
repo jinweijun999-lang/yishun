@@ -116,10 +116,10 @@ export default function MembershipPage() {
         t("membership.annual.feature4"),
         t("membership.annual.feature5"),
       ],
-      cta: t("membership.checkout"),
+      cta: isEnglish ? "Coming soon" : "即将开放",
       ctaHref: "#",
       highlight: true,
-      disabled: false,
+      disabled: true,
       checkoutProduct: "premium_annual",
     },
   ];
@@ -307,10 +307,21 @@ export default function MembershipPage() {
                   </ul>
 
                   {tier.checkoutProduct ? (
-                    profile ? (
+                    tier.disabled ? (
+                      <button
+                        type="button"
+                        disabled
+                        className={`block w-full cursor-not-allowed rounded-xl px-4 py-3 text-center text-sm font-semibold opacity-70 ${
+                          tier.highlight
+                            ? "bg-secondary/40 text-white"
+                            : "border border-white/10 bg-white/5 text-gray-300"
+                        }`}
+                      >
+                        {tier.cta}
+                      </button>
+                    ) : profile ? (
                       <StripeCheckoutButton
                         product={tier.checkoutProduct}
-                        disabled={tier.disabled}
                         className={`block w-full text-center px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
                           tier.highlight
                             ? "bg-secondary/80 text-white hover:bg-secondary"
