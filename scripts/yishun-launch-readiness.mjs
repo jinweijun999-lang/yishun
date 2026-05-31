@@ -23,6 +23,7 @@ const runNpm = (script) => ({
 const gates = [
   ["lint", runNpm("lint")],
   ["typecheck", runNpm("typecheck")],
+  ["consumer copy smoke", runNpm("smoke:consumer-copy")],
   ["production config audit", runNpm("audit:production-config")],
   ["analytics contract audit", runNpm("audit:analytics-contract")],
   ["monitoring contract audit", runNpm("audit:monitoring-contract")],

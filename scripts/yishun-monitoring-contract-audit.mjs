@@ -24,7 +24,17 @@ function assertMatches(file, pattern, label) {
 }
 
 for (const healthNeedle of [
-  "service: \"yishun\"",
+  "runtime = \"nodejs\"",
+  "dynamic = \"force-dynamic\"",
+  "getYiShunHealthSnapshot",
+  "NextResponse.json",
+  "\"Cache-Control\": \"no-store\"",
+]) {
+  assertContains("app/api/health/route.ts", healthNeedle);
+}
+
+for (const sharedHealthNeedle of [
+  "export async function getYiShunHealthSnapshot",
   "version: appVersion()",
   "process.env.YISHUN_RELEASE_SHA",
   ".yishun-release-sha",
@@ -33,10 +43,21 @@ for (const healthNeedle of [
   "database",
   "stripe",
   "analytics",
-  "\"Cache-Control\": \"no-store\"",
 ]) {
-  assertContains("app/api/health/route.ts", healthNeedle);
+  assertContains("lib/yishun-health.ts", sharedHealthNeedle);
 }
+
+for (const statusPageNeedle of [
+  "YiShun Status",
+  "Public Status",
+  "getYiShunHealthSnapshot",
+  "no secrets, database URLs, user data, payment details, or private analytics rows",
+]) {
+  assertContains("app/status/page.tsx", statusPageNeedle);
+}
+
+assertContains("app/sitemap.ts", "\"/status\"");
+assertContains("scripts/yishun-production-smoke.mjs", "[\"/status\", \"YiShun Status\"]");
 
 for (const deployNeedle of [
   "YISHUN_RELEASE_SHA: ${{ github.sha }}",
@@ -86,6 +107,14 @@ for (const reportNeedle of [
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
+for (const productionSmokeNeedle of [
+  "YISHUN_PRODUCTION_SMOKE_OUT",
+  "--json-out=",
+  "writeJsonOut",
+]) {
+  assertContains("scripts/yishun-production-smoke.mjs", productionSmokeNeedle);
+}
+
 for (const errorNeedle of [
   "redactErrorMessage",
   "redactErrorMetadata",
@@ -109,9 +138,11 @@ console.log(
       ok: true,
       checks: [
         "health_endpoint_exposes_safe_release_status",
+        "public_status_page_reuses_safe_health_snapshot",
         "deploy_workflow_verifies_local_health_and_core_smokes",
         "stripe_webhook_failures_are_visible_to_logs_and_daily_report",
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
+        "production_smoke_writes_durable_json_evidence",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },

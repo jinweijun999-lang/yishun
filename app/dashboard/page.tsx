@@ -205,7 +205,7 @@ export default function DashboardPage() {
             target="_blank"
             className="inline-block px-6 py-3 bg-secondary/20 border border-secondary/30 rounded-xl text-secondary hover:bg-secondary/30 transition-colors"
           >
-            📱 Telegram API 格式
+            状态 JSON
           </a>
         </div>
       </div>

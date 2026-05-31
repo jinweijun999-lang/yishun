@@ -81,7 +81,7 @@ for (const required of [
   "stripeSandboxCheckoutAdapter.createCheckout",
   "checkout_sandbox_pending",
   "chargePerformed: false",
-  "Stripe is not configured. Opening sandbox pending checkout",
+  "Checkout is temporarily unavailable. No card charge or paid access change was made.",
   "success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&product=${product}`",
   "cancel_url: `${siteUrl}/checkout/cancel?product=${product}`",
   "client_reference_id: userId",
