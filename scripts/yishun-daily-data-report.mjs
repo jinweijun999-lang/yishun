@@ -5,6 +5,14 @@ import path from "node:path";
 
 const TIME_ZONE = "Asia/Shanghai";
 const DEFAULT_HEALTH_URL = "https://11263.com/api/health";
+const DEFAULT_ROUTE_CHECKS = [
+  ["/", "YiShun"],
+  ["/reading/start", "YiShun"],
+  ["/membership", "YiShun"],
+  ["/status", "YiShun Status"],
+  ["/privacy", "Privacy"],
+  ["/terms", "Terms"],
+];
 
 const EVENT_ALIASES = {
   landing_viewed: ["landing_viewed", "home_view"],
@@ -41,16 +49,22 @@ function cstDate(value = new Date()) {
 }
 
 function parseArgs() {
-  const args = new Set(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const args = new Set(rawArgs);
+  const dateFlagIndex = rawArgs.indexOf("--date");
+  const dateArg = dateFlagIndex >= 0 ? rawArgs[dateFlagIndex + 1] : rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
+  const healthUrl = process.env.YISHUN_HEALTH_URL || DEFAULT_HEALTH_URL;
   return {
-    date: process.env.REPORT_DATE || cstDate(),
+    date: process.env.REPORT_DATE || (/^\d{4}-\d{2}-\d{2}$/.test(dateArg || "") ? dateArg : cstDate()),
     noNetwork: args.has("--no-network") || process.env.YISHUN_REPORT_NO_NETWORK === "1",
     outRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     analyticsFile: process.env.YISHUN_ANALYTICS_FILE || "",
     analyticsFiles: process.env.YISHUN_ANALYTICS_FILES || "",
     analyticsDir: process.env.YISHUN_ANALYTICS_DIR || "",
     stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
-    healthUrl: process.env.YISHUN_HEALTH_URL || DEFAULT_HEALTH_URL,
+    healthUrl,
+    routeBaseUrl: (process.env.YISHUN_PRODUCTION_BASE_URL || new URL(healthUrl).origin).replace(/\/+$/, ""),
+    routeTimeoutMs: Number(process.env.YISHUN_ROUTE_CHECK_TIMEOUT_MS || 8000),
   };
 }
 
@@ -275,6 +289,79 @@ async function fetchHealth({ noNetwork, healthUrl }) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchTextRoute(url, timeoutMs) {
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    const text = await response.text().catch(() => "");
+    return {
+      ok: response.ok,
+      status: response.status,
+      latencyMs: Date.now() - started,
+      text,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      latencyMs: Date.now() - started,
+      text: "",
+      error: error instanceof Error ? error.message : "route check failed",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchRouteStatus({ noNetwork, routeBaseUrl, routeTimeoutMs }) {
+  const checkedAt = new Date().toISOString();
+  if (noNetwork) {
+    return {
+      ok: null,
+      skipped: true,
+      baseUrl: routeBaseUrl,
+      checkedAt,
+      routes: DEFAULT_ROUTE_CHECKS.map(([route, requiredText]) => ({
+        route,
+        requiredText,
+        ok: null,
+        skipped: true,
+        status: null,
+        latencyMs: null,
+        requiredTextPresent: null,
+        error: "network check skipped",
+      })),
+    };
+  }
+
+  const routes = [];
+  for (const [route, requiredText] of DEFAULT_ROUTE_CHECKS) {
+    const result = await fetchTextRoute(`${routeBaseUrl}${route}`, routeTimeoutMs);
+    routes.push({
+      route,
+      requiredText,
+      ok: result.ok && result.text.includes(requiredText),
+      skipped: false,
+      status: result.status,
+      latencyMs: result.latencyMs,
+      requiredTextPresent: result.text ? result.text.includes(requiredText) : false,
+      error: result.error,
+    });
+  }
+
+  return {
+    ok: routes.every((route) => route.ok),
+    skipped: false,
+    baseUrl: routeBaseUrl,
+    checkedAt,
+    routes,
+  };
 }
 
 function countBy(values) {
@@ -524,10 +611,18 @@ function analyticsConfiguredInHealth(health) {
   return health.response?.checks?.analytics === "configured";
 }
 
-function anomalyNotes({ health, analyticsInput, analytics, stripe, payment, reportDate }) {
+function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
+  if (routeStatus.ok === false) {
+    const failedRoutes = routeStatus.routes
+      .filter((route) => route.ok === false)
+      .map((route) => `${route.route}=${route.status || route.error || "failed"}`)
+      .join(", ");
+    notes.push(`Core route check failed: ${failedRoutes}`);
+  }
+  if (routeStatus.ok === null || routeStatus.skipped) notes.push("Core route check skipped for this local report run.");
   if (!analyticsInput.source.available) {
     notes.push(`Analytics source unavailable for daily reporting: ${analyticsInput.note}`);
   }
@@ -572,6 +667,7 @@ async function main() {
     fetchHealth(config),
     readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile),
   ]);
+  const routeStatus = await fetchRouteStatus(config);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
   const enrichedFunnelRows = funnelRows(analytics, payment);
@@ -581,15 +677,21 @@ async function main() {
     note: analyticsInput.note,
     ...analyticsInput.source,
   };
-  const notes = anomalyNotes({ health, analyticsInput, analytics, stripe, payment, reportDate: config.date });
+  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date });
   const questions = analystQuestions({ analytics, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
+  await writeFile(path.join(reportDir, "route_status.json"), JSON.stringify(routeStatus, null, 2));
   await writeFile(path.join(reportDir, "analytics_source.json"), JSON.stringify(analyticsSource, null, 2));
   await writeFile(path.join(reportDir, "performance.json"), JSON.stringify({
     date: config.date,
     healthLatencyMs: health.latencyMs,
     healthOk: health.ok,
+    routeLatenciesMs: routeStatus.routes.map((route) => ({
+      route: route.route,
+      latencyMs: route.latencyMs,
+      ok: route.ok,
+    })),
     acceptedAnalyticsEvents: analytics.acceptedEvents,
     note: "API latency and frontend performance need external APM/rum integration for p95 reporting.",
   }, null, 2));
@@ -655,6 +757,7 @@ async function main() {
 ## Summary
 
 - Health: ${health.ok === null ? "skipped" : health.ok ? "ok" : "failed"}
+- Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
@@ -671,6 +774,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 ## Files
 
 - uptime.json
+- route_status.json
 - analytics_source.json
 - performance.json
 - errors.jsonl
@@ -693,6 +797,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     date: config.date,
     analyticsEvents: analytics.acceptedEvents,
     healthOk: health.ok,
+    routeStatusOk: routeStatus.ok,
     analyticsSourceAvailable: analyticsSource.available,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,

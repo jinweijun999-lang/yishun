@@ -107,6 +107,8 @@ for (const serverAnalyticsNeedle of [
 for (const reportNeedle of [
   "yishun_analytics_event",
   "yishun_server_analytics_event",
+  "route_status.json",
+  "Core route check failed",
   "webhook_failed",
   "stripe_webhook_failures.csv",
   "Stripe webhook DB summary unavailable",

@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const TIME_ZONE = "Asia/Shanghai";
 const DEFAULT_PROJECT = "bazifortune";
+const DEFAULT_GCLOUD_TIMEOUT_MS = 60_000;
 
 function cstDate(value = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -26,8 +27,16 @@ function utcBoundsForCstDate(date) {
 }
 
 function parseArgs() {
-  const args = new Set(process.argv.slice(2));
-  const dateArg = process.argv.slice(2).find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
+  const rawArgs = process.argv.slice(2);
+  const args = new Set(rawArgs);
+  const dateArg = rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
+  const timeoutArg = rawArgs.find((item) => item.startsWith("--timeout-ms="));
+  const timeoutMs = Number(
+    timeoutArg
+      ? timeoutArg.slice("--timeout-ms=".length)
+      : process.env.YISHUN_GCP_ANALYTICS_TIMEOUT_MS || DEFAULT_GCLOUD_TIMEOUT_MS,
+  );
+
   return {
     date: process.env.REPORT_DATE || dateArg || cstDate(),
     project: process.env.YISHUN_GCP_PROJECT ||
@@ -36,6 +45,7 @@ function parseArgs() {
       DEFAULT_PROJECT,
     outDir: process.env.YISHUN_ANALYTICS_EXPORT_DIR || path.join("output", "yishun-analytics"),
     limit: process.env.YISHUN_GCP_ANALYTICS_LIMIT || "5000",
+    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_GCLOUD_TIMEOUT_MS,
     allowEmpty: args.has("--allow-empty") || process.env.YISHUN_GCP_ANALYTICS_ALLOW_EMPTY === "1",
   };
 }
@@ -105,17 +115,29 @@ async function main() {
     ")",
   ].join(" ");
 
-  const { stdout } = await execFileAsync("gcloud", [
-    "logging",
-    "read",
-    filter,
-    "--project",
-    config.project,
-    "--format",
-    "json",
-    "--limit",
-    config.limit,
-  ], { maxBuffer: 20 * 1024 * 1024 });
+  let stdout;
+  try {
+    ({ stdout } = await execFileAsync("gcloud", [
+      "logging",
+      "read",
+      filter,
+      "--project",
+      config.project,
+      "--format",
+      "json",
+      "--limit",
+      config.limit,
+    ], {
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: config.timeoutMs,
+      killSignal: "SIGTERM",
+    }));
+  } catch (error) {
+    if (error?.killed || error?.signal === "SIGTERM") {
+      throw new Error(`gcloud logging read timed out after ${config.timeoutMs}ms`);
+    }
+    throw error;
+  }
 
   const entries = JSON.parse(stdout || "[]");
   if (!Array.isArray(entries)) throw new Error("gcloud logging read did not return a JSON array");
@@ -141,6 +163,7 @@ async function main() {
     entryCount: entries.length,
     eventCount: events.length,
     outputPath,
+    timeoutMs: config.timeoutMs,
     generatedAt: new Date().toISOString(),
   }, null, 2));
 
@@ -152,6 +175,7 @@ async function main() {
     eventCount: events.length,
     outputPath,
     metaPath,
+    timeoutMs: config.timeoutMs,
   }, null, 2));
 }
 
