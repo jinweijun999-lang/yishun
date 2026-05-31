@@ -760,7 +760,11 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
       notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
     }
   }
-  if (analyticsInput.source.latestEventAt && analytics.acceptedEvents === 0) {
+  if (
+    analyticsInput.source.latestEventAt &&
+    analytics.acceptedEvents === 0 &&
+    cstDate(new Date(analyticsInput.source.latestEventAt)) !== reportDate
+  ) {
     notes.push(`Latest analytics export event is ${analyticsInput.source.latestEventAt}, outside report date ${reportDate}.`);
   }
   if (analyticsInput.source.operationalProbeEvents > 0 && analytics.acceptedEvents === 0) {
