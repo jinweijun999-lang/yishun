@@ -36,6 +36,6 @@ export async function POST(request: NextRequest) {
     checkoutSessionId: checkout.checkoutSessionId,
     chargePerformed: false,
     fulfillment: "pending_webhook_not_fulfilled",
-    message: "Credit purchase now opens checkout/sandbox pending. No direct consultationCredits mutation is performed by /api/credits.",
+    message: "Credit checkout is temporarily unavailable. No card charge or credit balance change was made.",
   });
 }

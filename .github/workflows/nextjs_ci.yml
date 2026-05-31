@@ -60,6 +60,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Consumer copy smoke
+        run: npm run smoke:consumer-copy
+
       - name: Production config audit
         run: npm run audit:production-config
 

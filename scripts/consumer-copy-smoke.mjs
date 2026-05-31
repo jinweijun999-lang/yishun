@@ -4,7 +4,7 @@ import path from "node:path";
 
 const root = process.cwd();
 
-const scannedRoots = ["app", "lib/i18n.ts", "lib/support-feedback.ts"];
+const scannedRoots = ["app", "lib/i18n.ts", "lib/support-feedback.ts", "lib/kanban-data.ts"];
 const extensions = new Set([".ts", ".tsx"]);
 const forbidden = [
   /P0 (?:notice|stage|build|keeps|accepts|entry points|placeholder)/i,
@@ -18,14 +18,17 @@ const forbidden = [
   /mocked rewarded/i,
   /Test checkout/i,
   /Payment test/i,
+  /sandbox_until_stripe_configured/i,
+  /sandbox pending checkout/i,
+  /checkout\/sandbox pending/i,
+  /Stripe is not configured/i,
+  /No direct consultationCredits mutation/i,
   /This success page confirms/i,
   /Google OAuth redirect loop/i,
   /Fix Google OAuth/i,
 ];
 
-const ignoredFiles = new Set([
-  "app/api/kanban/status/route.ts",
-]);
+const ignoredFiles = new Set();
 
 function listFiles(target) {
   const absolute = path.join(root, target);

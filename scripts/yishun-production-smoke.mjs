@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 const DEFAULT_BASE_URL = "https://11263.com";
 const DEFAULT_TIMEOUT_MS = 10000;
@@ -8,12 +10,14 @@ function parseArgs() {
     baseUrl: process.env.YISHUN_PRODUCTION_BASE_URL || DEFAULT_BASE_URL,
     expectedSha: process.env.YISHUN_EXPECTED_RELEASE_SHA || process.env.YISHUN_RELEASE_SHA || "",
     timeoutMs: Number(process.env.YISHUN_PRODUCTION_SMOKE_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
+    jsonOut: process.env.YISHUN_PRODUCTION_SMOKE_OUT || "",
   };
 
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith("--base-url=")) config.baseUrl = arg.slice("--base-url=".length);
     if (arg.startsWith("--expect-sha=")) config.expectedSha = arg.slice("--expect-sha=".length);
     if (arg.startsWith("--timeout-ms=")) config.timeoutMs = Number(arg.slice("--timeout-ms=".length));
+    if (arg.startsWith("--json-out=")) config.jsonOut = arg.slice("--json-out=".length);
   }
 
   return {
@@ -21,6 +25,12 @@ function parseArgs() {
     baseUrl: config.baseUrl.replace(/\/+$/, ""),
     timeoutMs: Number.isFinite(config.timeoutMs) && config.timeoutMs > 0 ? config.timeoutMs : DEFAULT_TIMEOUT_MS,
   };
+}
+
+async function writeJsonOut(filePath, payload) {
+  if (!filePath) return;
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
 async function fetchWithTimeout(url, timeoutMs) {
@@ -111,6 +121,7 @@ async function main() {
     ["/", "YiShun"],
     ["/reading/start", "YiShun"],
     ["/membership", "YiShun"],
+    ["/status", "YiShun Status"],
     ["/privacy", "Privacy"],
     ["/terms", "Terms"],
   ];
@@ -121,20 +132,37 @@ async function main() {
     pageResults.push(await checkPage(config, route, requiredText));
   }
 
-  console.log(JSON.stringify({
+  const payload = {
     ok: true,
     baseUrl: config.baseUrl,
     checkedAt: new Date().toISOString(),
     health,
     pages: pageResults,
-  }, null, 2));
+  };
+
+  await writeJsonOut(config.jsonOut, payload);
+  console.log(JSON.stringify(payload, null, 2));
 }
 
 main().catch((error) => {
-  console.error(JSON.stringify({
+  const payload = {
     ok: false,
+    baseUrl: parseArgs().baseUrl,
+    checkedAt: new Date().toISOString(),
     message: error instanceof Error ? error.message : "Production smoke failed",
     details: error?.details || {},
-  }, null, 2));
-  process.exit(1);
+  };
+
+  writeJsonOut(parseArgs().jsonOut, payload)
+    .catch((writeError) => {
+      console.error(JSON.stringify({
+        ok: false,
+        message: "Failed to write production smoke evidence.",
+        details: writeError instanceof Error ? writeError.message : String(writeError),
+      }, null, 2));
+    })
+    .finally(() => {
+      console.error(JSON.stringify(payload, null, 2));
+      process.exit(1);
+    });
 });

@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       code: "checkout_sandbox_pending",
       checkoutSessionId: checkout.checkoutSessionId,
       chargePerformed: false,
-      message: "Stripe is not configured. Opening sandbox pending checkout; no real charge or entitlement fulfillment will happen.",
+      message: "Checkout is temporarily unavailable. No card charge or paid access change was made.",
     });
   }
 

@@ -14,6 +14,7 @@ const routes = [
   "/learn",
   "/learn/bazi-basics",
   "/tools",
+  "/status",
   "/terms",
   "/privacy",
   "/account/delete",

@@ -42,6 +42,19 @@ for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_re
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 
+for (const opsReviewNeedle of [
+  "CODEX_BRIDGE_OUTBOX",
+  "YISHUN_OPS_REPORT_FALLBACK_DIR",
+  "payment_reconciliation.json",
+  "analytics_source.json",
+  "Daily operations risk",
+  "writeResult",
+]) {
+  assertContains("scripts/yishun-daily-ops-review.mjs", opsReviewNeedle);
+}
+
+assertContains("package.json", "\"ops:daily-review\"");
+
 for (const serverNeedle of [
   "checkout_completed",
   "entitlement_granted",

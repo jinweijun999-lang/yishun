@@ -44,9 +44,11 @@ export async function GET() {
     currentTask: activeTask ? {
       id: activeTask.id,
       title: activeTask.title,
+      description: activeTask.description,
       status: activeTask.status,
       priority: activeTask.priority,
       assignee: activeTask.assignee,
+      tags: activeTask.tags,
     } : null,
     recentActivity,
     backlogSummary: {

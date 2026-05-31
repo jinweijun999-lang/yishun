@@ -29,6 +29,7 @@
     "smoke:p0-payment-entitlement": "node scripts/payment-entitlement-p0-smoke.mjs",
     "smoke:yishun-d3-gaps": "node scripts/yishun-d3-gap-smoke.mjs",
     "report:yishun-daily": "node scripts/yishun-daily-data-report.mjs",
+    "ops:daily-review": "node scripts/yishun-daily-ops-review.mjs",
     "smoke:production": "node scripts/yishun-production-smoke.mjs",
     "audit:production-config": "node scripts/yishun-production-config-audit.mjs",
     "audit:analytics-contract": "node scripts/yishun-analytics-contract-audit.mjs",
