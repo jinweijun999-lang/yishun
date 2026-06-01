@@ -133,8 +133,11 @@ async function main() {
       }
     } else {
       productionFileExportError = childFailureSummary("production file export", productionFileResult);
-      env.YISHUN_ANALYTICS_SOURCE_NOTE = `${productionFileExportError}; Cloud Logging fallback was used`;
-      console.warn(`[daily-ops-loop] ${productionFileExportError}; falling back to Cloud Logging export.`);
+      const fallbackNote = config.skipGcpExport
+        ? "Cloud Logging fallback was skipped"
+        : "Cloud Logging fallback was used";
+      env.YISHUN_ANALYTICS_SOURCE_NOTE = `${productionFileExportError}; ${fallbackNote}`;
+      console.warn(`[daily-ops-loop] ${productionFileExportError}; ${config.skipGcpExport ? "GCP export skipped." : "falling back to Cloud Logging export."}`);
     }
   }
 

@@ -136,6 +136,7 @@ for (const opsLoopNeedle of [
   "YISHUN_ANALYTICS_FILE",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT",
   "falling back to Cloud Logging export",
+  "Cloud Logging fallback was skipped",
   "YISHUN_ANALYTICS_SOURCE_NOTE",
   "attemptSummary",
   "--allow-empty",
