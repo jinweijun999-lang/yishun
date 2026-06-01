@@ -101,6 +101,7 @@ for (const dailyOpsWorkflowNeedle of [
   "runs-on: [self-hosted, Linux, X64, yishun-prod]",
   "YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: \"1\"",
   "YISHUN_DAILY_SKIP_GCP_EXPORT: \"1\"",
+  "Verify runner Node.js",
   "npm run ops:daily-loop -- --date \"$REPORT_DATE\" --skip-gcp-export",
   "actions/upload-artifact@v7.0.1",
   "yishun-daily-ops-${{ env.REPORT_DATE }}",

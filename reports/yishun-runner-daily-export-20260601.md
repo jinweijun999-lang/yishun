@@ -19,4 +19,6 @@ Added a non-interactive self-hosted runner path for the YiShun daily data loop. 
 
 ## Remaining Risk
 
-The new workflow must be merged to `main` and run on the `yishun-prod` self-hosted runner before it can prove runner-side access to the live analytics file. If the runner cannot `sudo -n -u yishun cat` the sink file, the artifact will fail loudly instead of silently falling back to Cloud Logging.
+The workflow must run on the `yishun-prod` self-hosted runner before it can prove runner-side access to the live analytics file. If the runner cannot `sudo -n -u yishun cat` the sink file, the artifact will fail loudly instead of silently falling back to Cloud Logging.
+
+2026-06-01 follow-up: the first manual dispatch failed inside `actions/setup-node` before any package step emitted logs. The self-hosted deployment chain already uses runner-local `node` and `npm`, so the daily workflow now verifies the installed runner Node.js directly instead of invoking `actions/setup-node`.
