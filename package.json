@@ -32,6 +32,7 @@
     "export:gcp-analytics": "node scripts/yishun-export-gcp-analytics.mjs",
     "export:production-analytics-file": "node scripts/yishun-export-production-analytics-file.mjs",
     "ops:analytics-probe": "node scripts/yishun-analytics-pipeline-probe.mjs",
+    "ops:runner-diagnostic": "node scripts/yishun-runner-recovery-diagnostic.mjs",
     "ops:daily-loop": "node scripts/yishun-daily-ops-loop.mjs",
     "ops:daily-review": "node scripts/yishun-daily-ops-review.mjs",
     "smoke:production": "node scripts/yishun-production-smoke.mjs",
