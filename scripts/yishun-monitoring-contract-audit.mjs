@@ -100,6 +100,22 @@ for (const deployNeedle of [
   assertContains(".github/workflows/nextjs_ci.yml", deployNeedle);
 }
 
+for (const runnerWatchdogNeedle of [
+  "YiShun Runner Availability Watchdog",
+  "runs-on: ubuntu-latest",
+  "REQUIRED_RUNNER_LABELS: self-hosted,Linux,X64,yishun-prod",
+  "MAX_QUEUED_MINUTES: \"10\"",
+  "WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export",
+  "actions/github-script@v8.0.0",
+  "listSelfHostedRunnersForRepo",
+  "listWorkflowRunsForRepo",
+  "status: \"queued\"",
+  "YiShun self-hosted runner is offline",
+  "queued longer than",
+]) {
+  assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);
+}
+
 assertContains("ecosystem.config.js", "YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'");
 
 for (const webhookNeedle of [
@@ -206,6 +222,7 @@ console.log(
         "production_smoke_writes_durable_json_evidence",
         "production_smoke_can_probe_analytics_ingest",
         "analytics_pipeline_probe_checks_cloud_logging_visibility",
+        "runner_watchdog_surfaces_offline_self_hosted_runner_and_stale_queues",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },

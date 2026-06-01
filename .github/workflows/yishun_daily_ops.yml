@@ -21,10 +21,12 @@ jobs:
     timeout-minutes: 15
     env:
       REPORT_DATE_INPUT: ${{ inputs.report_date }}
-      YISHUN_ANALYTICS_EXPORT_DIR: output/yishun-daily-ops/analytics
-      YISHUN_DAILY_REPORT_DIR: output/yishun-daily-ops/reports
-      CODEX_BRIDGE_OUTBOX: output/yishun-daily-ops/outbox
-      YISHUN_OPS_REPORT_FALLBACK_DIR: output/yishun-daily-ops/fallback
+      YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun
+      YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops
+      YISHUN_ANALYTICS_EXPORT_DIR: /tmp/yishun-daily-ops/analytics
+      YISHUN_DAILY_REPORT_DIR: /tmp/yishun-daily-ops/reports
+      CODEX_BRIDGE_OUTBOX: /tmp/yishun-daily-ops/outbox
+      YISHUN_OPS_REPORT_FALLBACK_DIR: /tmp/yishun-daily-ops/fallback
       YISHUN_PRODUCTION_ANALYTICS_FILE: /home/yishun/logs/yishun-analytics.jsonl
       YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: "1"
       YISHUN_PRODUCTION_ANALYTICS_FILE_USE_SUDO: "1"
@@ -32,17 +34,14 @@ jobs:
       YISHUN_DAILY_SKIP_GCP_EXPORT: "1"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6.0.2
-
-      - name: Verify runner Node.js
+      - name: Verify production app checkout and runner disk
         run: |
           set -euo pipefail
+          test -d "$YISHUN_PRODUCTION_APP_DIR"
+          test -f "$YISHUN_PRODUCTION_APP_DIR/scripts/yishun-daily-ops-loop.mjs"
+          df -h "$RUNNER_TEMP" "$YISHUN_PRODUCTION_APP_DIR" /home/yishun/actions-runner || true
           node --version
           npm --version
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Resolve report date
         run: |
@@ -60,7 +59,8 @@ jobs:
           echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
 
       - name: Build daily operations package from production file sink
-        run: npm run ops:daily-loop -- --date "$REPORT_DATE" --skip-gcp-export
+        working-directory: ${{ env.YISHUN_PRODUCTION_APP_DIR }}
+        run: node scripts/yishun-daily-ops-loop.mjs --date "$REPORT_DATE" --skip-gcp-export
 
       - name: Summarize daily operations package
         run: |
@@ -82,6 +82,6 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: yishun-daily-ops-${{ env.REPORT_DATE }}
-          path: output/yishun-daily-ops
+          path: ${{ env.YISHUN_DAILY_OPS_ROOT }}
           if-no-files-found: error
           retention-days: 14

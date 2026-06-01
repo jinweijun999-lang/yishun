@@ -1,0 +1,93 @@
+name: YiShun Runner Availability Watchdog
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  runner-watchdog:
+    name: Check self-hosted runner availability
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      REQUIRED_RUNNER_LABELS: self-hosted,Linux,X64,yishun-prod
+      MAX_QUEUED_MINUTES: "10"
+      WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export
+
+    steps:
+      - name: Check YiShun runner and queued operations
+        uses: actions/github-script@v8.0.0
+        with:
+          script: |
+            const labels = process.env.REQUIRED_RUNNER_LABELS
+              .split(",")
+              .map((label) => label.trim())
+              .filter(Boolean);
+            const watchedWorkflows = process.env.WATCHED_WORKFLOWS
+              .split(",")
+              .map((name) => name.trim())
+              .filter(Boolean);
+            const maxQueuedMinutes = Number(process.env.MAX_QUEUED_MINUTES || "10");
+            const { owner, repo } = context.repo;
+
+            const runners = await github.paginate(github.rest.actions.listSelfHostedRunnersForRepo, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const matchingRunners = runners.filter((runner) => {
+              const runnerLabels = new Set(runner.labels.map((label) => label.name));
+              return labels.every((label) => runnerLabels.has(label));
+            });
+            const onlineRunners = matchingRunners.filter((runner) => runner.status === "online");
+
+            const queuedRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner,
+              repo,
+              status: "queued",
+              per_page: 100,
+            });
+            const staleCutoffMs = Date.now() - maxQueuedMinutes * 60 * 1000;
+            const staleWatchedRuns = queuedRuns.filter((run) => {
+              if (!watchedWorkflows.includes(run.name)) return false;
+              return new Date(run.created_at).getTime() < staleCutoffMs;
+            });
+
+            await core.summary
+              .addHeading("YiShun Runner Availability Watchdog")
+              .addTable([
+                [{ data: "Check", header: true }, { data: "Value", header: true }],
+                ["Required labels", labels.join(", ")],
+                ["Matching runners", String(matchingRunners.length)],
+                ["Online matching runners", String(onlineRunners.length)],
+                ["Watched workflows", watchedWorkflows.join(", ")],
+                ["Max queued minutes", String(maxQueuedMinutes)],
+                ["Stale queued watched runs", String(staleWatchedRuns.length)],
+              ])
+              .write();
+
+            if (matchingRunners.length === 0) {
+              throw new Error(`No self-hosted runner has all required labels: ${labels.join(", ")}`);
+            }
+
+            if (onlineRunners.length === 0) {
+              const details = matchingRunners
+                .map((runner) => `${runner.name}: status=${runner.status}, busy=${runner.busy}`)
+                .join("; ");
+              throw new Error(`YiShun self-hosted runner is offline. ${details}`);
+            }
+
+            if (staleWatchedRuns.length > 0) {
+              const details = staleWatchedRuns
+                .map((run) => `${run.name} #${run.run_number} queued since ${run.created_at}: ${run.html_url}`)
+                .join("; ");
+              throw new Error(`YiShun watched workflow is queued longer than ${maxQueuedMinutes} minutes. ${details}`);
+            }
+
+            core.info(`YiShun runner watchdog passed with ${onlineRunners.length} online runner(s).`);
