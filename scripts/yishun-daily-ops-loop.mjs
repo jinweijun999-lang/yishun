@@ -62,11 +62,30 @@ function parseJsonObject(text) {
   return null;
 }
 
+function sanitizeDiagnostic(text) {
+  return String(text || "")
+    .replace(/sk_(test|live)_[A-Za-z0-9_=-]+/g, "sk_$1_[redacted]")
+    .replace(/pk_(test|live)_[A-Za-z0-9_=-]+/g, "pk_$1_[redacted]")
+    .replace(/whsec_[A-Za-z0-9_=-]+/g, "whsec_[redacted]")
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, "postgresql://[redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+}
+
+function childFailureSummary(label, result) {
+  const status = result.code ?? result.signal ?? "unknown";
+  const diagnostic = sanitizeDiagnostic(result.stderr) || sanitizeDiagnostic(result.stdout);
+  return diagnostic
+    ? `${label} failed with code ${status}: ${diagnostic}`
+    : `${label} failed with code ${status}`;
+}
+
 async function runStep(label, args, options) {
   console.log(`\n[daily-ops-loop] ${label}`);
   const result = await runNode(args, options);
   if (result.code !== 0) {
-    throw new Error(`${label} failed with code ${result.code ?? result.signal ?? "unknown"}`);
+    throw new Error(childFailureSummary(label, result));
   }
   return result;
 }
@@ -92,10 +111,13 @@ async function main() {
         exportOutputPath = productionFileJson.outputPath;
         env.YISHUN_ANALYTICS_FILE = exportOutputPath;
       } else {
-        productionFileExportError = "production file export did not produce a readable outputPath";
+        const diagnostic = sanitizeDiagnostic(productionFileResult.stderr) || sanitizeDiagnostic(productionFileResult.stdout);
+        productionFileExportError = diagnostic
+          ? `production file export did not produce a readable outputPath: ${diagnostic}`
+          : "production file export did not produce a readable outputPath";
       }
     } else {
-      productionFileExportError = `production file export failed with code ${productionFileResult.code ?? productionFileResult.signal ?? "unknown"}`;
+      productionFileExportError = childFailureSummary("production file export", productionFileResult);
       env.YISHUN_ANALYTICS_SOURCE_NOTE = `${productionFileExportError}; Cloud Logging fallback was used`;
       console.warn(`[daily-ops-loop] ${productionFileExportError}; falling back to Cloud Logging export.`);
     }
