@@ -51,6 +51,7 @@ for (const exportMetaNeedle of [
   "production_file",
   "Production analytics file export returned 0 rows",
   "GCP analytics export returned 0 Cloud Logging entries",
+  "meta.sourceKind !== \"production_file\" && meta.entryCount === 0",
   "inspect log payload shape",
 ]) {
   assertContains("scripts/yishun-daily-data-report.mjs", exportMetaNeedle);
@@ -77,6 +78,12 @@ for (const productionFileExportNeedle of [
   "gcloud",
   "compute",
   "ssh",
+  "YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL",
+  "YISHUN_PRODUCTION_ANALYTICS_FILE_SSH_MODE",
+  "sourceAccess",
+  "local_runner",
+  "--tunnel-through-iap",
+  "sshAttempts",
   "YISHUN_GCP_INSTANCE",
   "YISHUN_GCP_ZONE",
   "YISHUN_PRODUCTION_ANALYTICS_FILE",
@@ -86,6 +93,19 @@ for (const productionFileExportNeedle of [
   "sudo -n -u yishun",
 ]) {
   assertContains("scripts/yishun-export-production-analytics-file.mjs", productionFileExportNeedle);
+}
+
+for (const dailyOpsWorkflowNeedle of [
+  "YiShun Daily Ops Export",
+  "30 1 * * *",
+  "runs-on: [self-hosted, Linux, X64, yishun-prod]",
+  "YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: \"1\"",
+  "YISHUN_DAILY_SKIP_GCP_EXPORT: \"1\"",
+  "npm run ops:daily-loop -- --date \"$REPORT_DATE\" --skip-gcp-export",
+  "actions/upload-artifact@v7.0.1",
+  "yishun-daily-ops-${{ env.REPORT_DATE }}",
+]) {
+  assertContains(".github/workflows/yishun_daily_ops.yml", dailyOpsWorkflowNeedle);
 }
 
 for (const opsReviewNeedle of [
@@ -117,6 +137,7 @@ for (const opsLoopNeedle of [
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT",
   "falling back to Cloud Logging export",
   "YISHUN_ANALYTICS_SOURCE_NOTE",
+  "attemptSummary",
   "--allow-empty",
   "Keep scanning",
   "analyticsSourceAvailable",
@@ -144,6 +165,9 @@ for (const productionFileExportNeedle of [
   "ssh",
   "YISHUN_PRODUCTION_ANALYTICS_FILE",
   "sourceKind: \"production_file\"",
+  "sourceAccess",
+  "local_runner",
+  "sshAttempts",
   "rawLineCount",
   "malformedRows",
 ]) {
@@ -156,6 +180,7 @@ for (const analyticsMetaNeedle of [
   "cloud_logging",
   "rawLineCount",
   "Production analytics file export",
+  "Production analytics file export failed",
 ]) {
   assertContains("scripts/yishun-daily-data-report.mjs", analyticsMetaNeedle);
 }

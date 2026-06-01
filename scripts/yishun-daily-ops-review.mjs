@@ -108,6 +108,9 @@ function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }
   if (analyticsSource?.healthAnalyticsStatus === "configured" && analyticsSource?.available === false) {
     watch.push("production analytics is configured, but no export source was available to the report");
   }
+  if (/production file export failed/i.test(analyticsSource?.note || "")) {
+    watch.push(`production analytics file export failed: ${analyticsSource.note}`);
+  }
   if (Number(analyticsSource?.malformedRows || 0) > 0) watch.push(`${analyticsSource.malformedRows} malformed analytics rows were ignored`);
   if (anomalies.some((item) => /Checkout starts|Stripe webhook DB summary unavailable|No analytics events/i.test(item))) {
     watch.push("daily report contains funnel or telemetry anomalies");

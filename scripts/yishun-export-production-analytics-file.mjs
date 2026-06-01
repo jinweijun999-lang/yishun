@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -29,6 +30,10 @@ function parseArgs() {
   const dateFlagIndex = rawArgs.indexOf("--date");
   const dateArg = dateFlagIndex >= 0 ? rawArgs[dateFlagIndex + 1] : rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
   const timeoutArg = rawArgs.find((item) => item.startsWith("--timeout-ms="));
+  const sshModeArg = rawArgs.find((item) => item.startsWith("--ssh-mode="));
+  const sshMode = sshModeArg
+    ? sshModeArg.slice("--ssh-mode=".length)
+    : process.env.YISHUN_PRODUCTION_ANALYTICS_FILE_SSH_MODE || "auto";
   const timeoutMs = Number(
     timeoutArg
       ? timeoutArg.slice("--timeout-ms=".length)
@@ -47,6 +52,10 @@ function parseArgs() {
     outDir: process.env.YISHUN_ANALYTICS_EXPORT_DIR || path.join("output", "yishun-analytics"),
     timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,
     allowEmpty: args.has("--allow-empty") || process.env.YISHUN_GCP_ANALYTICS_ALLOW_EMPTY === "1",
+    localRunner: args.has("--local") || process.env.YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL === "1",
+    localUser: process.env.YISHUN_PRODUCTION_ANALYTICS_FILE_USER || "yishun",
+    useSudo: process.env.YISHUN_PRODUCTION_ANALYTICS_FILE_USE_SUDO !== "0",
+    sshMode: ["auto", "direct", "iap"].includes(sshMode) ? sshMode : "auto",
   };
 }
 
@@ -109,30 +118,98 @@ function parseAnalyticsFile(text, reportDate) {
   return { events, rawLineCount, parsedRows, malformedRows };
 }
 
-async function main() {
-  const config = parseArgs();
-  const remoteCommand = [
-    "sudo -n -u yishun sh -lc",
-    shellQuote(`if test -f ${shellQuote(config.remoteFile)}; then cat ${shellQuote(config.remoteFile)}; fi`),
-  ].join(" ");
+async function readLocalAnalyticsFile(config) {
+  if (!config.useSudo) {
+    return existsSync(config.remoteFile) ? readFile(config.remoteFile, "utf8") : "";
+  }
 
-  const { stdout } = await execFileAsync("gcloud", [
-    "compute",
-    "ssh",
-    config.instance,
-    "--zone",
-    config.zone,
-    "--project",
-    config.project,
-    "--command",
-    remoteCommand,
+  const localCommand = `if test -f ${shellQuote(config.remoteFile)}; then cat ${shellQuote(config.remoteFile)}; fi`;
+  const { stdout } = await execFileAsync("sudo", [
+    "-n",
+    "-u",
+    config.localUser,
+    "sh",
+    "-lc",
+    localCommand,
   ], {
     maxBuffer: 50 * 1024 * 1024,
     timeout: config.timeoutMs,
     killSignal: "SIGTERM",
   });
 
-  const parsed = parseAnalyticsFile(stdout || "", config.date);
+  return stdout || "";
+}
+
+async function readRemoteAnalyticsFile(config) {
+  const remoteCommand = [
+    "sudo -n -u yishun sh -lc",
+    shellQuote(`if test -f ${shellQuote(config.remoteFile)}; then cat ${shellQuote(config.remoteFile)}; fi`),
+  ].join(" ");
+  const modes = config.sshMode === "auto" ? ["direct", "iap"] : [config.sshMode];
+  const attempts = [];
+
+  for (const mode of modes) {
+    const sshArgs = [
+      "compute",
+      "ssh",
+      config.instance,
+      "--zone",
+      config.zone,
+      "--project",
+      config.project,
+      ...(mode === "iap" ? ["--tunnel-through-iap"] : []),
+      "--command",
+      remoteCommand,
+    ];
+
+    try {
+      const { stdout } = await execFileAsync("gcloud", sshArgs, {
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: config.timeoutMs,
+        killSignal: "SIGTERM",
+      });
+      return { stdout: stdout || "", sourceAccess: mode === "iap" ? "gcloud_ssh_iap" : "gcloud_ssh", attempts };
+    } catch (error) {
+      attempts.push({
+        mode,
+        code: error?.code ?? null,
+        signal: error?.signal ?? null,
+        timedOut: Boolean(error?.killed || error?.signal === "SIGTERM"),
+        message: error instanceof Error ? error.message : "gcloud ssh failed",
+        stderr: String(error?.stderr || "").slice(-1200),
+      });
+    }
+  }
+
+  const failure = new Error(`Production analytics file export could not read ${config.remoteFile} over gcloud SSH.`);
+  failure.attempts = attempts;
+  throw failure;
+}
+
+function formatFailure(error, config) {
+  return {
+    ok: false,
+    date: config.date,
+    project: config.project,
+    instance: config.instance,
+    zone: config.zone,
+    remoteFile: config.remoteFile,
+    sourceAccess: config.localRunner ? "local_runner" : "gcloud_ssh",
+    sshMode: config.sshMode,
+    timeoutMs: config.timeoutMs,
+    message: error instanceof Error ? error.message : "production analytics file export failed",
+    attempts: Array.isArray(error?.attempts) ? error.attempts : [],
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function main() {
+  const config = parseArgs();
+  const readResult = config.localRunner
+    ? { stdout: await readLocalAnalyticsFile(config), sourceAccess: "local_runner", attempts: [] }
+    : await readRemoteAnalyticsFile(config);
+
+  const parsed = parseAnalyticsFile(readResult.stdout || "", config.date);
   if (parsed.events.length === 0 && !config.allowEmpty) {
     throw new Error(`No YiShun production file analytics events were found for ${config.date}. Re-run with --allow-empty to write an empty export.`);
   }
@@ -150,6 +227,8 @@ async function main() {
     instance: config.instance,
     zone: config.zone,
     remoteFile: config.remoteFile,
+    sourceAccess: readResult.sourceAccess,
+    sshAttempts: readResult.attempts,
     rawLineCount: parsed.rawLineCount,
     parsedRows: parsed.parsedRows,
     malformedRows: parsed.malformedRows,
@@ -167,6 +246,8 @@ async function main() {
     instance: config.instance,
     zone: config.zone,
     remoteFile: config.remoteFile,
+    sourceAccess: readResult.sourceAccess,
+    sshAttempts: readResult.attempts,
     rawLineCount: parsed.rawLineCount,
     parsedRows: parsed.parsedRows,
     malformedRows: parsed.malformedRows,
@@ -178,10 +259,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error?.killed || error?.signal === "SIGTERM") {
-    console.error(`production analytics file export timed out after ${parseArgs().timeoutMs}ms`);
-  } else {
-    console.error(error instanceof Error ? error.message : error);
-  }
+  const config = parseArgs();
+  console.error(JSON.stringify(formatFailure(error, config), null, 2));
   process.exit(1);
 });

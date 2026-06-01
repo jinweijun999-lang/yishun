@@ -75,7 +75,22 @@ function sanitizeDiagnostic(text) {
 
 function childFailureSummary(label, result) {
   const status = result.code ?? result.signal ?? "unknown";
-  const diagnostic = sanitizeDiagnostic(result.stderr) || sanitizeDiagnostic(result.stdout);
+  const parsed = parseJsonObject(result.stderr) || parseJsonObject(result.stdout);
+  const attemptSummary = Array.isArray(parsed?.attempts) && parsed.attempts.length
+    ? parsed.attempts.map((attempt) => {
+      const mode = attempt.mode || "unknown";
+      const attemptStatus = attempt.code ?? attempt.signal ?? "unknown";
+      const detail = sanitizeDiagnostic(attempt.stderr || attempt.message);
+      return detail ? `${mode}=${attemptStatus} ${detail}` : `${mode}=${attemptStatus}`;
+    }).join("; ")
+    : "";
+  const structuredDiagnostic = [
+    sanitizeDiagnostic(parsed?.message),
+    attemptSummary,
+  ].filter(Boolean).join("; ");
+  const diagnostic = structuredDiagnostic ||
+    sanitizeDiagnostic(result.stderr) ||
+    sanitizeDiagnostic(result.stdout);
   return diagnostic
     ? `${label} failed with code ${status}: ${diagnostic}`
     : `${label} failed with code ${status}`;
