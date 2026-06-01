@@ -102,6 +102,18 @@ for (const opsLoopNeedle of [
   assertContains("scripts/yishun-daily-ops-loop.mjs", opsLoopNeedle);
 }
 
+for (const deployAnalyticsSinkNeedle of [
+  "YISHUN_ANALYTICS_FILE: \"/home/yishun/logs/yishun-analytics.jsonl\"",
+  "YISHUN_ANALYTICS_FILE=\"$YISHUN_ANALYTICS_FILE\"",
+  "Verify production analytics file sink locally",
+  "ops_analytics_file_sink_probe",
+  "analytics file sink verified",
+]) {
+  assertContains(".github/workflows/nextjs_ci.yml", deployAnalyticsSinkNeedle);
+}
+
+assertContains("ecosystem.config.js", "YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'");
+
 for (const analyticsProbeNeedle of [
   "ops_analytics_probe",
   "/api/events",
@@ -172,6 +184,7 @@ console.log(
         "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",
         "gcp_analytics_export_times_out_for_unattended_runs",
         "analytics_file_sink_creates_parent_directory_before_append",
+        "deploy_workflow_enables_and_verifies_production_analytics_file_sink",
         "checkout_button_emits_checkout_failed_for_config_and_client_failures",
         "stripe_webhook_fulfillment_emits_privacy_safe_server_funnel_events",
       ],

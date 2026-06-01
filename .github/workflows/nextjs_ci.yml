@@ -124,6 +124,7 @@ jobs:
       YISHUN_GEMINI_MAX_OUTPUT_TOKENS: "900"
       YISHUN_GEMINI_TIMEOUT_MS: "12000"
       YISHUN_GEMINI_CACHE_TTL_MS: "86400000"
+      YISHUN_ANALYTICS_FILE: "/home/yishun/logs/yishun-analytics.jsonl"
 
     steps:
       - name: Deploy locally with Prisma migrations
@@ -141,6 +142,7 @@ jobs:
             YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS" \
             YISHUN_GEMINI_TIMEOUT_MS="$YISHUN_GEMINI_TIMEOUT_MS" \
             YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS" \
+            YISHUN_ANALYTICS_FILE="$YISHUN_ANALYTICS_FILE" \
             bash -lc '
             set -euo pipefail
             cd /home/yishun/yishun
@@ -157,6 +159,7 @@ jobs:
             echo ">>> [5/7] Building application..."
             npm run build
             echo ">>> [6/7] Restarting PM2 with Gemini cost guard env..."
+            mkdir -p "$(dirname "$YISHUN_ANALYTICS_FILE")"
             pm2 restart yishun-nextjs --update-env
             echo ">>> [7/7] Saving PM2 state..."
             pm2 save
@@ -176,6 +179,53 @@ jobs:
             sleep 2
           done
           sudo -n -u yishun pm2 logs yishun-nextjs --lines 80 --nostream
+          exit 1
+
+      - name: Verify production analytics file sink locally
+        run: |
+          set -euo pipefail
+          probe_id="gha_file_sink_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_$(date +%s)"
+          payload=$(node -e '
+            const probeId = process.argv[1];
+            process.stdout.write(JSON.stringify({
+              event: "ops_analytics_file_sink_probe",
+              anonymous_id: `ops_${probeId}`,
+              source: "github_actions_deploy",
+              ts: new Date().toISOString(),
+              properties: {
+                product_id: "yishun",
+                anonymous_id: `ops_${probeId}`,
+                session_id: probeId,
+                utm_source: "github_actions",
+                utm_medium: "deploy",
+                utm_campaign: "analytics_file_sink_verification",
+                country: "unknown",
+                locale: "ops",
+                device: "server",
+                page: "/ops/analytics-file-sink",
+                variant: "ops",
+                probe_id: probeId,
+                release_version: process.env.YISHUN_RELEASE_SHA
+              }
+            }));
+          ' "$probe_id")
+          response=$(curl -fsS --max-time 10 -X POST http://127.0.0.1:3001/api/events \
+            -H 'content-type: application/json' \
+            --data "$payload")
+          node -e 'const r=JSON.parse(process.argv[1]); if (r.ok !== true || r.accepted !== 1) throw new Error(`analytics ingest did not accept file sink probe: ${process.argv[1]}`);' "$response"
+
+          for i in $(seq 1 10); do
+            if sudo -n -u yishun test -f "$YISHUN_ANALYTICS_FILE" \
+              && sudo -n -u yishun grep -F "$probe_id" "$YISHUN_ANALYTICS_FILE" >/dev/null; then
+              echo "analytics file sink verified: ${YISHUN_ANALYTICS_FILE}"
+              exit 0
+            fi
+            echo "waiting for analytics file sink attempt=$i"
+            sleep 1
+          done
+
+          echo "analytics file sink probe was accepted but not found in ${YISHUN_ANALYTICS_FILE}"
+          sudo -n -u yishun ls -l "$(dirname "$YISHUN_ANALYTICS_FILE")" || true
           exit 1
 
       - name: Smoke share landing API locally
