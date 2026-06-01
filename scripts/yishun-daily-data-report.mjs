@@ -754,6 +754,9 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
     notes.push(`Core route check failed: ${failedRoutes}`);
   }
   if (routeStatus.ok === null || routeStatus.skipped) notes.push("Core route check skipped for this local report run.");
+  if (/production file export failed/i.test(analyticsInput.note || "")) {
+    notes.push(`Production analytics file export failed: ${analyticsInput.note}`);
+  }
   if (!analyticsInput.source.available) {
     notes.push(`Analytics source unavailable for daily reporting: ${analyticsInput.note}`);
   }
@@ -773,11 +776,11 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
       notes.push(`Production analytics file export read ${meta.rawLineCount} rows but found 0 report-date YiShun events; inspect file timestamps and payload shape.`);
     } else if (meta.sourceKind === "production_file" && meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
       notes.push(`Production analytics file export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
-    } else if (meta.entryCount === 0) {
+    } else if (meta.sourceKind !== "production_file" && meta.entryCount === 0) {
       notes.push(`GCP analytics export returned 0 Cloud Logging entries for ${meta.date || reportDate}.`);
-    } else if (meta.eventCount === 0) {
+    } else if (meta.sourceKind !== "production_file" && meta.eventCount === 0) {
       notes.push(`GCP analytics export returned ${meta.entryCount} Cloud Logging entries but 0 parsed YiShun events; inspect log payload shape.`);
-    } else if (meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
+    } else if (meta.sourceKind !== "production_file" && meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
       notes.push(`GCP analytics export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
     }
   }
