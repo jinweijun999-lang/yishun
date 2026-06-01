@@ -41,11 +41,15 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
 for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "stripeWebhookEventsFromAnalytics", "analytics_export", "eventValue", "isOperationalAnalyticsEvent", "operationalProbeEvents", "rawReportDateEvents", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
+assertContains("scripts/yishun-daily-data-report.mjs", "YISHUN_ANALYTICS_SOURCE_NOTE");
 
 for (const exportMetaNeedle of [
   "readAnalyticsExportMetadata",
   ".meta.json",
   "exportMeta",
+  "sourceKind",
+  "production_file",
+  "Production analytics file export returned 0 rows",
   "GCP analytics export returned 0 Cloud Logging entries",
   "inspect log payload shape",
 ]) {
@@ -69,6 +73,21 @@ for (const gcpExportNeedle of [
   assertContains("scripts/yishun-export-gcp-analytics.mjs", gcpExportNeedle);
 }
 
+for (const productionFileExportNeedle of [
+  "gcloud",
+  "compute",
+  "ssh",
+  "YISHUN_GCP_INSTANCE",
+  "YISHUN_GCP_ZONE",
+  "YISHUN_PRODUCTION_ANALYTICS_FILE",
+  "yishun-analytics-production-file",
+  "rawLineCount",
+  "malformedRows",
+  "sudo -n -u yishun",
+]) {
+  assertContains("scripts/yishun-export-production-analytics-file.mjs", productionFileExportNeedle);
+}
+
 for (const opsReviewNeedle of [
   "CODEX_BRIDGE_OUTBOX",
   "YISHUN_OPS_REPORT_FALLBACK_DIR",
@@ -86,13 +105,18 @@ for (const opsReviewNeedle of [
 assertContains("package.json", "\"ops:daily-review\"");
 assertContains("package.json", "\"ops:daily-loop\"");
 assertContains("package.json", "\"export:gcp-analytics\"");
+assertContains("package.json", "\"export:production-analytics-file\"");
 assertContains("package.json", "\"ops:analytics-probe\"");
 
 for (const opsLoopNeedle of [
+  "scripts/yishun-export-production-analytics-file.mjs",
   "scripts/yishun-export-gcp-analytics.mjs",
   "scripts/yishun-daily-data-report.mjs",
   "scripts/yishun-daily-ops-review.mjs",
   "YISHUN_ANALYTICS_FILE",
+  "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT",
+  "falling back to Cloud Logging export",
+  "YISHUN_ANALYTICS_SOURCE_NOTE",
   "--allow-empty",
   "Keep scanning",
   "analyticsSourceAvailable",
@@ -113,6 +137,28 @@ for (const deployAnalyticsSinkNeedle of [
 }
 
 assertContains("ecosystem.config.js", "YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'");
+
+for (const productionFileExportNeedle of [
+  "gcloud",
+  "compute",
+  "ssh",
+  "YISHUN_PRODUCTION_ANALYTICS_FILE",
+  "sourceKind: \"production_file\"",
+  "rawLineCount",
+  "malformedRows",
+]) {
+  assertContains("scripts/yishun-export-production-analytics-file.mjs", productionFileExportNeedle);
+}
+
+for (const analyticsMetaNeedle of [
+  "sourceKind",
+  "production_file",
+  "cloud_logging",
+  "rawLineCount",
+  "Production analytics file export",
+]) {
+  assertContains("scripts/yishun-daily-data-report.mjs", analyticsMetaNeedle);
+}
 
 for (const analyticsProbeNeedle of [
   "ops_analytics_probe",
@@ -182,6 +228,7 @@ console.log(
         "daily_ops_loop_exports_gcp_analytics_before_bridge_review",
         "analytics_pipeline_probe_verifies_ingest_and_cloud_logging_without_product_metric_pollution",
         "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",
+        "production_analytics_file_export_reads_vm_sink_for_daily_report_input",
         "gcp_analytics_export_times_out_for_unattended_runs",
         "analytics_file_sink_creates_parent_directory_before_append",
         "deploy_workflow_enables_and_verifies_production_analytics_file_sink",
