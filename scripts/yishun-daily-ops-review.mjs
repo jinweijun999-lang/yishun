@@ -34,14 +34,30 @@ function cstStamp(value = new Date()) {
 
 function parseArgs() {
   const rawArgs = process.argv.slice(2);
+  const args = new Set(rawArgs);
   const dateFlagIndex = rawArgs.indexOf("--date");
   const dateArg = dateFlagIndex >= 0 ? rawArgs[dateFlagIndex + 1] : rawArgs.find((item) => /^\d{4}-\d{2}-\d{2}$/.test(item));
   return {
+    help: args.has("--help") || args.has("-h"),
     date: process.env.REPORT_DATE || (/^\d{4}-\d{2}-\d{2}$/.test(dateArg || "") ? dateArg : cstDate()),
     reportRoot: process.env.YISHUN_DAILY_REPORT_DIR || path.join("reports", "daily"),
     outboxDir: process.env.CODEX_BRIDGE_OUTBOX || DEFAULT_OUTBOX,
     fallbackDir: process.env.YISHUN_OPS_REPORT_FALLBACK_DIR || DEFAULT_FALLBACK,
   };
+}
+
+function printUsage() {
+  console.log(`Usage:
+  npm run ops:daily-review
+  npm run ops:daily-review -- --date YYYY-MM-DD
+
+Reads a generated YiShun daily report package and writes a concise bridge outbox review.
+
+Environment:
+  REPORT_DATE                       Override the report date.
+  YISHUN_DAILY_REPORT_DIR           Report package root. Defaults to reports/daily.
+  CODEX_BRIDGE_OUTBOX               Bridge outbox destination.
+  YISHUN_OPS_REPORT_FALLBACK_DIR    Fallback report directory if bridge writing fails.`);
 }
 
 async function readText(filePath, fallback = "") {
@@ -148,6 +164,11 @@ async function writeResult(preferredDir, fallbackDir, fileName, content) {
 
 async function main() {
   const config = parseArgs();
+  if (config.help) {
+    printUsage();
+    return;
+  }
+
   const reportDir = path.join(config.reportRoot, `yishun-daily-${config.date}`);
   const summaryPath = path.join(reportDir, "summary.md");
 
