@@ -103,14 +103,13 @@ for (const deployNeedle of [
 for (const runnerWatchdogNeedle of [
   "YiShun Runner Availability Watchdog",
   "runs-on: ubuntu-latest",
-  "REQUIRED_RUNNER_LABELS: self-hosted,Linux,X64,yishun-prod",
   "MAX_QUEUED_MINUTES: \"10\"",
   "WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export",
   "actions/github-script@v8.0.0",
-  "listSelfHostedRunnersForRepo",
   "listWorkflowRunsForRepo",
   "status: \"queued\"",
-  "YiShun self-hosted runner is offline",
+  "GITHUB_TOKEN cannot read the self-hosted runner inventory",
+  "inferred from queued workflows",
   "queued longer than",
 ]) {
   assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);
