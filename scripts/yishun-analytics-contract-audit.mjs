@@ -100,7 +100,7 @@ for (const dailyOpsWorkflowNeedle of [
   "30 1 * * *",
   "runs-on: [self-hosted, Linux, X64, yishun-prod]",
   "YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun",
-  "YISHUN_DAILY_OPS_ROOT: ${{ runner.temp }}/yishun-daily-ops",
+  "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops",
   "YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: \"1\"",
   "YISHUN_DAILY_SKIP_GCP_EXPORT: \"1\"",
   "Verify production app checkout and runner disk",

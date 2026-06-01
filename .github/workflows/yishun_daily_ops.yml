@@ -22,11 +22,11 @@ jobs:
     env:
       REPORT_DATE_INPUT: ${{ inputs.report_date }}
       YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun
-      YISHUN_DAILY_OPS_ROOT: ${{ runner.temp }}/yishun-daily-ops
-      YISHUN_ANALYTICS_EXPORT_DIR: ${{ runner.temp }}/yishun-daily-ops/analytics
-      YISHUN_DAILY_REPORT_DIR: ${{ runner.temp }}/yishun-daily-ops/reports
-      CODEX_BRIDGE_OUTBOX: ${{ runner.temp }}/yishun-daily-ops/outbox
-      YISHUN_OPS_REPORT_FALLBACK_DIR: ${{ runner.temp }}/yishun-daily-ops/fallback
+      YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops
+      YISHUN_ANALYTICS_EXPORT_DIR: /tmp/yishun-daily-ops/analytics
+      YISHUN_DAILY_REPORT_DIR: /tmp/yishun-daily-ops/reports
+      CODEX_BRIDGE_OUTBOX: /tmp/yishun-daily-ops/outbox
+      YISHUN_OPS_REPORT_FALLBACK_DIR: /tmp/yishun-daily-ops/fallback
       YISHUN_PRODUCTION_ANALYTICS_FILE: /home/yishun/logs/yishun-analytics.jsonl
       YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: "1"
       YISHUN_PRODUCTION_ANALYTICS_FILE_USE_SUDO: "1"
