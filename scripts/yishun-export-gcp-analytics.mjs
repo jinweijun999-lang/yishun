@@ -157,6 +157,7 @@ async function main() {
 
   await writeFile(outputPath, events.map((event) => JSON.stringify(event)).join("\n") + (events.length ? "\n" : ""));
   await writeFile(metaPath, JSON.stringify({
+    sourceKind: "cloud_logging",
     date: config.date,
     project: config.project,
     start,

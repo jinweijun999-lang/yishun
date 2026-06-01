@@ -9,6 +9,11 @@ const DEFAULT_ROUTE_CHECKS = [
   ["/", "YiShun"],
   ["/reading/start", "YiShun"],
   ["/membership", "YiShun"],
+  ["/tools", "YiShun"],
+  ["/daily-timing", "Love Signal"],
+  ["/reports", "YiShun"],
+  ["/ask-master", "AI Master"],
+  ["/ai-question", "Ask one focused life question"],
   ["/status", "YiShun Status"],
   ["/privacy", "Privacy"],
   ["/terms", "Terms"],
@@ -61,6 +66,7 @@ function parseArgs() {
     analyticsFile: process.env.YISHUN_ANALYTICS_FILE || "",
     analyticsFiles: process.env.YISHUN_ANALYTICS_FILES || "",
     analyticsDir: process.env.YISHUN_ANALYTICS_DIR || "",
+    analyticsSourceNote: process.env.YISHUN_ANALYTICS_SOURCE_NOTE || "",
     stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
     healthUrl,
     routeBaseUrl: (process.env.YISHUN_PRODUCTION_BASE_URL || new URL(healthUrl).origin).replace(/\/+$/, ""),
@@ -226,9 +232,16 @@ async function readAnalyticsExportMetadata(files) {
         metaPath,
         date: cleanString(parsedMeta.date, ""),
         project: cleanString(parsedMeta.project, ""),
+        sourceKind: cleanString(parsedMeta.sourceKind, parsedMeta.remoteFile ? "production_file" : "cloud_logging"),
+        instance: cleanString(parsedMeta.instance, ""),
+        zone: cleanString(parsedMeta.zone, ""),
+        remoteFile: cleanString(parsedMeta.remoteFile, ""),
         start: cleanString(parsedMeta.start, ""),
         end: cleanString(parsedMeta.end, ""),
         entryCount: Number(parsedMeta.entryCount || 0),
+        rawLineCount: Number(parsedMeta.rawLineCount || 0),
+        parsedRows: Number(parsedMeta.parsedRows || 0),
+        malformedRows: Number(parsedMeta.malformedRows || 0),
         eventCount: Number(parsedMeta.eventCount || 0),
         timeoutMs: Number(parsedMeta.timeoutMs || 0),
         allowEmpty: Boolean(parsedMeta.allowEmpty),
@@ -288,10 +301,12 @@ async function readAnalyticsEvents(config, reportDate) {
   }
 
   const exportMeta = await readAnalyticsExportMetadata(input.files);
+  const notes = [...input.notes];
+  if (config.analyticsSourceNote) notes.push(config.analyticsSourceNote);
 
   return {
     events,
-    note: input.notes.join("; ") || null,
+    note: notes.join("; ") || null,
     source: {
       configured: Boolean(config.analyticsFile || config.analyticsFiles || config.analyticsDir),
       available: input.files.length > 0,
@@ -752,7 +767,13 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
       notes.push(`Analytics export metadata unreadable for ${meta.sourceFile}: ${meta.error}`);
       continue;
     }
-    if (meta.entryCount === 0) {
+    if (meta.sourceKind === "production_file" && meta.rawLineCount === 0) {
+      notes.push(`Production analytics file export returned 0 rows from ${meta.remoteFile || "the VM file sink"} for ${meta.date || reportDate}.`);
+    } else if (meta.sourceKind === "production_file" && meta.eventCount === 0) {
+      notes.push(`Production analytics file export read ${meta.rawLineCount} rows but found 0 report-date YiShun events; inspect file timestamps and payload shape.`);
+    } else if (meta.sourceKind === "production_file" && meta.eventCount !== analyticsInput.source.rawReportDateEvents) {
+      notes.push(`Production analytics file export parsed ${meta.eventCount} YiShun events, but ${analyticsInput.source.rawReportDateEvents} matched report date ${reportDate}.`);
+    } else if (meta.entryCount === 0) {
       notes.push(`GCP analytics export returned 0 Cloud Logging entries for ${meta.date || reportDate}.`);
     } else if (meta.eventCount === 0) {
       notes.push(`GCP analytics export returned ${meta.entryCount} Cloud Logging entries but 0 parsed YiShun events; inspect log payload shape.`);
@@ -901,7 +922,7 @@ async function main() {
 - Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
 - Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
 - Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
-- Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
+- Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : meta.sourceKind === "production_file" ? `${path.basename(meta.sourceFile)} rows=${meta.rawLineCount} events=${meta.eventCount}` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}

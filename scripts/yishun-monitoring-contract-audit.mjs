@@ -67,6 +67,17 @@ for (const statusPageNeedle of [
 assertContains("app/sitemap.ts", "\"/status\"");
 assertContains("scripts/yishun-production-smoke.mjs", "[\"/status\", \"YiShun Status\"]");
 
+for (const routePatrolNeedle of [
+  "[\"/tools\", \"YiShun\"]",
+  "[\"/daily-timing\", \"Love Signal\"]",
+  "[\"/reports\", \"YiShun\"]",
+  "[\"/ask-master\", \"AI Master\"]",
+  "[\"/ai-question\", \"Ask one focused life question\"]",
+]) {
+  assertContains("scripts/yishun-production-smoke.mjs", routePatrolNeedle);
+  assertContains("scripts/yishun-daily-data-report.mjs", routePatrolNeedle);
+}
+
 for (const deployNeedle of [
   "YISHUN_RELEASE_SHA: ${{ github.sha }}",
   "YISHUN_RELEASE_SHA=\"$YISHUN_RELEASE_SHA\"",
@@ -188,6 +199,7 @@ console.log(
         "health_endpoint_exposes_safe_release_status",
         "public_status_page_reuses_safe_health_snapshot",
         "deploy_workflow_verifies_local_health_and_core_smokes",
+        "production_and_daily_route_patrol_cover_retention_tools_and_ask_surfaces",
         "deploy_workflow_verifies_local_analytics_file_sink",
         "stripe_webhook_failures_are_visible_to_logs_and_daily_report",
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
