@@ -107,10 +107,10 @@ for (const runnerWatchdogNeedle of [
   "MAX_QUEUED_MINUTES: \"10\"",
   "WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export",
   "actions/github-script@v8.0.0",
-  "listSelfHostedRunnersForRepo",
   "listWorkflowRunsForRepo",
   "status: \"queued\"",
-  "YiShun self-hosted runner is offline",
+  "GITHUB_TOKEN does not grant runner administration read",
+  "no watched workflow has been queued past the threshold",
   "queued longer than",
 ]) {
   assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);

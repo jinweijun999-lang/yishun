@@ -35,18 +35,6 @@ jobs:
             const maxQueuedMinutes = Number(process.env.MAX_QUEUED_MINUTES || "10");
             const { owner, repo } = context.repo;
 
-            const runners = await github.paginate(github.rest.actions.listSelfHostedRunnersForRepo, {
-              owner,
-              repo,
-              per_page: 100,
-            });
-
-            const matchingRunners = runners.filter((runner) => {
-              const runnerLabels = new Set(runner.labels.map((label) => label.name));
-              return labels.every((label) => runnerLabels.has(label));
-            });
-            const onlineRunners = matchingRunners.filter((runner) => runner.status === "online");
-
             const queuedRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
               owner,
               repo,
@@ -63,25 +51,13 @@ jobs:
               .addHeading("YiShun Runner Availability Watchdog")
               .addTable([
                 [{ data: "Check", header: true }, { data: "Value", header: true }],
-                ["Required labels", labels.join(", ")],
-                ["Matching runners", String(matchingRunners.length)],
-                ["Online matching runners", String(onlineRunners.length)],
+                ["Expected self-hosted labels", labels.join(", ")],
+                ["Direct runner API", "not used; GITHUB_TOKEN does not grant runner administration read"],
                 ["Watched workflows", watchedWorkflows.join(", ")],
                 ["Max queued minutes", String(maxQueuedMinutes)],
                 ["Stale queued watched runs", String(staleWatchedRuns.length)],
               ])
               .write();
-
-            if (matchingRunners.length === 0) {
-              throw new Error(`No self-hosted runner has all required labels: ${labels.join(", ")}`);
-            }
-
-            if (onlineRunners.length === 0) {
-              const details = matchingRunners
-                .map((runner) => `${runner.name}: status=${runner.status}, busy=${runner.busy}`)
-                .join("; ");
-              throw new Error(`YiShun self-hosted runner is offline. ${details}`);
-            }
 
             if (staleWatchedRuns.length > 0) {
               const details = staleWatchedRuns
@@ -90,4 +66,4 @@ jobs:
               throw new Error(`YiShun watched workflow is queued longer than ${maxQueuedMinutes} minutes. ${details}`);
             }
 
-            core.info(`YiShun runner watchdog passed with ${onlineRunners.length} online runner(s).`);
+            core.info("YiShun runner watchdog passed: no watched workflow has been queued past the threshold.");
