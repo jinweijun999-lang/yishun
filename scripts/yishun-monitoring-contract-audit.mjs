@@ -70,18 +70,26 @@ assertContains("scripts/yishun-production-smoke.mjs", "[\"/status\", \"YiShun St
 for (const deployNeedle of [
   "YISHUN_RELEASE_SHA: ${{ github.sha }}",
   "YISHUN_RELEASE_SHA=\"$YISHUN_RELEASE_SHA\"",
+  "YISHUN_ANALYTICS_FILE: \"/home/yishun/logs/yishun-analytics.jsonl\"",
+  "YISHUN_ANALYTICS_FILE=\"$YISHUN_ANALYTICS_FILE\"",
   "printf \"%s\\n\" \"$YISHUN_RELEASE_SHA\" > .yishun-release-sha",
+  "mkdir -p \"$(dirname \"$YISHUN_ANALYTICS_FILE\")\"",
   "npx prisma migrate deploy",
   "pm2 restart yishun-nextjs --update-env",
   "health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}",
   "Verify public production health version",
   "public health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}",
   "sudo -n -u yishun pm2 describe yishun-nextjs",
+  "Verify production analytics file sink locally",
+  "ops_analytics_file_sink_probe",
+  "analytics file sink verified",
   "Smoke share landing API locally",
   "Smoke Bazi preview access boundary locally",
 ]) {
   assertContains(".github/workflows/nextjs_ci.yml", deployNeedle);
 }
+
+assertContains("ecosystem.config.js", "YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'");
 
 for (const webhookNeedle of [
   "Stripe webhook verification failed",
@@ -180,6 +188,7 @@ console.log(
         "health_endpoint_exposes_safe_release_status",
         "public_status_page_reuses_safe_health_snapshot",
         "deploy_workflow_verifies_local_health_and_core_smokes",
+        "deploy_workflow_verifies_local_analytics_file_sink",
         "stripe_webhook_failures_are_visible_to_logs_and_daily_report",
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
         "production_smoke_writes_durable_json_evidence",

@@ -7,7 +7,8 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/fortune_app',
-      AUTH_SECRET: 'fortune-app-secret-key-2024-secure-random'
+      AUTH_SECRET: 'fortune-app-secret-key-2024-secure-random',
+      YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'
     },
     instances: 1,
     autorestart: true,
