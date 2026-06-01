@@ -173,8 +173,30 @@ for (const productionSmokeNeedle of [
 for (const packageNeedle of [
   "\"ops:analytics-probe\"",
   "yishun-analytics-pipeline-probe.mjs",
+  "\"ops:runner-diagnostic\"",
+  "yishun-runner-recovery-diagnostic.mjs",
 ]) {
   assertContains("package.json", packageNeedle);
+}
+
+for (const runnerDiagnosticNeedle of [
+  "yishun-runner-recovery-diagnostic/1.0",
+  "yishun-prod-runner",
+  "actions/runs?status=queued",
+  "gh\", [\n    \"run\"",
+  "mergeQueuedRuns",
+  "maxQueuedMinutes",
+  "staleQueuedRuns",
+  "actions/runners",
+  "gcloud",
+  "compute",
+  "ssh",
+  "--troubleshoot",
+  "CODEX_BRIDGE_OUTBOX",
+  "YISHUN_OPS_REPORT_FALLBACK_DIR",
+  "Runner recovery remains blocked",
+]) {
+  assertContains("scripts/yishun-runner-recovery-diagnostic.mjs", runnerDiagnosticNeedle);
 }
 
 for (const analyticsProbeNeedle of [
@@ -223,6 +245,7 @@ console.log(
         "production_smoke_can_probe_analytics_ingest",
         "analytics_pipeline_probe_checks_cloud_logging_visibility",
         "runner_watchdog_surfaces_offline_self_hosted_runner_and_stale_queues",
+        "runner_recovery_diagnostic_writes_bridge_evidence_for_offline_runner",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },
