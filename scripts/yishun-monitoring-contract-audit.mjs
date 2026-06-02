@@ -255,6 +255,8 @@ for (const analyticsProbeNeedle of [
   "logging",
   "probe_id",
   "cloudLogging",
+  "latestReadError",
+  "summarizeError",
   "Analytics ingest accepted the probe, but Cloud Logging did not expose the probe event before the timeout.",
 ]) {
   assertContains("scripts/yishun-analytics-pipeline-probe.mjs", analyticsProbeNeedle);
