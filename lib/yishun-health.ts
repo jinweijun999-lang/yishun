@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { getGoogleOAuthReadiness } from "@/lib/google-oauth-readiness";
 import { prisma } from "@/lib/prisma";
 
 export type YiShunCheckStatus = "ok" | "missing" | "not_configured" | "error" | "configured";
@@ -13,7 +14,16 @@ export type YiShunHealthSnapshot = {
     app: "ok";
     database: YiShunCheckStatus;
     stripe: YiShunCheckStatus;
+    googleOAuth: YiShunCheckStatus;
     analytics: YiShunCheckStatus;
+  };
+  integrations: {
+    googleOAuth: {
+      required: boolean;
+      redirectUri: string;
+      expectedRedirectUri: string;
+      redirectMatches: boolean;
+    };
   };
 };
 
@@ -59,6 +69,7 @@ async function databaseStatus(): Promise<YiShunCheckStatus> {
 
 export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
   const database = await databaseStatus();
+  const googleOAuth = getGoogleOAuthReadiness();
   const stripe = configStatus(
     process.env.STRIPE_SECRET_KEY,
     process.env.STRIPE_PRICE_REPORT_SINGLE,
@@ -72,10 +83,11 @@ export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
   const production = process.env.NODE_ENV === "production";
   const databaseOk = database === "ok" || (!production && database === "not_configured");
   const stripeOk = stripe === "configured" || (!production && stripe === "not_configured");
+  const googleOAuthOk = googleOAuth.status === "configured" || (!googleOAuth.required && googleOAuth.status === "not_configured");
   const analyticsOk = analytics === "configured" || (!production && analytics === "not_configured");
 
   return {
-    ok: databaseOk && stripeOk && analyticsOk,
+    ok: databaseOk && stripeOk && googleOAuthOk && analyticsOk,
     service: "yishun",
     version: appVersion(),
     time: new Date().toISOString(),
@@ -83,7 +95,16 @@ export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
       app: "ok",
       database,
       stripe,
+      googleOAuth: googleOAuth.status,
       analytics,
+    },
+    integrations: {
+      googleOAuth: {
+        required: googleOAuth.required,
+        redirectUri: googleOAuth.redirectUri,
+        expectedRedirectUri: googleOAuth.expectedRedirectUri,
+        redirectMatches: googleOAuth.redirectMatches,
+      },
     },
   };
 }

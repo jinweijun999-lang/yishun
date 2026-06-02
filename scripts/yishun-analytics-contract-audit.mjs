@@ -113,6 +113,15 @@ for (const dailyOpsWorkflowNeedle of [
   assertContains(".github/workflows/yishun_daily_ops.yml", dailyOpsWorkflowNeedle);
 }
 
+for (const ciDailyReportNeedle of [
+  "Daily data report dry run",
+  "YISHUN_REPORT_NO_NETWORK=1",
+  "YISHUN_DAILY_REPORT_DIR=\"${RUNNER_TEMP:-/tmp}/yishun-daily-report-ci\"",
+  "node scripts/yishun-daily-data-report.mjs",
+]) {
+  assertContains(".github/workflows/nextjs_ci.yml", ciDailyReportNeedle);
+}
+
 for (const opsReviewNeedle of [
   "CODEX_BRIDGE_OUTBOX",
   "YISHUN_OPS_REPORT_FALLBACK_DIR",
@@ -256,6 +265,7 @@ console.log(
         "daily_report_surfaces_analytics_source_freshness",
         "daily_report_reads_single_multi_file_and_directory_analytics_exports",
         "daily_report_and_ops_review_honor_date_cli_argument",
+        "hosted_ci_dry_runs_daily_report_without_production_network",
         "daily_ops_loop_exports_gcp_analytics_before_bridge_review",
         "analytics_pipeline_probe_verifies_ingest_and_cloud_logging_without_product_metric_pollution",
         "gcp_analytics_export_command_writes_daily_jsonl_for_report_input",

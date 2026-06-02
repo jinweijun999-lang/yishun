@@ -69,6 +69,12 @@ jobs:
       - name: Analytics contract audit
         run: npm run audit:analytics-contract
 
+      - name: Daily data report dry run
+        run: |
+          YISHUN_REPORT_NO_NETWORK=1 \
+          YISHUN_DAILY_REPORT_DIR="${RUNNER_TEMP:-/tmp}/yishun-daily-report-ci" \
+          node scripts/yishun-daily-data-report.mjs
+
       - name: Monitoring contract audit
         run: npm run audit:monitoring-contract
 
