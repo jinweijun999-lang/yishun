@@ -272,8 +272,17 @@ function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
   const diskSizeGb = Number(gcpDisk.sizeGb || 0);
   const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
   if (serialConsole.runnerDiagNoSpace) {
-    summary.blockers.push("Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion");
-    nextActions.push(`free runner diagnostic/cache space or increase the ${diskSizeGb || "current"} GB boot disk toward ${targetDiskSizeGb} GB before restarting the runner service`);
+    const diskAlreadyExpanded = Number.isFinite(diskSizeGb) && diskSizeGb >= 20;
+    summary.blockers.push(
+      diskAlreadyExpanded
+        ? `Serial console still shows GitHub runner crash loop from actions-runner/_diag disk exhaustion after the boot disk was expanded to ${diskSizeGb} GB`
+        : "Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion",
+    );
+    nextActions.push(
+      diskAlreadyExpanded
+        ? "grow the guest filesystem or clear runner diagnostic/cache pressure through an SSH, serial console, startup-script, or OS Config access path before restarting the runner service"
+        : `free runner diagnostic/cache space or increase the ${diskSizeGb || "current"} GB boot disk toward ${targetDiskSizeGb} GB before restarting the runner service`,
+    );
   }
   if (gcpDisk.sizeGb) {
     summary.watch.push(`boot disk size is ${gcpDisk.sizeGb} GB`);
@@ -286,8 +295,10 @@ function safeRecoveryPlan(summary, payload) {
   const diskSizeGb = Number(payload.gcpDisk?.sizeGb || 0);
   const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
   const diskPressureLikely = payload.serialConsole?.runnerDiagNoSpace || (Number.isFinite(diskSizeGb) && diskSizeGb > 0 && diskSizeGb <= 10);
+  const diskAlreadyExpanded = diskPressureLikely && Number.isFinite(diskSizeGb) && diskSizeGb >= 20;
+  const diskCapacityStillSmall = diskPressureLikely && (!Number.isFinite(diskSizeGb) || diskSizeGb < 20);
 
-  if (diskPressureLikely) {
+  if (diskCapacityStillSmall) {
     actions.push({
       label: "Increase boot disk capacity",
       owner: "Codex/GCP unattended if IAM permits",
@@ -296,13 +307,31 @@ function safeRecoveryPlan(summary, payload) {
       command: `gcloud compute disks resize ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --size ${targetDiskSizeGb}GB`,
       rollback: "No destructive rollback needed; larger persistent disk can remain attached.",
     });
+  }
+
+  if (diskAlreadyExpanded) {
     actions.push({
-      label: "Grow filesystem after disk resize",
+      label: "Do not repeat disk resize until guest filesystem state is confirmed",
+      owner: "Codex/GCP unattended diagnostics",
+      safe: true,
+      blockedBy: "The boot disk is already expanded; more capacity is unlikely to help until the guest filesystem or runner log/cache pressure is fixed",
+      command: `gcloud compute disks describe ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --format='value(sizeGb,status)'`,
+      rollback: "No infrastructure change is made by this verification step.",
+    });
+  }
+
+  if (diskPressureLikely) {
+    actions.push({
+      label: diskAlreadyExpanded ? "Grow filesystem after disk resize or clear runner-only pressure" : "Grow filesystem after disk resize",
       owner: "Codex/GCP unattended if SSH or serial console access is restored",
       safe: true,
-      blockedBy: "Current direct SSH diagnostic must pass, or an equivalent non-destructive serial-console access path must be available",
+      blockedBy: diskAlreadyExpanded
+        ? "Requires SSH, serial console, startup-script, or OS Config execution access; current direct SSH diagnostic is failing"
+        : "Current direct SSH diagnostic must pass, or an equivalent non-destructive serial-console access path must be available",
       command: "sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1",
-      rollback: "No data deletion; rerun df -h and production health checks after the grow operation.",
+      rollback: diskAlreadyExpanded
+        ? "No user-data deletion; rerun df -h, runner diagnostic, and production health checks after the grow operation."
+        : "No data deletion; rerun df -h and production health checks after the grow operation.",
     });
   }
 
