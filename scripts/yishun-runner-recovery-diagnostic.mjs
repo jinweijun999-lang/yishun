@@ -205,16 +205,67 @@ function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
   const blockers = [];
   const watch = [];
   const staleQueuedRuns = queuedRuns.filter((run) => run.stale);
+  const latestQueuedReleaseRun = queuedRuns.find((run) => run.headBranch === "main" && run.workflowName === "Next.js CI/CD") || null;
+  const productionVersion = health.ok ? health.body?.version || null : null;
+  const releaseLag = {
+    pending: Boolean(latestQueuedReleaseRun?.headSha && productionVersion && latestQueuedReleaseRun.headSha !== productionVersion),
+    productionVersion,
+    latestQueuedMainSha: latestQueuedReleaseRun?.headSha || null,
+    latestQueuedMainRunUrl: latestQueuedReleaseRun?.url || null,
+    latestQueuedMainWorkflow: latestQueuedReleaseRun?.workflowName || null,
+    latestQueuedMainQueuedMinutes: latestQueuedReleaseRun?.queuedMinutes ?? null,
+  };
 
   if (runner.status === "offline") blockers.push("GitHub reports yishun-prod-runner offline");
   if (!runner.found) blockers.push("GitHub runner inventory did not include yishun-prod-runner");
   if (staleQueuedRuns.length) blockers.push(`${staleQueuedRuns.length} watched GitHub workflow run(s) are stale-queued behind the runner`);
   if (queuedRuns.length && !staleQueuedRuns.length) watch.push(`${queuedRuns.length} watched GitHub workflow run(s) are queued but inside the stale threshold`);
+  if (releaseLag.pending) watch.push(`production release ${productionVersion} is behind queued main release ${latestQueuedReleaseRun.headSha}`);
   if (!sshDirect.ok) blockers.push("Direct gcloud SSH reachability check failed");
   if (health.ok && health.body?.version) watch.push(`production healthy on release ${health.body.version}`);
   if (!health.ok) watch.push("production health check failed or was unavailable");
 
-  return { blocked: blockers.length > 0, blockers, watch, staleQueuedRuns };
+  return { blocked: blockers.length > 0, blockers, watch, staleQueuedRuns, releaseLag };
+}
+
+function summarizeDisk(diskPayload, config) {
+  return {
+    name: diskPayload?.name || config.instance,
+    sizeGb: diskPayload?.sizeGb || null,
+    type: diskPayload?.type || null,
+    users: diskPayload?.users || [],
+  };
+}
+
+function summarizeSerialOutput(serialResult) {
+  const output = `${serialResult.stdout || ""}\n${serialResult.stderr || ""}`;
+  const noSpaceLines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /No space left on device|actions-runner\/_diag|runsvc\.sh/i.test(line))
+    .slice(-20);
+  const fullDiskDetected = noSpaceLines.some((line) => /No space left on device/i.test(line));
+
+  return {
+    ok: serialResult.ok,
+    code: serialResult.code,
+    fullDiskDetected,
+    runnerDiagNoSpace: fullDiskDetected && noSpaceLines.some((line) => /actions-runner\/_diag/i.test(line)),
+    lines: noSpaceLines,
+    stderr: serialResult.stderr,
+  };
+}
+
+function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
+  const nextActions = [];
+  if (serialConsole.runnerDiagNoSpace) {
+    summary.blockers.push("Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion");
+    nextActions.push("free runner diagnostic/cache space or increase the 10 GB boot disk before restarting the runner service");
+  }
+  if (gcpDisk.sizeGb) {
+    summary.watch.push(`boot disk size is ${gcpDisk.sizeGb} GB`);
+  }
+  return { ...summary, nextActions };
 }
 
 async function writeOutputs(config, payload, markdown) {
@@ -253,7 +304,7 @@ function firstNonEmptyLine(text) {
 }
 
 function markdownReport(config, payload, summary) {
-  const latestMain = payload.queuedRuns.find((run) => run.headBranch === "main") || null;
+  const latestMainRelease = payload.queuedRuns.find((run) => run.headBranch === "main" && run.workflowName === "Next.js CI/CD") || null;
   const troubleshootingLines = payload.troubleshooting.length
     ? payload.troubleshooting.map((item) => {
       const reason = firstNonEmptyLine(item.stderr);
@@ -261,6 +312,12 @@ function markdownReport(config, payload, summary) {
     }).join("\n")
     : "- Skipped; run with `--troubleshoot` to collect gcloud troubleshoot output.";
   const sshReason = firstNonEmptyLine(payload.ssh.direct.stderr);
+  const serialLines = payload.serialConsole.lines.length
+    ? payload.serialConsole.lines.map((line) => `  - ${line}`).join("\n")
+    : "  - no runner disk-exhaustion lines found in serial tail";
+  const nextAction = summary.nextActions?.length
+    ? summary.nextActions.join("; ")
+    : "recover VM SSH or the self-hosted runner service through a non-destructive access path";
 
   return `# YiShun Runner Recovery Diagnostic - ${cstStamp()}
 
@@ -278,11 +335,18 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - Max queued minutes: ${config.maxQueuedMinutes}
 - Watched queued runs: ${payload.queuedRuns.length}
 - Stale watched queued runs: ${payload.summary.staleQueuedRuns.length}
-- Latest queued main run: ${latestMain ? `${latestMain.workflowName} ${latestMain.headSha} ${latestMain.url}` : "none"}
+- Latest queued main release run: ${latestMainRelease ? `${latestMainRelease.workflowName} ${latestMainRelease.headSha} ${latestMainRelease.url}` : "none"}
+- Release lag: ${payload.summary.releaseLag.pending ? `yes production=${payload.summary.releaseLag.productionVersion} queued_main=${payload.summary.releaseLag.latestQueuedMainSha}` : "no queued main release lag detected"}
 - GCP VM: ${payload.gcpInstance.status || "unknown"} ${config.instance} ${config.zone}
+- GCP boot disk: ${payload.gcpDisk.sizeGb || "unknown"} GB ${payload.gcpDisk.type || ""}
+- Serial disk exhaustion: ${payload.serialConsole.runnerDiagNoSpace ? "yes, runner _diag log writes are failing with No space left on device" : "not detected in serial tail"}
 - Direct SSH check: ${payload.ssh.direct.ok ? "ok" : "failed"}${sshReason ? ` (${sshReason})` : ""}
 - Production health: ${payload.productionHealth.ok ? `ok version=${payload.productionHealth.body?.version || "unknown"}` : `failed ${payload.productionHealth.error || payload.productionHealth.status || "unknown"}`}
 - JSON evidence: \`${payload.evidencePath}\`
+
+## Serial Evidence
+
+${serialLines}
 
 ## Troubleshooting
 
@@ -291,8 +355,6 @@ ${troubleshootingLines}
 ## Changed Files
 
 - \`scripts/yishun-runner-recovery-diagnostic.mjs\`
-- \`package.json\`
-- \`scripts/yishun-monitoring-contract-audit.mjs\`
 
 ## Verification
 
@@ -304,7 +366,7 @@ ${troubleshootingLines}
 ## Next Action
 
 ${summary.blocked
-    ? "Recover VM SSH or the self-hosted runner service through a non-destructive access path, then let the queued main deploy finish and rerun production smoke with the expected main SHA."
+    ? `${nextAction}, then let the queued main deploy finish and rerun production smoke with the expected main SHA.`
     : "Re-dispatch or monitor the queued main deploy and YiShun Daily Ops Export, then rerun production smoke."}
 `;
 }
@@ -346,6 +408,28 @@ async function main() {
     config.zone,
     "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items)",
   ]);
+  const diskResult = await runCommand("gcloud", [
+    "compute",
+    "disks",
+    "describe",
+    config.instance,
+    "--project",
+    config.project,
+    "--zone",
+    config.zone,
+    "--format=json(name,sizeGb,type,users)",
+  ]);
+  const serialResult = await runCommand("gcloud", [
+    "compute",
+    "instances",
+    "get-serial-port-output",
+    config.instance,
+    "--project",
+    config.project,
+    "--zone",
+    config.zone,
+    "--port=1",
+  ], { timeoutMs: 30000 });
   const sshDirect = await runCommand("gcloud", [
     "compute",
     "ssh",
@@ -391,7 +475,13 @@ async function main() {
     summarizeQueuedRuns(queuedRunsListPayload, config),
   );
   const gcpInstance = parseJsonResult(instanceResult, {});
-  const summary = blockerSummary({ runner, queuedRuns, sshDirect, health });
+  const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config);
+  const serialConsole = summarizeSerialOutput(serialResult);
+  const summary = enrichSummaryWithGcpEvidence(
+    blockerSummary({ runner, queuedRuns, sshDirect, health }),
+    gcpDisk,
+    serialConsole,
+  );
 
   const payload = {
     ok: !summary.blocked,
@@ -419,6 +509,8 @@ async function main() {
       natIp: gcpInstance?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP || null,
       tags: gcpInstance?.tags?.items || [],
     },
+    gcpDisk,
+    serialConsole,
     ssh: {
       direct: { ok: sshDirect.ok, code: sshDirect.code, stderr: sshDirect.stderr, stdout: sshDirect.stdout },
     },

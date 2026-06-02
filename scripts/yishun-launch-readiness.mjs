@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { spawn } from "node:child_process";
 import { performance } from "node:perf_hooks";
 
@@ -11,6 +13,7 @@ if (args.has("--help")) {
   npm run launch:readiness:full
 
 Default gates are no-network/local-safe and stop on first failure.
+The default suite includes a no-network daily data report dry run.
 Use --full to add the production build gate.
 Use --consumer-ai-qa to add browser QA from mobile consumer personas.`);
   process.exit(0);
@@ -21,12 +24,22 @@ const runNpm = (script) => ({
   args: ["run", script, "--silent"],
 });
 
+const runNode = (script, scriptArgs = [], env = {}) => ({
+  command: process.execPath,
+  args: [script, ...scriptArgs],
+  env,
+});
+
 const gates = [
   ["lint", runNpm("lint")],
   ["typecheck", runNpm("typecheck")],
   ["consumer copy smoke", runNpm("smoke:consumer-copy")],
   ["production config audit", runNpm("audit:production-config")],
   ["analytics contract audit", runNpm("audit:analytics-contract")],
+  ["daily data report dry run", runNode("scripts/yishun-daily-data-report.mjs", [], {
+    YISHUN_REPORT_NO_NETWORK: "1",
+    YISHUN_DAILY_REPORT_DIR: path.join(tmpdir(), "yishun-launch-readiness-daily"),
+  })],
   ["monitoring contract audit", runNpm("audit:monitoring-contract")],
   ["growth ops contract audit", runNpm("audit:growth-ops")],
   ["stripe payment contract audit", runNpm("audit:stripe-contract")],
@@ -44,12 +57,12 @@ if (args.has("--consumer-ai-qa")) {
   gates.push(["consumer-grade AI user QA", runNpm("qa:consumer-ai")]);
 }
 
-function runGate(name, command, commandArgs) {
+function runGate(name, command, commandArgs, gateEnv = {}) {
   return new Promise((resolve) => {
     const started = performance.now();
     const child = spawn(command, commandArgs, {
       cwd: process.cwd(),
-      env: process.env,
+      env: { ...process.env, ...gateEnv },
       stdio: "inherit",
     });
 
@@ -71,7 +84,7 @@ console.log(`[launch:readiness] Starting ${gates.length} gates${args.has("--full
 
 for (const [name, gate] of gates) {
   console.log(`\n[launch:readiness] ${name}`);
-  const result = await runGate(name, gate.command, gate.args);
+  const result = await runGate(name, gate.command, gate.args, gate.env);
   results.push(result);
 
   if (result.code !== 0) {

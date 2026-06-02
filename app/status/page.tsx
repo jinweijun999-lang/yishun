@@ -82,6 +82,7 @@ export default async function StatusPage() {
           <CheckRow label="Application" status={health.checks.app} detail="Next.js route handling and status rendering are responding." />
           <CheckRow label="Database" status={health.checks.database} detail="Entitlements, saved reports, accounts, and support records depend on this check." />
           <CheckRow label="Stripe" status={health.checks.stripe} detail="Payment readiness checks whether server-side test or production Stripe settings are present." />
+          <CheckRow label="Google OAuth" status={health.checks.googleOAuth} detail={`Authorized redirect must match ${health.integrations.googleOAuth.expectedRedirectUri}.`} />
           <CheckRow label="Analytics" status={health.checks.analytics} detail="Funnel and operations reporting depends on a configured analytics endpoint or server log sink." />
         </section>
       </div>

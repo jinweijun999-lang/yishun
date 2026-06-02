@@ -42,15 +42,20 @@ for (const sharedHealthNeedle of [
   "configStatus",
   "process.env.STRIPE_SECRET_KEY",
   "process.env.STRIPE_PRICE_REPORT_SINGLE",
+  "googleOAuth: YiShunCheckStatus",
+  "getGoogleOAuthReadiness",
   "process.env.NEXT_PUBLIC_YISHUN_ANALYTICS_ENDPOINT",
   "process.env.YISHUN_ANALYTICS_FILE",
   "process.env.YISHUN_ANALYTICS_FILES",
   "process.env.YISHUN_ANALYTICS_DIR",
-  "databaseOk && stripeOk && analyticsOk",
+  "databaseOk && stripeOk && googleOAuthOk && analyticsOk",
   "checks: {",
   "database",
   "stripe",
+  "googleOAuth",
   "analytics",
+  "integrations",
+  "redirectMatches",
 ]) {
   assertContains("lib/yishun-health.ts", sharedHealthNeedle);
 }
@@ -59,9 +64,22 @@ for (const statusPageNeedle of [
   "YiShun Status",
   "Public Status",
   "getYiShunHealthSnapshot",
+  "Google OAuth",
+  "health.integrations.googleOAuth.expectedRedirectUri",
   "no secrets, database URLs, user data, payment details, or private analytics rows",
 ]) {
   assertContains("app/status/page.tsx", statusPageNeedle);
+}
+
+for (const googleOAuthHealthNeedle of [
+  "GOOGLE_OAUTH_CALLBACK_PATH",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_OAUTH_REDIRECT_URI",
+  "YISHUN_GOOGLE_OAUTH_REQUIRED",
+  "expectedGoogleOAuthRedirectUri",
+]) {
+  assertContains("lib/google-oauth-readiness.ts", googleOAuthHealthNeedle);
 }
 
 assertContains("app/sitemap.ts", "\"/status\"");
@@ -94,6 +112,9 @@ for (const deployNeedle of [
   "Verify production analytics file sink locally",
   "ops_analytics_file_sink_probe",
   "analytics file sink verified",
+  "Daily data report dry run",
+  "YISHUN_REPORT_NO_NETWORK=1",
+  "yishun-daily-data-report.mjs",
   "Smoke share landing API locally",
   "Smoke Bazi preview access boundary locally",
 ]) {
@@ -187,9 +208,16 @@ for (const runnerDiagnosticNeedle of [
   "mergeQueuedRuns",
   "maxQueuedMinutes",
   "staleQueuedRuns",
+  "releaseLag",
+  "queued_main=",
   "actions/runners",
   "gcloud",
   "compute",
+  "disks",
+  "get-serial-port-output",
+  "No space left on device",
+  "actions-runner/_diag",
+  "Serial disk exhaustion",
   "ssh",
   "--troubleshoot",
   "CODEX_BRIDGE_OUTBOX",
@@ -229,12 +257,21 @@ assertMatches("lib/error-logging.ts", /email\|phone\|token\|secret\|password\|bi
 assertContains("app/api/errors/route.ts", "buildSafeErrorLog");
 assertContains("app/api/errors/route.ts", "traceId");
 
+for (const launchReadinessNeedle of [
+  "daily data report dry run",
+  "YISHUN_REPORT_NO_NETWORK",
+  "yishun-launch-readiness-daily",
+]) {
+  assertContains("scripts/yishun-launch-readiness.mjs", launchReadinessNeedle);
+}
+
 console.log(
   JSON.stringify(
     {
       ok: true,
       checks: [
         "health_endpoint_exposes_safe_release_status",
+        "health_endpoint_exposes_google_oauth_redirect_readiness",
         "public_status_page_reuses_safe_health_snapshot",
         "deploy_workflow_verifies_local_health_and_core_smokes",
         "production_and_daily_route_patrol_cover_retention_tools_and_ask_surfaces",
@@ -246,6 +283,8 @@ console.log(
         "analytics_pipeline_probe_checks_cloud_logging_visibility",
         "runner_watchdog_surfaces_offline_self_hosted_runner_and_stale_queues",
         "runner_recovery_diagnostic_writes_bridge_evidence_for_offline_runner",
+        "runner_recovery_diagnostic_surfaces_release_lag",
+        "ci_and_launch_readiness_dry_run_daily_report",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],
     },
