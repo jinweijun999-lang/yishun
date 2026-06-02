@@ -231,12 +231,20 @@ function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
   return { blocked: blockers.length > 0, blockers, watch, staleQueuedRuns, releaseLag };
 }
 
-function summarizeDisk(diskPayload, config) {
+function lastPathSegment(value) {
+  return String(value || "").split("/").filter(Boolean).pop() || "";
+}
+
+function summarizeDisk(diskPayload, config, instancePayload = {}) {
+  const bootDisk = (instancePayload?.disks || []).find((disk) => disk.boot) || null;
+  const bootDiskName = lastPathSegment(bootDisk?.source) || bootDisk?.deviceName || "";
   return {
-    name: diskPayload?.name || config.instance,
-    sizeGb: diskPayload?.sizeGb || null,
+    name: diskPayload?.name || bootDiskName || config.instance,
+    sizeGb: diskPayload?.sizeGb || bootDisk?.diskSizeGb || null,
     type: diskPayload?.type || null,
     users: diskPayload?.users || [],
+    source: diskPayload?.selfLink || bootDisk?.source || null,
+    fromInstanceMetadata: !diskPayload?.sizeGb && Boolean(bootDisk?.diskSizeGb),
   };
 }
 
@@ -285,7 +293,7 @@ function safeRecoveryPlan(summary, payload) {
       owner: "Codex/GCP unattended if IAM permits",
       safe: true,
       blockedBy: "Requires GCP disk resize permission and later filesystem grow access on the VM",
-      command: `gcloud compute disks resize ${payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --size ${targetDiskSizeGb}GB`,
+      command: `gcloud compute disks resize ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --size ${targetDiskSizeGb}GB`,
       rollback: "No destructive rollback needed; larger persistent disk can remain attached.",
     });
     actions.push({
@@ -322,8 +330,11 @@ function safeRecoveryPlan(summary, payload) {
 
   return {
     diskPressureLikely,
-    canRecoverUnattended: actions
-      .some((action) => action.safe && !/SSH|serial console|runner service|disk resize permission/i.test(action.blockedBy)),
+    canRecoverUnattended: actions.some((action) =>
+      action.safe
+      && !/^Verify production/i.test(action.label)
+      && action.blockedBy === "None while https://11263.com is reachable"
+    ),
     canVerifyUnattended: actions.some((action) => action.safe && action.blockedBy === "None while https://11263.com is reachable"),
     actions,
     boundaries: [
@@ -501,7 +512,7 @@ async function main() {
     config.project,
     "--zone",
     config.zone,
-    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items)",
+    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items,disks[].boot,disks[].source,disks[].deviceName,disks[].diskSizeGb)",
   ]);
   const diskResult = await runCommand("gcloud", [
     "compute",
@@ -570,7 +581,7 @@ async function main() {
     summarizeQueuedRuns(queuedRunsListPayload, config),
   );
   const gcpInstance = parseJsonResult(instanceResult, {});
-  const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config);
+  const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config, gcpInstance);
   const serialConsole = summarizeSerialOutput(serialResult);
   const summary = enrichSummaryWithGcpEvidence(
     blockerSummary({ runner, queuedRuns, sshDirect, health }),
