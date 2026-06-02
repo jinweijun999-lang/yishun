@@ -129,6 +129,9 @@ for (const opsReviewNeedle of [
   "route_status.json",
   "core route patrol failed",
   "analytics_source.json",
+  "Analytics raw/product/ops-probe events",
+  "Analytics export sources",
+  "Cloud Logging analytics export returned zero entries",
   "Daily operations risk",
   "writeResult",
   "rawArgs.indexOf(\"--date\")",
@@ -208,6 +211,8 @@ for (const analyticsProbeNeedle of [
   "read",
   "probeId",
   "YISHUN_ANALYTICS_PROBE_WAIT_MS",
+  "latestReadError",
+  "summarizeError",
 ]) {
   assertContains("scripts/yishun-analytics-pipeline-probe.mjs", analyticsProbeNeedle);
 }

@@ -109,6 +109,15 @@ function logFilter({ probeId, startedAt }) {
   ].join(" ");
 }
 
+function summarizeError(error) {
+  return {
+    message: error instanceof Error ? error.message : String(error),
+    code: error?.code ?? null,
+    signal: error?.signal || null,
+    stderr: String(error?.stderr || "").slice(-1200),
+  };
+}
+
 async function readProbeLogs({ project, probeId, startedAt, timeoutMs }) {
   const filter = logFilter({ probeId, startedAt });
   const { stdout } = await execFileAsync("gcloud", [
@@ -176,14 +185,20 @@ async function main() {
 
   const deadline = Date.now() + config.waitMs;
   let latestLogRead = null;
+  let latestLogError = null;
   while (Date.now() <= deadline) {
-    latestLogRead = await readProbeLogs({
-      project: config.project,
-      probeId,
-      startedAt,
-      timeoutMs: config.timeoutMs,
-    });
-    if (latestLogRead.entries.length > 0) break;
+    try {
+      latestLogRead = await readProbeLogs({
+        project: config.project,
+        probeId,
+        startedAt,
+        timeoutMs: config.timeoutMs,
+      });
+      latestLogError = null;
+      if (latestLogRead.entries.length > 0) break;
+    } catch (error) {
+      latestLogError = summarizeError(error);
+    }
     await sleep(config.pollMs);
   }
 
@@ -210,6 +225,7 @@ async function main() {
       entryCount: latestLogRead?.entries.length || 0,
       filter: latestLogRead?.filter || logFilter({ probeId, startedAt }),
       firstEntryTimestamp: latestLogRead?.entries[0]?.timestamp || null,
+      latestReadError: latestLogError,
     },
     evidencePath: jsonOut,
   };

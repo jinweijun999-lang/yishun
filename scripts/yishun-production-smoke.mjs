@@ -31,6 +31,7 @@ function parseArgs() {
     jsonOut: process.env.YISHUN_PRODUCTION_SMOKE_OUT || "",
     label: process.env.YISHUN_PRODUCTION_SMOKE_LABEL || "",
     analyticsProbe: process.env.YISHUN_PRODUCTION_ANALYTICS_PROBE === "1",
+    requireGoogleOAuth: process.env.YISHUN_PRODUCTION_SMOKE_REQUIRE_GOOGLE_OAUTH === "1",
   };
 
   const args = process.argv.slice(2);
@@ -43,6 +44,7 @@ function parseArgs() {
     if (arg.startsWith("--label=")) config.label = arg.slice("--label=".length);
     if (arg === "--label") config.label = args[index + 1] || "";
     if (arg === "--analytics-probe") config.analyticsProbe = true;
+    if (arg === "--require-google-oauth") config.requireGoogleOAuth = true;
   }
 
   const label = sanitizeLabel(config.label);
@@ -115,6 +117,23 @@ async function checkHealth(config) {
   assert(health.checks?.stripe === "configured", "Production Stripe health must be configured", { stripe: health.checks?.stripe });
   assert(health.checks?.analytics === "configured", "Production analytics health must be configured", { analytics: health.checks?.analytics });
 
+  if (config.requireGoogleOAuth) {
+    const googleOAuth = health.integrations?.googleOAuth;
+    assert(health.checks?.googleOAuth === "configured", "Production Google OAuth health must be configured", {
+      googleOAuth: health.checks?.googleOAuth,
+    });
+    assert(googleOAuth?.required === true, "Production Google OAuth must be marked required", { googleOAuth });
+    assert(googleOAuth?.redirectMatches === true, "Production Google OAuth redirect URI must match the public base URL", {
+      googleOAuth,
+    });
+    assert(
+      typeof googleOAuth?.expectedRedirectUri === "string" &&
+        googleOAuth.expectedRedirectUri === `${config.baseUrl}/api/auth/callback/google`,
+      "Production Google OAuth expected redirect URI must use the public base URL",
+      { expectedRedirectUri: googleOAuth?.expectedRedirectUri, baseUrl: config.baseUrl },
+    );
+  }
+
   if (config.expectedSha) {
     assert(
       health.version === config.expectedSha,
@@ -129,6 +148,7 @@ async function checkHealth(config) {
     latencyMs: result.latencyMs,
     version: health.version,
     checks: health.checks,
+    googleOAuth: health.integrations?.googleOAuth || null,
   };
 }
 

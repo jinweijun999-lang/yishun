@@ -107,9 +107,25 @@ function failedRouteLabels(routeStatus) {
     .map((route) => `${route.route}=${route.status || route.error || "failed"}`);
 }
 
+function exportSourceSummary(analyticsSource) {
+  const meta = Array.isArray(analyticsSource?.exportMeta) ? analyticsSource.exportMeta : [];
+  if (!meta.length) return "none";
+  return meta.map((item) => {
+    const source = value(item.sourceKind, "unknown");
+    const events = value(item.eventCount, "0");
+    const rows = value(item.parsedRows ?? item.entryCount ?? item.rawLineCount, "0");
+    const generatedAt = value(item.generatedAt, "unknown");
+    return `${source}: events=${events} rows=${rows} generated=${generatedAt}`;
+  }).join("; ");
+}
+
 function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }) {
   const actionRequired = [];
   const watch = [];
+  const rawReportDateEvents = Number(analyticsSource?.rawReportDateEvents || 0);
+  const productEvents = Number(analyticsSource?.reportDateEvents || 0);
+  const operationalProbeEvents = Number(analyticsSource?.operationalProbeEvents || 0);
+  const exportMeta = Array.isArray(analyticsSource?.exportMeta) ? analyticsSource.exportMeta : [];
 
   if (uptime?.ok === false) actionRequired.push(`production health failed (${value(uptime.status || uptime.error)})`);
   const failedRoutes = failedRouteLabels(routeStatus);
@@ -128,6 +144,15 @@ function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }
     watch.push(`production analytics file export failed: ${analyticsSource.note}`);
   }
   if (Number(analyticsSource?.malformedRows || 0) > 0) watch.push(`${analyticsSource.malformedRows} malformed analytics rows were ignored`);
+  if (rawReportDateEvents > 0 && productEvents === 0 && operationalProbeEvents > 0) {
+    watch.push("analytics export contains only operational probe events; product funnel still has zero user events");
+  }
+  if (exportMeta.some((meta) => meta.sourceKind === "cloud_logging" && Number(meta.entryCount || 0) === 0)) {
+    watch.push("Cloud Logging analytics export returned zero entries");
+  }
+  if (exportMeta.some((meta) => meta.sourceKind === "production_file" && Number(meta.rawLineCount || 0) === 0)) {
+    watch.push("production analytics file sink export returned zero rows");
+  }
   if (anomalies.some((item) => /Checkout starts|Stripe webhook DB summary unavailable|No analytics events/i.test(item))) {
     watch.push("daily report contains funnel or telemetry anomalies");
   }
@@ -207,6 +232,8 @@ ${firstItems(risk.items, 6)}
 - Core route base URL: ${value(routeStatus?.baseUrl)}
 - Analytics source: ${analyticsSource?.available ? `available (${value(analyticsSource.reportDateEvents, "0")} report-date events, ${value(analyticsSource.parsedRows, "0")} parsed rows)` : "unavailable"}
 - Analytics health status: ${value(analyticsSource?.healthAnalyticsStatus)}
+- Analytics raw/product/ops-probe events: ${value(analyticsSource?.rawReportDateEvents, "0")} / ${value(analyticsSource?.reportDateEvents, "0")} / ${value(analyticsSource?.operationalProbeEvents, "0")}
+- Analytics export sources: ${exportSourceSummary(analyticsSource)}
 - Payment reconciliation: ${value(payment?.risk)}
 - Checkout starts: ${value(payment?.checkoutStarted, "0")}
 - Entitlements granted: ${value(payment?.entitlementGranted, "0")}

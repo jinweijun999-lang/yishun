@@ -204,7 +204,11 @@ function mergeQueuedRuns(...groups) {
   return [...byId.values()].sort((a, b) => b.queuedMinutes - a.queuedMinutes);
 }
 
-function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
+function gcloudBillingDisabled(...results) {
+  return results.some((result) => /billing (to be enabled|disabled)|BILLING_DISABLED/i.test(`${result?.stdout || ""}\n${result?.stderr || ""}`));
+}
+
+function blockerSummary({ runner, queuedRuns, sshDirect, sshIap, troubleshooting, health }) {
   const blockers = [];
   const watch = [];
   const staleQueuedRuns = queuedRuns.filter((run) => run.stale);
@@ -224,7 +228,10 @@ function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
   if (staleQueuedRuns.length) blockers.push(`${staleQueuedRuns.length} watched GitHub workflow run(s) are stale-waiting behind the runner`);
   if (queuedRuns.length && !staleQueuedRuns.length) watch.push(`${queuedRuns.length} watched GitHub workflow run(s) are waiting but inside the stale threshold`);
   if (releaseLag.pending) watch.push(`production release ${productionVersion} is behind queued main release ${latestQueuedReleaseRun.headSha}`);
-  if (!sshDirect.ok) blockers.push("Direct gcloud SSH reachability check failed");
+  if (!sshDirect.ok && !sshIap.ok) blockers.push("Direct and IAP gcloud SSH reachability checks failed");
+  else if (!sshDirect.ok) blockers.push("Direct gcloud SSH reachability check failed");
+  else if (!sshIap.ok) watch.push("IAP gcloud SSH reachability check failed");
+  if (gcloudBillingDisabled(...troubleshooting)) watch.push("GCP SSH troubleshooting is limited because billing is disabled for bazifortune");
   if (health.ok && health.body?.version) watch.push(`production healthy on release ${health.body.version}`);
   if (!health.ok) watch.push("production health check failed or was unavailable");
 
@@ -425,15 +432,28 @@ function firstNonEmptyLine(text) {
     .find(Boolean) || "";
 }
 
+function diagnosticReasonLine(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.find((line) => /^(ERROR|PERMISSION_DENIED):/i.test(line))
+    || lines.find((line) => /Connection (closed|timed out|refused)|banner exchange|requires billing|BILLING_DISABLED|PermissionDenied/i.test(line))
+    || lines.find((line) => !/^WARNING:?$/i.test(line) && !/^Starting ssh troubleshooting/i.test(line))
+    || lines[0]
+    || "";
+}
+
 function markdownReport(config, payload, summary) {
   const latestMainRelease = payload.queuedRuns.find((run) => run.headBranch === "main" && run.workflowName === "Next.js CI/CD") || null;
   const troubleshootingLines = payload.troubleshooting.length
     ? payload.troubleshooting.map((item) => {
-      const reason = firstNonEmptyLine(item.stderr);
+      const reason = diagnosticReasonLine(item.stderr);
       return `- ${item.mode}: ${item.ok ? "ok" : "failed"}${reason ? ` (${reason})` : ""}`;
     }).join("\n")
     : "- Skipped; run with `--troubleshoot` to collect gcloud troubleshoot output.";
-  const sshReason = firstNonEmptyLine(payload.ssh.direct.stderr);
+  const sshReason = diagnosticReasonLine(payload.ssh.direct.stderr);
+  const iapSshReason = diagnosticReasonLine(payload.ssh.iap.stderr);
   const serialLines = payload.serialConsole.lines.length
     ? payload.serialConsole.lines.map((line) => `  - ${line}`).join("\n")
     : "  - no runner disk-exhaustion lines found in serial tail";
@@ -479,6 +499,7 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - Serial disk exhaustion: ${payload.serialConsole.runnerDiagNoSpace ? "yes, runner _diag log writes are failing with No space left on device" : "not detected in serial tail"}
 - Cloud Ops metrics export: ${payload.serialConsole.opsAgentBillingDisabled ? "billing-disabled failure detected in serial tail" : "no billing-disabled failure detected in serial tail"}
 - Direct SSH check: ${payload.ssh.direct.ok ? "ok" : "failed"}${sshReason ? ` (${sshReason})` : ""}
+- IAP SSH check: ${payload.ssh.iap.ok ? "ok" : "failed"}${iapSshReason ? ` (${iapSshReason})` : ""}
 - Production health: ${payload.productionHealth.ok ? `ok version=${payload.productionHealth.body?.version || "unknown"}` : `failed ${payload.productionHealth.error || payload.productionHealth.status || "unknown"}`}
 - JSON evidence: \`${payload.evidencePath}\`
 
@@ -598,6 +619,21 @@ async function main() {
     "--ssh-flag=-o ConnectTimeout=10",
     "--quiet",
   ], { timeoutMs: 30000 });
+  const sshIap = await runCommand("gcloud", [
+    "compute",
+    "ssh",
+    config.instance,
+    "--project",
+    config.project,
+    "--zone",
+    config.zone,
+    "--tunnel-through-iap",
+    "--command",
+    "true",
+    "--ssh-flag=-o BatchMode=yes",
+    "--ssh-flag=-o ConnectTimeout=10",
+    "--quiet",
+  ], { timeoutMs: 30000 });
 
   const troubleshooting = [];
   if (config.troubleshoot) {
@@ -632,7 +668,7 @@ async function main() {
   const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config, gcpInstance);
   const serialConsole = summarizeSerialOutput(serialResult);
   const summary = enrichSummaryWithGcpEvidence(
-    blockerSummary({ runner, queuedRuns, sshDirect, health }),
+    blockerSummary({ runner, queuedRuns, sshDirect, sshIap, troubleshooting, health }),
     gcpDisk,
     serialConsole,
   );
@@ -667,6 +703,7 @@ async function main() {
     serialConsole,
     ssh: {
       direct: { ok: sshDirect.ok, code: sshDirect.code, stderr: sshDirect.stderr, stdout: sshDirect.stdout },
+      iap: { ok: sshIap.ok, code: sshIap.code, stderr: sshIap.stderr, stdout: sshIap.stdout },
     },
     troubleshooting,
     productionHealth: health,
