@@ -71,6 +71,17 @@ for (const statusPageNeedle of [
   assertContains("app/status/page.tsx", statusPageNeedle);
 }
 
+for (const googleOAuthHealthNeedle of [
+  "GOOGLE_OAUTH_CALLBACK_PATH",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_OAUTH_REDIRECT_URI",
+  "YISHUN_GOOGLE_OAUTH_REQUIRED",
+  "expectedGoogleOAuthRedirectUri",
+]) {
+  assertContains("lib/google-oauth-readiness.ts", googleOAuthHealthNeedle);
+}
+
 assertContains("app/sitemap.ts", "\"/status\"");
 assertContains("scripts/yishun-production-smoke.mjs", "[\"/status\", \"YiShun Status\"]");
 
