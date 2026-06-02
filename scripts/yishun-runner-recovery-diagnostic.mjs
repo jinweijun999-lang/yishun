@@ -255,14 +255,22 @@ function summarizeSerialOutput(serialResult) {
     .map((line) => line.trim())
     .filter((line) => /No space left on device|actions-runner\/_diag|runsvc\.sh/i.test(line))
     .slice(-20);
+  const opsAgentBillingLines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /otelopscol|billing to be enabled|PermissionDenied desc = This API method requires billing/i.test(line))
+    .slice(-12);
   const fullDiskDetected = noSpaceLines.some((line) => /No space left on device/i.test(line));
+  const opsAgentBillingDisabled = opsAgentBillingLines.some((line) => /billing to be enabled/i.test(line));
 
   return {
     ok: serialResult.ok,
     code: serialResult.code,
     fullDiskDetected,
     runnerDiagNoSpace: fullDiskDetected && noSpaceLines.some((line) => /actions-runner\/_diag/i.test(line)),
+    opsAgentBillingDisabled,
     lines: noSpaceLines,
+    opsAgentBillingLines,
     stderr: serialResult.stderr,
   };
 }
@@ -272,11 +280,23 @@ function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
   const diskSizeGb = Number(gcpDisk.sizeGb || 0);
   const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
   if (serialConsole.runnerDiagNoSpace) {
-    summary.blockers.push("Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion");
-    nextActions.push(`free runner diagnostic/cache space or increase the ${diskSizeGb || "current"} GB boot disk toward ${targetDiskSizeGb} GB before restarting the runner service`);
+    const diskAlreadyExpanded = Number.isFinite(diskSizeGb) && diskSizeGb >= 20;
+    summary.blockers.push(
+      diskAlreadyExpanded
+        ? `Serial console still shows GitHub runner crash loop from actions-runner/_diag disk exhaustion after the boot disk was expanded to ${diskSizeGb} GB`
+        : "Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion",
+    );
+    nextActions.push(
+      diskAlreadyExpanded
+        ? "grow the guest filesystem or clear runner diagnostic/cache pressure through an SSH, serial console, startup-script, or OS Config access path before restarting the runner service"
+        : `free runner diagnostic/cache space or increase the ${diskSizeGb || "current"} GB boot disk toward ${targetDiskSizeGb} GB before restarting the runner service`,
+    );
   }
   if (gcpDisk.sizeGb) {
     summary.watch.push(`boot disk size is ${gcpDisk.sizeGb} GB`);
+  }
+  if (serialConsole.opsAgentBillingDisabled) {
+    summary.watch.push("Cloud Ops metrics export is failing because GCP billing is disabled for bazifortune");
   }
   return { ...summary, nextActions };
 }
@@ -286,8 +306,10 @@ function safeRecoveryPlan(summary, payload) {
   const diskSizeGb = Number(payload.gcpDisk?.sizeGb || 0);
   const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
   const diskPressureLikely = payload.serialConsole?.runnerDiagNoSpace || (Number.isFinite(diskSizeGb) && diskSizeGb > 0 && diskSizeGb <= 10);
+  const diskAlreadyExpanded = diskPressureLikely && Number.isFinite(diskSizeGb) && diskSizeGb >= 20;
+  const diskCapacityStillSmall = diskPressureLikely && (!Number.isFinite(diskSizeGb) || diskSizeGb < 20);
 
-  if (diskPressureLikely) {
+  if (diskCapacityStillSmall) {
     actions.push({
       label: "Increase boot disk capacity",
       owner: "Codex/GCP unattended if IAM permits",
@@ -296,13 +318,31 @@ function safeRecoveryPlan(summary, payload) {
       command: `gcloud compute disks resize ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --size ${targetDiskSizeGb}GB`,
       rollback: "No destructive rollback needed; larger persistent disk can remain attached.",
     });
+  }
+
+  if (diskAlreadyExpanded) {
     actions.push({
-      label: "Grow filesystem after disk resize",
+      label: "Do not repeat disk resize until guest filesystem state is confirmed",
+      owner: "Codex/GCP unattended diagnostics",
+      safe: true,
+      blockedBy: "The boot disk is already expanded; more capacity is unlikely to help until the guest filesystem or runner log/cache pressure is fixed",
+      command: `gcloud compute disks describe ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --format='value(sizeGb,status)'`,
+      rollback: "No infrastructure change is made by this verification step.",
+    });
+  }
+
+  if (diskPressureLikely) {
+    actions.push({
+      label: diskAlreadyExpanded ? "Grow filesystem after disk resize or clear runner-only pressure" : "Grow filesystem after disk resize",
       owner: "Codex/GCP unattended if SSH or serial console access is restored",
       safe: true,
-      blockedBy: "Current direct SSH diagnostic must pass, or an equivalent non-destructive serial-console access path must be available",
+      blockedBy: diskAlreadyExpanded
+        ? "Requires SSH, serial console, startup-script, or OS Config execution access; current direct SSH diagnostic is failing"
+        : "Current direct SSH diagnostic must pass, or an equivalent non-destructive serial-console access path must be available",
       command: "sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1",
-      rollback: "No data deletion; rerun df -h and production health checks after the grow operation.",
+      rollback: diskAlreadyExpanded
+        ? "No user-data deletion; rerun df -h, runner diagnostic, and production health checks after the grow operation."
+        : "No data deletion; rerun df -h and production health checks after the grow operation.",
     });
   }
 
@@ -397,6 +437,9 @@ function markdownReport(config, payload, summary) {
   const serialLines = payload.serialConsole.lines.length
     ? payload.serialConsole.lines.map((line) => `  - ${line}`).join("\n")
     : "  - no runner disk-exhaustion lines found in serial tail";
+  const opsAgentLines = payload.serialConsole.opsAgentBillingLines.length
+    ? payload.serialConsole.opsAgentBillingLines.map((line) => `  - ${line}`).join("\n")
+    : "  - no Cloud Ops billing-disabled lines found in serial tail";
   const nextAction = summary.nextActions?.length
     ? summary.nextActions.join("; ")
     : "recover VM SSH or the self-hosted runner service through a non-destructive access path";
@@ -434,6 +477,7 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - GCP VM: ${payload.gcpInstance.status || "unknown"} ${config.instance} ${config.zone}
 - GCP boot disk: ${payload.gcpDisk.sizeGb || "unknown"} GB ${payload.gcpDisk.type || ""}
 - Serial disk exhaustion: ${payload.serialConsole.runnerDiagNoSpace ? "yes, runner _diag log writes are failing with No space left on device" : "not detected in serial tail"}
+- Cloud Ops metrics export: ${payload.serialConsole.opsAgentBillingDisabled ? "billing-disabled failure detected in serial tail" : "no billing-disabled failure detected in serial tail"}
 - Direct SSH check: ${payload.ssh.direct.ok ? "ok" : "failed"}${sshReason ? ` (${sshReason})` : ""}
 - Production health: ${payload.productionHealth.ok ? `ok version=${payload.productionHealth.body?.version || "unknown"}` : `failed ${payload.productionHealth.error || payload.productionHealth.status || "unknown"}`}
 - JSON evidence: \`${payload.evidencePath}\`
@@ -441,6 +485,10 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 ## Serial Evidence
 
 ${serialLines}
+
+## Monitoring Serial Evidence
+
+${opsAgentLines}
 
 ## Troubleshooting
 
