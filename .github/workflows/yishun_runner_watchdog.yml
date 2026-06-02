@@ -17,10 +17,11 @@ jobs:
     env:
       REQUIRED_RUNNER_LABELS: self-hosted,Linux,X64,yishun-prod
       MAX_QUEUED_MINUTES: "10"
+      WAITING_RUN_STATUSES: queued,pending,waiting,requested
       WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export
 
     steps:
-      - name: Check YiShun runner and queued operations
+      - name: Check YiShun runner and waiting operations
         uses: actions/github-script@v8.0.0
         with:
           script: |
@@ -32,17 +33,29 @@ jobs:
               .split(",")
               .map((name) => name.trim())
               .filter(Boolean);
+            const waitingStatuses = process.env.WAITING_RUN_STATUSES
+              .split(",")
+              .map((status) => status.trim())
+              .filter(Boolean);
             const maxQueuedMinutes = Number(process.env.MAX_QUEUED_MINUTES || "10");
             const { owner, repo } = context.repo;
 
-            const queuedRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
-              owner,
-              repo,
-              status: "queued",
-              per_page: 100,
-            });
+            const waitingRunPages = await Promise.all(waitingStatuses.map((status) =>
+              github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                owner,
+                repo,
+                status,
+                per_page: 100,
+              })
+                .then((runs) => runs.map((run) => ({ ...run, watchdog_status: status })))
+            ));
+            const waitingRunsById = new Map();
+            for (const run of waitingRunPages.flat()) {
+              waitingRunsById.set(run.id, run);
+            }
+            const waitingRuns = [...waitingRunsById.values()];
             const staleCutoffMs = Date.now() - maxQueuedMinutes * 60 * 1000;
-            const staleWatchedRuns = queuedRuns.filter((run) => {
+            const staleWatchedRuns = waitingRuns.filter((run) => {
               if (!watchedWorkflows.includes(run.name)) return false;
               return new Date(run.created_at).getTime() < staleCutoffMs;
             });
@@ -54,16 +67,17 @@ jobs:
                 ["Expected self-hosted labels", labels.join(", ")],
                 ["Direct runner API", "not used; GITHUB_TOKEN does not grant runner administration read"],
                 ["Watched workflows", watchedWorkflows.join(", ")],
+                ["Waiting statuses", waitingStatuses.join(", ")],
                 ["Max queued minutes", String(maxQueuedMinutes)],
-                ["Stale queued watched runs", String(staleWatchedRuns.length)],
+                ["Stale waiting watched runs", String(staleWatchedRuns.length)],
               ])
               .write();
 
             if (staleWatchedRuns.length > 0) {
               const details = staleWatchedRuns
-                .map((run) => `${run.name} #${run.run_number} queued since ${run.created_at}: ${run.html_url}`)
+                .map((run) => `${run.name} #${run.run_number} ${run.status} since ${run.created_at}: ${run.html_url}`)
                 .join("; ");
-              throw new Error(`YiShun watched workflow is queued longer than ${maxQueuedMinutes} minutes. ${details}`);
+              throw new Error(`YiShun watched workflow is waiting longer than ${maxQueuedMinutes} minutes. ${details}`);
             }
 
-            core.info("YiShun runner watchdog passed: no watched workflow has been queued past the threshold.");
+            core.info("YiShun runner watchdog passed: no watched workflow has waited past the threshold.");
