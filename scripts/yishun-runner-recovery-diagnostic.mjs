@@ -255,14 +255,22 @@ function summarizeSerialOutput(serialResult) {
     .map((line) => line.trim())
     .filter((line) => /No space left on device|actions-runner\/_diag|runsvc\.sh/i.test(line))
     .slice(-20);
+  const opsAgentBillingLines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /otelopscol|billing to be enabled|PermissionDenied desc = This API method requires billing/i.test(line))
+    .slice(-12);
   const fullDiskDetected = noSpaceLines.some((line) => /No space left on device/i.test(line));
+  const opsAgentBillingDisabled = opsAgentBillingLines.some((line) => /billing to be enabled/i.test(line));
 
   return {
     ok: serialResult.ok,
     code: serialResult.code,
     fullDiskDetected,
     runnerDiagNoSpace: fullDiskDetected && noSpaceLines.some((line) => /actions-runner\/_diag/i.test(line)),
+    opsAgentBillingDisabled,
     lines: noSpaceLines,
+    opsAgentBillingLines,
     stderr: serialResult.stderr,
   };
 }
@@ -286,6 +294,9 @@ function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
   }
   if (gcpDisk.sizeGb) {
     summary.watch.push(`boot disk size is ${gcpDisk.sizeGb} GB`);
+  }
+  if (serialConsole.opsAgentBillingDisabled) {
+    summary.watch.push("Cloud Ops metrics export is failing because GCP billing is disabled for bazifortune");
   }
   return { ...summary, nextActions };
 }
@@ -426,6 +437,9 @@ function markdownReport(config, payload, summary) {
   const serialLines = payload.serialConsole.lines.length
     ? payload.serialConsole.lines.map((line) => `  - ${line}`).join("\n")
     : "  - no runner disk-exhaustion lines found in serial tail";
+  const opsAgentLines = payload.serialConsole.opsAgentBillingLines.length
+    ? payload.serialConsole.opsAgentBillingLines.map((line) => `  - ${line}`).join("\n")
+    : "  - no Cloud Ops billing-disabled lines found in serial tail";
   const nextAction = summary.nextActions?.length
     ? summary.nextActions.join("; ")
     : "recover VM SSH or the self-hosted runner service through a non-destructive access path";
@@ -463,6 +477,7 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - GCP VM: ${payload.gcpInstance.status || "unknown"} ${config.instance} ${config.zone}
 - GCP boot disk: ${payload.gcpDisk.sizeGb || "unknown"} GB ${payload.gcpDisk.type || ""}
 - Serial disk exhaustion: ${payload.serialConsole.runnerDiagNoSpace ? "yes, runner _diag log writes are failing with No space left on device" : "not detected in serial tail"}
+- Cloud Ops metrics export: ${payload.serialConsole.opsAgentBillingDisabled ? "billing-disabled failure detected in serial tail" : "no billing-disabled failure detected in serial tail"}
 - Direct SSH check: ${payload.ssh.direct.ok ? "ok" : "failed"}${sshReason ? ` (${sshReason})` : ""}
 - Production health: ${payload.productionHealth.ok ? `ok version=${payload.productionHealth.body?.version || "unknown"}` : `failed ${payload.productionHealth.error || payload.productionHealth.status || "unknown"}`}
 - JSON evidence: \`${payload.evidencePath}\`
@@ -470,6 +485,10 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 ## Serial Evidence
 
 ${serialLines}
+
+## Monitoring Serial Evidence
+
+${opsAgentLines}
 
 ## Troubleshooting
 
