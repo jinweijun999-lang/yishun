@@ -322,7 +322,9 @@ function safeRecoveryPlan(summary, payload) {
 
   return {
     diskPressureLikely,
-    canProceedUnattended: actions.some((action) => action.safe && action.blockedBy === "None while https://11263.com is reachable"),
+    canRecoverUnattended: actions
+      .some((action) => action.safe && !/SSH|serial console|runner service|disk resize permission/i.test(action.blockedBy)),
+    canVerifyUnattended: actions.some((action) => action.safe && action.blockedBy === "None while https://11263.com is reachable"),
     actions,
     boundaries: [
       "Do not delete user data.",
@@ -436,7 +438,8 @@ ${troubleshootingLines}
 ## Safe Recovery Plan
 
 - Disk pressure likely: ${payload.safeRecoveryPlan.diskPressureLikely ? "yes" : "no"}
-- Can proceed unattended: ${payload.safeRecoveryPlan.canProceedUnattended ? "yes" : "no"}
+- Can recover unattended: ${payload.safeRecoveryPlan.canRecoverUnattended ? "yes" : "no"}
+- Can verify unattended: ${payload.safeRecoveryPlan.canVerifyUnattended ? "yes" : "no"}
 
 ${recoveryActions}
 
