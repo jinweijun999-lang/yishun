@@ -15,6 +15,7 @@ const DEFAULT_OUTBOX = "/Users/xiajarvan/.openclaw/workspace/codex-bridge/outbox
 const DEFAULT_FALLBACK = "/Users/xiajarvan/Documents/流量矩阵/ops/reports";
 const DEFAULT_EVIDENCE_DIR = "reports/evidence";
 const TIME_ZONE = "Asia/Shanghai";
+const WAITING_RUN_STATUSES = ["queued", "pending", "waiting", "requested"];
 
 function cstStamp(value = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -72,6 +73,7 @@ function usage() {
 
 Collects non-destructive YiShun self-hosted runner recovery evidence:
 - GitHub runner inventory and queued workflows
+- GitHub waiting workflow states: queued, pending, waiting, requested
 - GCP VM metadata and direct SSH reachability
 - optional gcloud SSH troubleshooting
 - production /api/health status
@@ -174,7 +176,7 @@ function queueAgeMinutes(run, now = new Date()) {
 
 function summarizeQueuedRuns(runs, config) {
   return (Array.isArray(runs) ? runs : [])
-    .filter((run) => run.status === "queued")
+    .filter((run) => WAITING_RUN_STATUSES.includes(run.status))
     .filter((run) => config.watchedWorkflows.includes(run.name || run.workflowName))
     .map((run) => ({
       databaseId: run.id || run.databaseId,
@@ -183,6 +185,7 @@ function summarizeQueuedRuns(runs, config) {
       displayTitle: run.display_title || run.displayTitle,
       headBranch: run.head_branch || run.headBranch,
       headSha: run.head_sha || run.headSha,
+      status: run.status,
       createdAt: run.created_at || run.createdAt,
       queuedMinutes: queueAgeMinutes(run),
       stale: queueAgeMinutes(run) > config.maxQueuedMinutes,
@@ -218,8 +221,8 @@ function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
 
   if (runner.status === "offline") blockers.push("GitHub reports yishun-prod-runner offline");
   if (!runner.found) blockers.push("GitHub runner inventory did not include yishun-prod-runner");
-  if (staleQueuedRuns.length) blockers.push(`${staleQueuedRuns.length} watched GitHub workflow run(s) are stale-queued behind the runner`);
-  if (queuedRuns.length && !staleQueuedRuns.length) watch.push(`${queuedRuns.length} watched GitHub workflow run(s) are queued but inside the stale threshold`);
+  if (staleQueuedRuns.length) blockers.push(`${staleQueuedRuns.length} watched GitHub workflow run(s) are stale-waiting behind the runner`);
+  if (queuedRuns.length && !staleQueuedRuns.length) watch.push(`${queuedRuns.length} watched GitHub workflow run(s) are waiting but inside the stale threshold`);
   if (releaseLag.pending) watch.push(`production release ${productionVersion} is behind queued main release ${latestQueuedReleaseRun.headSha}`);
   if (!sshDirect.ok) blockers.push("Direct gcloud SSH reachability check failed");
   if (health.ok && health.body?.version) watch.push(`production healthy on release ${health.body.version}`);
@@ -228,12 +231,20 @@ function blockerSummary({ runner, queuedRuns, sshDirect, health }) {
   return { blocked: blockers.length > 0, blockers, watch, staleQueuedRuns, releaseLag };
 }
 
-function summarizeDisk(diskPayload, config) {
+function lastPathSegment(value) {
+  return String(value || "").split("/").filter(Boolean).pop() || "";
+}
+
+function summarizeDisk(diskPayload, config, instancePayload = {}) {
+  const bootDisk = (instancePayload?.disks || []).find((disk) => disk.boot) || null;
+  const bootDiskName = lastPathSegment(bootDisk?.source) || bootDisk?.deviceName || "";
   return {
-    name: diskPayload?.name || config.instance,
-    sizeGb: diskPayload?.sizeGb || null,
+    name: diskPayload?.name || bootDiskName || config.instance,
+    sizeGb: diskPayload?.sizeGb || bootDisk?.diskSizeGb || null,
     type: diskPayload?.type || null,
     users: diskPayload?.users || [],
+    source: diskPayload?.selfLink || bootDisk?.source || null,
+    fromInstanceMetadata: !diskPayload?.sizeGb && Boolean(bootDisk?.diskSizeGb),
   };
 }
 
@@ -258,14 +269,85 @@ function summarizeSerialOutput(serialResult) {
 
 function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
   const nextActions = [];
+  const diskSizeGb = Number(gcpDisk.sizeGb || 0);
+  const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
   if (serialConsole.runnerDiagNoSpace) {
     summary.blockers.push("Serial console shows GitHub runner crash loop from actions-runner/_diag disk exhaustion");
-    nextActions.push("free runner diagnostic/cache space or increase the 10 GB boot disk before restarting the runner service");
+    nextActions.push(`free runner diagnostic/cache space or increase the ${diskSizeGb || "current"} GB boot disk toward ${targetDiskSizeGb} GB before restarting the runner service`);
   }
   if (gcpDisk.sizeGb) {
     summary.watch.push(`boot disk size is ${gcpDisk.sizeGb} GB`);
   }
   return { ...summary, nextActions };
+}
+
+function safeRecoveryPlan(summary, payload) {
+  const actions = [];
+  const diskSizeGb = Number(payload.gcpDisk?.sizeGb || 0);
+  const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
+  const diskPressureLikely = payload.serialConsole?.runnerDiagNoSpace || (Number.isFinite(diskSizeGb) && diskSizeGb > 0 && diskSizeGb <= 10);
+
+  if (diskPressureLikely) {
+    actions.push({
+      label: "Increase boot disk capacity",
+      owner: "Codex/GCP unattended if IAM permits",
+      safe: true,
+      blockedBy: "Requires GCP disk resize permission and later filesystem grow access on the VM",
+      command: `gcloud compute disks resize ${payload.gcpDisk?.name || payload.config.instance} --project ${payload.config.project} --zone ${payload.config.zone} --size ${targetDiskSizeGb}GB`,
+      rollback: "No destructive rollback needed; larger persistent disk can remain attached.",
+    });
+    actions.push({
+      label: "Grow filesystem after disk resize",
+      owner: "Codex/GCP unattended if SSH or serial console access is restored",
+      safe: true,
+      blockedBy: "Current direct SSH diagnostic must pass, or an equivalent non-destructive serial-console access path must be available",
+      command: "sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1",
+      rollback: "No data deletion; rerun df -h and production health checks after the grow operation.",
+    });
+  }
+
+  if (payload.runner?.status === "offline" || payload.summary?.staleQueuedRuns?.length) {
+    actions.push({
+      label: "Restart GitHub runner service after disk pressure is cleared",
+      owner: "Codex/GCP unattended if SSH or runner service access is restored",
+      safe: true,
+      blockedBy: "Do not restart until disk pressure is cleared and production health is confirmed",
+      command: "sudo systemctl restart actions.runner.*.service",
+      rollback: "If deployment queue remains stuck, keep production untouched and report runner service logs.",
+    });
+  }
+
+  if (payload.productionHealth?.ok) {
+    actions.push({
+      label: "Verify production before and after recovery",
+      owner: "Codex",
+      safe: true,
+      blockedBy: "None while https://11263.com is reachable",
+      command: `npm run smoke:production -- --base-url=${payload.config.baseUrl} --label=runner-recovery-verify`,
+      rollback: "If smoke fails, avoid deploy/restart and report the failed evidence file.",
+    });
+  }
+
+  return {
+    diskPressureLikely,
+    canRecoverUnattended: actions.some((action) =>
+      action.safe
+      && !/^Verify production/i.test(action.label)
+      && action.blockedBy === "None while https://11263.com is reachable"
+    ),
+    canVerifyUnattended: actions.some((action) => action.safe && action.blockedBy === "None while https://11263.com is reachable"),
+    actions,
+    boundaries: [
+      "Do not delete user data.",
+      "Do not force push or rewrite remote history.",
+      "Do not perform destructive database operations.",
+      "Do not perform Stripe live charges or refunds.",
+      "Do not restart production PM2 outside the established deployment or emergency rollback path.",
+    ],
+    nextUnblockedAction: summary.blocked
+      ? "Use the first IAM/SSH-accessible non-destructive recovery action above, then rerun this diagnostic and production smoke."
+      : "Monitor queued workflows and rerun production smoke against the expected release SHA.",
+  };
 }
 
 async function writeOutputs(config, payload, markdown) {
@@ -318,6 +400,17 @@ function markdownReport(config, payload, summary) {
   const nextAction = summary.nextActions?.length
     ? summary.nextActions.join("; ")
     : "recover VM SSH or the self-hosted runner service through a non-destructive access path";
+  const recoveryActions = payload.safeRecoveryPlan.actions.length
+    ? payload.safeRecoveryPlan.actions.map((action, index) => [
+      `${index + 1}. ${action.label}`,
+      `   - Owner: ${action.owner}`,
+      `   - Safe: ${action.safe ? "yes" : "no"}`,
+      `   - Blocked by: ${action.blockedBy}`,
+      `   - Command: \`${action.command}\``,
+      `   - Rollback: ${action.rollback}`,
+    ].join("\n")).join("\n")
+    : "No safe recovery action was generated from the available evidence.";
+  const recoveryBoundaries = payload.safeRecoveryPlan.boundaries.map((item) => `- ${item}`).join("\n");
 
   return `# YiShun Runner Recovery Diagnostic - ${cstStamp()}
 
@@ -332,9 +425,10 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - GitHub runner: ${payload.runner.name} status=${payload.runner.status} busy=${payload.runner.busy}
 - Runner labels: ${payload.runner.labels.join(", ") || "unknown"}
 - Watched workflows: ${config.watchedWorkflows.join(", ")}
+- Waiting statuses: ${WAITING_RUN_STATUSES.join(", ")}
 - Max queued minutes: ${config.maxQueuedMinutes}
-- Watched queued runs: ${payload.queuedRuns.length}
-- Stale watched queued runs: ${payload.summary.staleQueuedRuns.length}
+- Watched waiting runs: ${payload.queuedRuns.length}
+- Stale watched waiting runs: ${payload.summary.staleQueuedRuns.length}
 - Latest queued main release run: ${latestMainRelease ? `${latestMainRelease.workflowName} ${latestMainRelease.headSha} ${latestMainRelease.url}` : "none"}
 - Release lag: ${payload.summary.releaseLag.pending ? `yes production=${payload.summary.releaseLag.productionVersion} queued_main=${payload.summary.releaseLag.latestQueuedMainSha}` : "no queued main release lag detected"}
 - GCP VM: ${payload.gcpInstance.status || "unknown"} ${config.instance} ${config.zone}
@@ -352,13 +446,25 @@ ${serialLines}
 
 ${troubleshootingLines}
 
+## Safe Recovery Plan
+
+- Disk pressure likely: ${payload.safeRecoveryPlan.diskPressureLikely ? "yes" : "no"}
+- Can recover unattended: ${payload.safeRecoveryPlan.canRecoverUnattended ? "yes" : "no"}
+- Can verify unattended: ${payload.safeRecoveryPlan.canVerifyUnattended ? "yes" : "no"}
+
+${recoveryActions}
+
+### Boundaries
+
+${recoveryBoundaries}
+
 ## Changed Files
 
 - \`scripts/yishun-runner-recovery-diagnostic.mjs\`
 
 ## Verification
 
-- Ran GitHub runner inventory and queued workflow checks with \`gh\`.
+- Ran GitHub runner inventory and waiting workflow checks with \`gh\`.
 - Ran GCP instance metadata and direct SSH reachability checks with \`gcloud\`.
 - Checked production \`/api/health\`.
 - No PM2 restart, production deploy, real Stripe charge/refund, destructive database operation, force push, or user-data deletion was performed.
@@ -366,8 +472,8 @@ ${troubleshootingLines}
 ## Next Action
 
 ${summary.blocked
-    ? `${nextAction}, then let the queued main deploy finish and rerun production smoke with the expected main SHA.`
-    : "Re-dispatch or monitor the queued main deploy and YiShun Daily Ops Export, then rerun production smoke."}
+    ? `${nextAction}, then let the waiting main deploy finish and rerun production smoke with the expected main SHA.`
+    : "Re-dispatch or monitor the waiting main deploy and YiShun Daily Ops Export, then rerun production smoke."}
 `;
 }
 
@@ -383,10 +489,10 @@ async function main() {
     throw new Error("--max-queued-minutes must be a non-negative number");
   }
 
-  const runsResult = await runCommand("gh", [
+  const waitingRunApiResults = await Promise.all(WAITING_RUN_STATUSES.map((status) => runCommand("gh", [
     "api",
-    `repos/${config.repo}/actions/runs?status=queued&per_page=100`,
-  ]);
+    `repos/${config.repo}/actions/runs?status=${status}&per_page=100`,
+  ])));
   const runsListResult = await runCommand("gh", [
     "run",
     "list",
@@ -406,7 +512,7 @@ async function main() {
     config.project,
     "--zone",
     config.zone,
-    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items)",
+    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items,disks[].boot,disks[].source,disks[].deviceName,disks[].diskSizeGb)",
   ]);
   const diskResult = await runCommand("gcloud", [
     "compute",
@@ -468,14 +574,14 @@ async function main() {
 
   const health = await fetchJson(`${config.baseUrl}/api/health`);
   const runner = summarizeRunner(parseJsonResult(runnerInventory, {}));
-  const queuedRunsPayload = parseJsonResult(runsResult, {});
+  const queuedRunsPayloads = waitingRunApiResults.map((result) => parseJsonResult(result, {}));
   const queuedRunsListPayload = parseJsonResult(runsListResult, []);
   const queuedRuns = mergeQueuedRuns(
-    summarizeQueuedRuns(queuedRunsPayload.workflow_runs, config),
+    ...queuedRunsPayloads.map((payload) => summarizeQueuedRuns(payload.workflow_runs, config)),
     summarizeQueuedRuns(queuedRunsListPayload, config),
   );
   const gcpInstance = parseJsonResult(instanceResult, {});
-  const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config);
+  const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config, gcpInstance);
   const serialConsole = summarizeSerialOutput(serialResult);
   const summary = enrichSummaryWithGcpEvidence(
     blockerSummary({ runner, queuedRuns, sshDirect, health }),
@@ -499,7 +605,7 @@ async function main() {
     runner,
     queuedRuns,
     queuedRunSources: {
-      apiOk: runsResult.ok,
+      api: Object.fromEntries(WAITING_RUN_STATUSES.map((status, index) => [status, waitingRunApiResults[index]?.ok || false])),
       listOk: runsListResult.ok,
     },
     gcpInstance: {
@@ -518,6 +624,7 @@ async function main() {
     productionHealth: health,
     summary,
   };
+  payload.safeRecoveryPlan = safeRecoveryPlan(summary, payload);
 
   const report = markdownReport(config, payload, summary);
   const outputs = await writeOutputs(config, payload, report);
