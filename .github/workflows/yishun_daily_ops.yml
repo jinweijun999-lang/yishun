@@ -9,12 +9,14 @@ on:
       - "scripts/yishun-daily-data-report.mjs"
       - "scripts/yishun-daily-ops-loop.mjs"
       - "scripts/yishun-daily-ops-review.mjs"
+      - "scripts/yishun-export-deployment-status.mjs"
   pull_request:
     paths:
       - ".github/workflows/yishun_daily_ops.yml"
       - "scripts/yishun-daily-data-report.mjs"
       - "scripts/yishun-daily-ops-loop.mjs"
       - "scripts/yishun-daily-ops-review.mjs"
+      - "scripts/yishun-export-deployment-status.mjs"
   schedule:
     - cron: "30 1 * * *"
   workflow_dispatch:
@@ -40,6 +42,7 @@ jobs:
       YISHUN_OPS_REPORT_FALLBACK_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/fallback
       YISHUN_DAILY_SKIP_GCP_EXPORT: "1"
       YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: "1"
+      GH_TOKEN: ${{ github.token }}
       YISHUN_PRODUCTION_BASE_URL: https://11263.com
       YISHUN_HEALTH_URL: https://11263.com/api/health
       YISHUN_ANALYTICS_SOURCE_NOTE: "GitHub-hosted public fallback: self-hosted production analytics file export unavailable or still queued"
@@ -118,6 +121,7 @@ jobs:
       YISHUN_PRODUCTION_ANALYTICS_FILE_USE_SUDO: "1"
       YISHUN_GCP_ANALYTICS_ALLOW_EMPTY: "1"
       YISHUN_DAILY_SKIP_GCP_EXPORT: "1"
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Verify production app checkout and runner disk

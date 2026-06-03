@@ -69,6 +69,8 @@ function parseArgs() {
     analyticsFiles: process.env.YISHUN_ANALYTICS_FILES || "",
     analyticsDir: process.env.YISHUN_ANALYTICS_DIR || "",
     analyticsSourceNote: process.env.YISHUN_ANALYTICS_SOURCE_NOTE || "",
+    deploymentStatusFile: process.env.YISHUN_DEPLOYMENT_STATUS_FILE || "",
+    deploymentStatusNote: process.env.YISHUN_DEPLOYMENT_STATUS_NOTE || "",
     stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
     healthUrl,
     routeBaseUrl: (process.env.YISHUN_PRODUCTION_BASE_URL || new URL(healthUrl).origin).replace(/\/+$/, ""),
@@ -804,6 +806,37 @@ async function readStripeWebhookSummary(reportDate, eventsFilePath, analyticsEve
   }
 }
 
+async function readDeploymentStatus(config) {
+  const unavailable = (note) => ({
+    available: false,
+    note,
+    summary: {
+      risk: "unknown",
+      releaseLag: null,
+      staleQueue: null,
+    },
+  });
+
+  if (!config.deploymentStatusFile) {
+    return unavailable(config.deploymentStatusNote || "YISHUN_DEPLOYMENT_STATUS_FILE not configured");
+  }
+
+  if (!existsSync(config.deploymentStatusFile)) {
+    return unavailable(`deployment status file not found: ${config.deploymentStatusFile}`);
+  }
+
+  try {
+    const parsed = JSON.parse(await readFile(config.deploymentStatusFile, "utf8"));
+    return {
+      available: true,
+      note: config.deploymentStatusNote || parsed.github?.note || "",
+      ...parsed,
+    };
+  } catch {
+    return unavailable(`deployment status file was not valid JSON: ${config.deploymentStatusFile}`);
+  }
+}
+
 function stripeStatusCount(stripe, status) {
   return stripe.rows
     .filter((row) => row.status === status)
@@ -881,7 +914,7 @@ function analyticsConfiguredInHealth(health) {
   return health.response?.checks?.analytics === "configured";
 }
 
-function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate, analyticsFreshness }) {
+function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, deploymentStatus, reportDate, analyticsFreshness }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
@@ -944,6 +977,14 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   if (payment.checks.duplicateSessionsObserved) notes.push(`${payment.webhookDuplicateSessions} duplicate Stripe checkout session webhook rows were observed.`);
   if (!stripe.available) notes.push(`Stripe webhook DB summary unavailable: ${stripe.note}`);
   if (stripe.failures.length > 0) notes.push(`${stripe.failures.length} Stripe webhook failure rows found.`);
+  if (!deploymentStatus.available) {
+    notes.push(`Deployment status unavailable: ${deploymentStatus.note}`);
+  } else if (deploymentStatus.summary?.releaseLag) {
+    notes.push(`Production release ${deploymentStatus.summary.productionVersion || "unknown"} is behind main ${deploymentStatus.summary.expectedMainSha || "unknown"}.`);
+  }
+  if (deploymentStatus.summary?.staleQueue) {
+    notes.push(`Deployment queue is stale beyond ${deploymentStatus.summary.maxQueuedMinutes || "unknown"} minutes.`);
+  }
   return notes;
 }
 
@@ -972,6 +1013,7 @@ async function main() {
     fetchHealth(config),
   ]);
   const stripe = await readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile, analyticsInput.events);
+  const deploymentStatus = await readDeploymentStatus(config);
   const routeStatus = await fetchRouteStatus(config);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
@@ -992,12 +1034,13 @@ async function main() {
   analyticsSource.freshness = analyticsFreshness;
   analyticsSource.usableForFunnel = analyticsSource.rawReportDateEvents > 0;
   const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
-  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date, analyticsFreshness });
+  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, deploymentStatus, reportDate: config.date, analyticsFreshness });
   const questions = analystQuestions({ analytics, analyticsInput, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
   await writeFile(path.join(reportDir, "route_status.json"), JSON.stringify(routeStatus, null, 2));
   await writeFile(path.join(reportDir, "analytics_source.json"), JSON.stringify(analyticsSource, null, 2));
+  await writeFile(path.join(reportDir, "deployment_status.json"), JSON.stringify(deploymentStatus, null, 2));
   await writeFile(path.join(reportDir, "performance.json"), JSON.stringify({
     date: config.date,
     healthLatencyMs: health.latencyMs,
@@ -1095,6 +1138,7 @@ async function main() {
 - Analytics source: ${analyticsSource.available ? `available/${analyticsSource.fresh ? "fresh" : "stale"} (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${compactText(analyticsInput.note)})`}
 - Analytics source note: ${analyticsInput.note ? compactText(analyticsInput.note) : "none"}
 - Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : meta.sourceKind === "production_file" ? `${path.basename(meta.sourceFile)} rows=${meta.rawLineCount} events=${meta.eventCount}` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
+- Deployment status: ${deploymentStatus.available ? `${deploymentStatus.summary?.risk || "unknown"} release_lag=${deploymentStatus.summary?.releaseLag ? "yes" : "no"} deploy_queue=${deploymentStatus.summary?.deployJobStatus || "unknown"}` : `unavailable (${compactText(deploymentStatus.note)})`}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}
@@ -1112,6 +1156,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - uptime.json
 - route_status.json
 - analytics_source.json
+- deployment_status.json
 - performance.json
 - errors.jsonl
 - stripe_payments.csv
@@ -1139,6 +1184,9 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     analyticsSourceAvailable: analyticsSource.available,
     analyticsSourceFresh: analyticsSource.fresh,
     analyticsSourceUsableForFunnel: analyticsSource.usableForFunnel,
+    deploymentStatusAvailable: deploymentStatus.available,
+    deploymentRisk: deploymentStatus.summary?.risk || "unknown",
+    deploymentReleaseLag: deploymentStatus.summary?.releaseLag ?? null,
     analyticsExportMeta: analyticsSource.exportMeta,
     growthScorecard: scorecard,
     stripeSummaryAvailable: stripe.available,
