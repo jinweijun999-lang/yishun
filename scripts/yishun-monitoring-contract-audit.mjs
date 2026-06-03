@@ -214,6 +214,8 @@ for (const productionSmokeNeedle of [
   "reports/evidence",
   "yishun-production-smoke-",
   "writeJsonOut",
+  "Production health payload is missing Google OAuth readiness fields",
+  "hasGoogleOAuthHealthFields",
   "Production Google OAuth health must be configured",
   "oauthHealthDetails",
   "Production Google OAuth must be marked required",
