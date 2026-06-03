@@ -22,6 +22,7 @@ const webhookSmoke = read("scripts/stripe-webhook-entitlement-smoke.mjs");
 const dailyReport = read("scripts/yishun-daily-data-report.mjs");
 const serverAnalytics = read("lib/server-analytics.ts");
 const prismaSchema = read("prisma/schema.prisma");
+const health = read("lib/yishun-health.ts");
 const envExample = read(".env.example");
 const envLocalExample = read(".env.local.example");
 const workflow = read(".github/workflows/nextjs_ci.yml");
@@ -77,6 +78,19 @@ for (const required of [
   "STRIPE_SECRET_KEY must be an explicit sk_test_* or sk_live_* key.",
 ]) {
   assert(checkoutRoute.includes(required), "Checkout route must keep Stripe live-charge safeguards", { required });
+}
+
+for (const required of [
+  "stripeRuntimeStatus",
+  "process.env.STRIPE_SECRET_KEY",
+  "process.env.STRIPE_WEBHOOK_SECRET",
+  "process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "process.env.STRIPE_PRICE_REPORT_SINGLE",
+  "process.env.STRIPE_PRICE_PREMIUM_MONTHLY",
+  "process.env.STRIPE_PRICE_PREMIUM_ANNUAL",
+  "process.env.STRIPE_PRICE_CONSULTATION_SINGLE",
+]) {
+  assert(health.includes(required), "Health must report Stripe configured only when visible paid-flow runtime config is present", { required });
 }
 
 for (const required of [
@@ -219,6 +233,7 @@ console.log(JSON.stringify({
     "webhook_event_storage",
     "db_backed_smoke_all_products",
     "daily_payment_reconciliation",
+    "health_requires_visible_paid_flow_runtime_config",
     "ci_gate_registered",
   ],
 }, null, 2));

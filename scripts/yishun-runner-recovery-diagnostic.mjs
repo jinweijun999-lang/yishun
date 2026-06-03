@@ -255,6 +255,54 @@ function summarizeDisk(diskPayload, config, instancePayload = {}) {
   };
 }
 
+function metadataMap(items) {
+  return Object.fromEntries((items || [])
+    .filter((item) => item?.key)
+    .map((item) => [item.key, item.value ?? ""]));
+}
+
+function metadataFlag(instanceMetadata, projectMetadata, key) {
+  const instanceValue = instanceMetadata[key];
+  const projectValue = projectMetadata[key];
+  const rawValue = instanceValue ?? projectValue ?? null;
+  return {
+    value: rawValue === null ? null : /^true$/i.test(String(rawValue)),
+    rawValue,
+    source: instanceValue !== undefined ? "instance" : projectValue !== undefined ? "project" : "unset",
+  };
+}
+
+function summarizeRecoveryAccess({ gcpInstance, projectInfo, osConfigServices, sshDirect, sshIap }) {
+  const instanceMetadata = metadataMap(gcpInstance?.metadata?.items);
+  const projectMetadata = metadataMap(projectInfo?.commonInstanceMetadata?.items);
+  const osConfigApiEnabled = (Array.isArray(osConfigServices) ? osConfigServices : [])
+    .some((service) => service?.config?.name === "osconfig.googleapis.com" || service?.name === "osconfig.googleapis.com");
+  const serialPort = metadataFlag(instanceMetadata, projectMetadata, "serial-port-enable");
+  const osLogin = metadataFlag(instanceMetadata, projectMetadata, "enable-oslogin");
+  const blockProjectSshKeys = metadataFlag(instanceMetadata, projectMetadata, "block-project-ssh-keys");
+  const startupScriptPresent = Boolean(instanceMetadata["startup-script"] || instanceMetadata["startup-script-url"]);
+  const projectStartupScriptPresent = Boolean(projectMetadata["startup-script"] || projectMetadata["startup-script-url"]);
+  const confirmedPaths = [
+    sshDirect.ok ? "direct_ssh" : null,
+    sshIap.ok ? "iap_ssh" : null,
+    serialPort.value ? "serial_console_metadata_enabled" : null,
+    osConfigApiEnabled ? "os_config_api_enabled" : null,
+  ].filter(Boolean);
+
+  return {
+    instanceMetadataKeys: Object.keys(instanceMetadata).sort(),
+    projectMetadataKeys: Object.keys(projectMetadata).sort(),
+    serialPort,
+    osLogin,
+    blockProjectSshKeys,
+    startupScriptPresent,
+    projectStartupScriptPresent,
+    osConfigApiEnabled,
+    confirmedPaths,
+    noConfirmedExecutionPath: !sshDirect.ok && !sshIap.ok && !serialPort.value && !osConfigApiEnabled,
+  };
+}
+
 function summarizeSerialOutput(serialResult) {
   const output = `${serialResult.stdout || ""}\n${serialResult.stderr || ""}`;
   const noSpaceLines = output
@@ -282,7 +330,7 @@ function summarizeSerialOutput(serialResult) {
   };
 }
 
-function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
+function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole, recoveryAccess) {
   const nextActions = [];
   const diskSizeGb = Number(gcpDisk.sizeGb || 0);
   const targetDiskSizeGb = Number.isFinite(diskSizeGb) && diskSizeGb > 0 ? Math.max(diskSizeGb + 10, 20) : 20;
@@ -305,6 +353,11 @@ function enrichSummaryWithGcpEvidence(summary, gcpDisk, serialConsole) {
   if (serialConsole.opsAgentBillingDisabled) {
     summary.watch.push("Cloud Ops metrics export is failing because GCP billing is disabled for bazifortune");
   }
+  if (recoveryAccess.noConfirmedExecutionPath) {
+    summary.blockers.push("No SSH, IAP, serial-console metadata, or OS Config recovery path is confirmed from read-only checks");
+  } else if (recoveryAccess.confirmedPaths.length) {
+    summary.watch.push(`confirmed recovery access signals: ${recoveryAccess.confirmedPaths.join(", ")}`);
+  }
   return { ...summary, nextActions };
 }
 
@@ -315,6 +368,9 @@ function safeRecoveryPlan(summary, payload) {
   const diskPressureLikely = payload.serialConsole?.runnerDiagNoSpace || (Number.isFinite(diskSizeGb) && diskSizeGb > 0 && diskSizeGb <= 10);
   const diskAlreadyExpanded = diskPressureLikely && Number.isFinite(diskSizeGb) && diskSizeGb >= 20;
   const diskCapacityStillSmall = diskPressureLikely && (!Number.isFinite(diskSizeGb) || diskSizeGb < 20);
+  const directExecutionAccessAvailable = Boolean(payload.ssh?.direct?.ok || payload.ssh?.iap?.ok);
+  const productionHealthy = Boolean(payload.productionHealth?.ok);
+  const serviceImpactingRecoveryDeferred = diskPressureLikely && !directExecutionAccessAvailable && productionHealthy;
 
   if (diskCapacityStillSmall) {
     actions.push({
@@ -353,6 +409,17 @@ function safeRecoveryPlan(summary, payload) {
     });
   }
 
+  if (serviceImpactingRecoveryDeferred) {
+    actions.push({
+      label: "Defer startup-script or VM reset recovery while production is healthy",
+      owner: "Codex/GCP unattended recovery guard",
+      safe: true,
+      blockedBy: "Direct command execution is unavailable and startup-script execution would require a VM boot/reset, which can interrupt the live app",
+      command: "gcloud compute instances get-serial-port-output instance-20260422-173030 --project bazifortune --zone us-west2-c --port=1",
+      rollback: "No VM metadata, reset, PM2, database, or payment state is changed; keep monitoring health and runner queue until a non-impacting execution path is available.",
+    });
+  }
+
   if (payload.runner?.status === "offline" || payload.summary?.staleQueuedRuns?.length) {
     actions.push({
       label: "Restart GitHub runner service after disk pressure is cleared",
@@ -377,9 +444,13 @@ function safeRecoveryPlan(summary, payload) {
 
   return {
     diskPressureLikely,
+    directExecutionAccessAvailable,
+    productionHealthy,
+    serviceImpactingRecoveryDeferred,
     canRecoverUnattended: actions.some((action) =>
       action.safe
       && !/^Verify production/i.test(action.label)
+      && !/^Defer startup-script or VM reset/i.test(action.label)
       && action.blockedBy === "None while https://11263.com is reachable"
     ),
     canVerifyUnattended: actions.some((action) => action.safe && action.blockedBy === "None while https://11263.com is reachable"),
@@ -454,6 +525,7 @@ function markdownReport(config, payload, summary) {
     : "- Skipped; run with `--troubleshoot` to collect gcloud troubleshoot output.";
   const sshReason = diagnosticReasonLine(payload.ssh.direct.stderr);
   const iapSshReason = diagnosticReasonLine(payload.ssh.iap.stderr);
+  const recoveryAccess = payload.recoveryAccess;
   const serialLines = payload.serialConsole.lines.length
     ? payload.serialConsole.lines.map((line) => `  - ${line}`).join("\n")
     : "  - no runner disk-exhaustion lines found in serial tail";
@@ -500,6 +572,12 @@ ${summary.blockers.length ? summary.blockers.map((item) => `- ${item}`).join("\n
 - Cloud Ops metrics export: ${payload.serialConsole.opsAgentBillingDisabled ? "billing-disabled failure detected in serial tail" : "no billing-disabled failure detected in serial tail"}
 - Direct SSH check: ${payload.ssh.direct.ok ? "ok" : "failed"}${sshReason ? ` (${sshReason})` : ""}
 - IAP SSH check: ${payload.ssh.iap.ok ? "ok" : "failed"}${iapSshReason ? ` (${iapSshReason})` : ""}
+- Serial console metadata: ${recoveryAccess.serialPort.rawValue ?? "unset"} (${recoveryAccess.serialPort.source})
+- OS Login metadata: ${recoveryAccess.osLogin.rawValue ?? "unset"} (${recoveryAccess.osLogin.source})
+- Block project SSH keys: ${recoveryAccess.blockProjectSshKeys.rawValue ?? "unset"} (${recoveryAccess.blockProjectSshKeys.source})
+- Startup script metadata present: instance=${recoveryAccess.startupScriptPresent ? "yes" : "no"} project=${recoveryAccess.projectStartupScriptPresent ? "yes" : "no"}
+- OS Config API: ${recoveryAccess.osConfigApiEnabled ? "enabled" : "not confirmed enabled"}
+- Confirmed recovery access signals: ${recoveryAccess.confirmedPaths.join(", ") || "none from read-only checks"}
 - Production health: ${payload.productionHealth.ok ? `ok version=${payload.productionHealth.body?.version || "unknown"}` : `failed ${payload.productionHealth.error || payload.productionHealth.status || "unknown"}`}
 - JSON evidence: \`${payload.evidencePath}\`
 
@@ -534,7 +612,7 @@ ${recoveryBoundaries}
 ## Verification
 
 - Ran GitHub runner inventory and waiting workflow checks with \`gh\`.
-- Ran GCP instance metadata and direct SSH reachability checks with \`gcloud\`.
+- Ran GCP instance metadata, project metadata, service status, and direct SSH reachability checks with \`gcloud\`.
 - Checked production \`/api/health\`.
 - No PM2 restart, production deploy, real Stripe charge/refund, destructive database operation, force push, or user-data deletion was performed.
 
@@ -581,7 +659,24 @@ async function main() {
     config.project,
     "--zone",
     config.zone,
-    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items,disks[].boot,disks[].source,disks[].deviceName,disks[].diskSizeGb)",
+    "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items,disks[].boot,disks[].source,disks[].deviceName,disks[].diskSizeGb,metadata.items)",
+  ]);
+  const projectInfoResult = await runCommand("gcloud", [
+    "compute",
+    "project-info",
+    "describe",
+    "--project",
+    config.project,
+    "--format=json(commonInstanceMetadata.items)",
+  ]);
+  const osConfigServicesResult = await runCommand("gcloud", [
+    "services",
+    "list",
+    "--enabled",
+    "--project",
+    config.project,
+    "--filter=config.name=osconfig.googleapis.com",
+    "--format=json(config.name,state)",
   ]);
   const diskResult = await runCommand("gcloud", [
     "compute",
@@ -665,12 +760,16 @@ async function main() {
     summarizeQueuedRuns(queuedRunsListPayload, config),
   );
   const gcpInstance = parseJsonResult(instanceResult, {});
+  const projectInfo = parseJsonResult(projectInfoResult, {});
+  const osConfigServices = parseJsonResult(osConfigServicesResult, []);
   const gcpDisk = summarizeDisk(parseJsonResult(diskResult, {}), config, gcpInstance);
   const serialConsole = summarizeSerialOutput(serialResult);
+  const recoveryAccess = summarizeRecoveryAccess({ gcpInstance, projectInfo, osConfigServices, sshDirect, sshIap });
   const summary = enrichSummaryWithGcpEvidence(
     blockerSummary({ runner, queuedRuns, sshDirect, sshIap, troubleshooting, health }),
     gcpDisk,
     serialConsole,
+    recoveryAccess,
   );
 
   const payload = {
@@ -700,6 +799,12 @@ async function main() {
       tags: gcpInstance?.tags?.items || [],
     },
     gcpDisk,
+    recoveryAccess,
+    gcpAccessCheckSources: {
+      instanceMetadataOk: instanceResult.ok,
+      projectMetadataOk: projectInfoResult.ok,
+      osConfigServiceListOk: osConfigServicesResult.ok,
+    },
     serialConsole,
     ssh: {
       direct: { ok: sshDirect.ok, code: sshDirect.code, stderr: sshDirect.stderr, stdout: sshDirect.stdout },
