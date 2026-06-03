@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REPORT_DATE_INPUT: ${{ github.event.inputs.report_date }}
       YISHUN_DAILY_OPS_ROOT: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}
       YISHUN_DAILY_REPORT_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/reports
       CODEX_BRIDGE_OUTBOX: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/outbox
@@ -61,8 +60,9 @@ jobs:
       - name: Resolve report date
         run: |
           set -euo pipefail
-          if [ -n "${REPORT_DATE_INPUT:-}" ]; then
-            report_date="$REPORT_DATE_INPUT"
+          event_report_date="$(node -e 'const fs = require("fs"); const file = process.env.GITHUB_EVENT_PATH; const event = file ? JSON.parse(fs.readFileSync(file, "utf8")) : {}; process.stdout.write(event.inputs?.report_date || "");')"
+          if [ -n "${event_report_date:-}" ]; then
+            report_date="$event_report_date"
           else
             report_date="$(TZ=Asia/Shanghai date +%F)"
           fi
@@ -107,7 +107,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64, yishun-prod]
     timeout-minutes: 15
     env:
-      REPORT_DATE_INPUT: ${{ github.event.inputs.report_date }}
       YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun
       YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}
       YISHUN_ANALYTICS_EXPORT_DIR: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/analytics
@@ -133,8 +132,9 @@ jobs:
       - name: Resolve report date
         run: |
           set -euo pipefail
-          if [ -n "${REPORT_DATE_INPUT:-}" ]; then
-            report_date="$REPORT_DATE_INPUT"
+          event_report_date="$(node -e 'const fs = require("fs"); const file = process.env.GITHUB_EVENT_PATH; const event = file ? JSON.parse(fs.readFileSync(file, "utf8")) : {}; process.stdout.write(event.inputs?.report_date || "");')"
+          if [ -n "${event_report_date:-}" ]; then
+            report_date="$event_report_date"
           else
             report_date="$(TZ=Asia/Shanghai date +%F)"
           fi
