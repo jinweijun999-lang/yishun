@@ -101,11 +101,14 @@ for (const productionFileExportNeedle of [
 
 for (const dailyOpsWorkflowNeedle of [
   "YiShun Daily Ops Export",
+  "\"codex/**\"",
+  "pull_request:",
   "30 1 * * *",
   "group: yishun-daily-ops-export-${{ github.ref }}",
   "cancel-in-progress: true",
   "Public Daily Ops Fallback",
   "runs-on: ubuntu-latest",
+  "REPORT_DATE_INPUT: ${{ github.event.inputs.report_date }}",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
   "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
   "YISHUN_HEALTH_URL: https://11263.com/api/health",
@@ -113,6 +116,7 @@ for (const dailyOpsWorkflowNeedle of [
   "node scripts/yishun-daily-ops-loop.mjs --date \"$REPORT_DATE\" --skip-gcp-export --skip-production-file-export",
   "yishun-public-daily-ops-${{ env.REPORT_DATE }}",
   "runs-on: [self-hosted, Linux, X64, yishun-prod]",
+  "if: github.event_name != 'push' && github.event_name != 'pull_request'",
   "YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun",
   "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}",
   "YISHUN_PRODUCTION_ANALYTICS_FILE_LOCAL: \"1\"",
