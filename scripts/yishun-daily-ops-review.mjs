@@ -94,6 +94,11 @@ function value(value, fallback = "unknown") {
   return String(value);
 }
 
+function compactText(value, max = 260) {
+  const compacted = String(value || "").replace(/\s+/g, " ").trim();
+  return compacted.length > max ? `${compacted.slice(0, max - 1)}...` : compacted;
+}
+
 function routeStatusSummary(routeStatus) {
   if (!routeStatus || routeStatus.ok === undefined) return "unknown";
   if (routeStatus.ok === null || routeStatus.skipped) return "skipped";
@@ -119,6 +124,13 @@ function exportSourceSummary(analyticsSource) {
   }).join("; ");
 }
 
+function analyticsSourceStatus(analyticsSource) {
+  if (!analyticsSource?.available) return "unavailable";
+  const freshness = analyticsSource.fresh === false ? "stale" : "fresh";
+  const usability = analyticsSource.usableForFunnel === false ? "no report-date funnel events" : "report-date events present";
+  return `available/${freshness} (${value(analyticsSource.reportDateEvents, "0")} report-date events, ${value(analyticsSource.parsedRows, "0")} parsed rows, ${usability})`;
+}
+
 function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }) {
   const actionRequired = [];
   const watch = [];
@@ -140,8 +152,12 @@ function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }
   if (analyticsSource?.healthAnalyticsStatus === "configured" && analyticsSource?.available === false) {
     watch.push("production analytics is configured, but no export source was available to the report");
   }
+  if (analyticsSource?.available && analyticsSource?.fresh === false) {
+    const issues = Array.isArray(analyticsSource?.freshness?.issues) ? analyticsSource.freshness.issues : [];
+    watch.push(`analytics export source is stale${issues.length ? `: ${issues.join("; ")}` : ""}`);
+  }
   if (/production file export failed/i.test(analyticsSource?.note || "")) {
-    watch.push(`production analytics file export failed: ${analyticsSource.note}`);
+    watch.push(`production analytics file export failed: ${compactText(analyticsSource.note)}`);
   }
   if (Number(analyticsSource?.malformedRows || 0) > 0) watch.push(`${analyticsSource.malformedRows} malformed analytics rows were ignored`);
   if (rawReportDateEvents > 0 && productEvents === 0 && operationalProbeEvents > 0) {
@@ -230,9 +246,10 @@ ${firstItems(risk.items, 6)}
 - Health URL: ${value(uptime?.url)}
 - Core routes: ${routeStatusSummary(routeStatus)}
 - Core route base URL: ${value(routeStatus?.baseUrl)}
-- Analytics source: ${analyticsSource?.available ? `available (${value(analyticsSource.reportDateEvents, "0")} report-date events, ${value(analyticsSource.parsedRows, "0")} parsed rows)` : "unavailable"}
+- Analytics source: ${analyticsSourceStatus(analyticsSource)}
 - Analytics health status: ${value(analyticsSource?.healthAnalyticsStatus)}
 - Analytics raw/product/ops-probe events: ${value(analyticsSource?.rawReportDateEvents, "0")} / ${value(analyticsSource?.reportDateEvents, "0")} / ${value(analyticsSource?.operationalProbeEvents, "0")}
+- Analytics source note: ${analyticsSource?.note ? compactText(analyticsSource.note) : "none"}
 - Analytics export sources: ${exportSourceSummary(analyticsSource)}
 - Payment reconciliation: ${value(payment?.risk)}
 - Checkout starts: ${value(payment?.checkoutStarted, "0")}

@@ -42,6 +42,8 @@ const EVENT_ALIASES = {
   webhook_failed: ["webhook_failed"],
 };
 
+const MS_PER_HOUR = 60 * 60 * 1000;
+
 function cstDate(value = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: TIME_ZONE,
@@ -71,6 +73,7 @@ function parseArgs() {
     healthUrl,
     routeBaseUrl: (process.env.YISHUN_PRODUCTION_BASE_URL || new URL(healthUrl).origin).replace(/\/+$/, ""),
     routeTimeoutMs: Number(process.env.YISHUN_ROUTE_CHECK_TIMEOUT_MS || 8000),
+    analyticsExportMaxAgeHours: Number(process.env.YISHUN_ANALYTICS_EXPORT_MAX_AGE_HOURS || 8),
   };
 }
 
@@ -94,6 +97,11 @@ function splitPathList(value) {
 
 function cleanString(value, fallback = "unknown") {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 140) : fallback;
+}
+
+function compactText(value, max = 260) {
+  const compacted = String(value || "").replace(/\s+/g, " ").trim();
+  return compacted.length > max ? `${compacted.slice(0, max - 1)}...` : compacted;
 }
 
 function eventDate(event) {
@@ -257,6 +265,36 @@ async function readAnalyticsExportMetadata(files) {
   }
 
   return metadata;
+}
+
+function analyticsExportFreshness(source, reportDate, maxAgeHours) {
+  const relevantMeta = (source.exportMeta || []).filter((meta) => !meta.date || meta.date === reportDate);
+  const generatedTimes = relevantMeta
+    .map((meta) => new Date(meta.generatedAt || ""))
+    .filter((date) => !Number.isNaN(date.getTime()));
+  const newestGeneratedAt = generatedTimes.length
+    ? new Date(Math.max(...generatedTimes.map((date) => date.getTime()))).toISOString()
+    : null;
+  const ageHours = newestGeneratedAt ? (Date.now() - new Date(newestGeneratedAt).getTime()) / MS_PER_HOUR : null;
+  const issues = [];
+
+  if (source.available && relevantMeta.length === 0) {
+    issues.push(`No analytics export metadata matched report date ${reportDate}.`);
+  }
+  if (source.available && relevantMeta.length > 0 && !newestGeneratedAt) {
+    issues.push("Analytics export metadata did not include generatedAt timestamps.");
+  }
+  if (ageHours !== null && Number.isFinite(maxAgeHours) && ageHours > maxAgeHours) {
+    issues.push(`Newest analytics export is ${ageHours.toFixed(1)}h old, above ${maxAgeHours}h freshness target.`);
+  }
+
+  return {
+    fresh: issues.length === 0,
+    newestGeneratedAt,
+    ageHours: ageHours === null ? null : Number(ageHours.toFixed(2)),
+    maxAgeHours,
+    issues,
+  };
 }
 
 async function readAnalyticsEvents(config, reportDate) {
@@ -709,9 +747,10 @@ function paymentReconciliation({ analytics, stripe }) {
   const webhookHasCheckoutWithoutFulfillment = checkoutStarted > 0 && stripe.available && webhookFulfilled === 0;
   const webhookHasFailures = webhookFailures > 0;
   const missingWebhookData = !stripe.available;
+  const webhookEvidenceMissingAfterCheckout = checkoutStarted > 0 && missingWebhookData;
 
   let risk = "clear";
-  if (webhookHasFailures || webhookHasCheckoutWithoutFulfillment) risk = "action_required";
+  if (webhookHasFailures || webhookHasCheckoutWithoutFulfillment || webhookEvidenceMissingAfterCheckout) risk = "action_required";
   else if (analyticsHasCheckoutWithoutGrant || missingWebhookData || webhookDuplicateSessions > 0) risk = "watch";
 
   return {
@@ -733,6 +772,7 @@ function paymentReconciliation({ analytics, stripe }) {
       webhookHasCheckoutWithoutFulfillment,
       webhookHasFailures,
       missingWebhookData,
+      webhookEvidenceMissingAfterCheckout,
       duplicateSessionsObserved: webhookDuplicateSessions > 0,
     },
   };
@@ -742,7 +782,7 @@ function analyticsConfiguredInHealth(health) {
   return health.response?.checks?.analytics === "configured";
 }
 
-function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate }) {
+function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate, analyticsFreshness }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
@@ -763,6 +803,7 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   if (analyticsConfiguredInHealth(health) && !analyticsInput.source.available) {
     notes.push("Production health reports analytics configured, but this report has no event export source; do not treat zero events as confirmed zero traffic.");
   }
+  for (const issue of analyticsFreshness.issues || []) notes.push(issue);
   if (analytics.acceptedEvents === 0) notes.push("No analytics events found for the report date.");
   for (const meta of analyticsInput.source.exportMeta || []) {
     if (meta.date && meta.date !== reportDate) continue;
@@ -800,6 +841,7 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
     notes.push("Stripe webhook fulfillments supplied entitlement_granted counts not observed in browser analytics.");
   }
   if (payment.checks.webhookHasCheckoutWithoutFulfillment) notes.push("Checkout starts were observed but no fulfilled Stripe webhook rows were found for the report date.");
+  if (payment.checks.webhookEvidenceMissingAfterCheckout) notes.push("Checkout starts were observed but no Stripe webhook DB, file, or server analytics evidence was available; paid fulfillment cannot be confirmed.");
   if (payment.checks.duplicateSessionsObserved) notes.push(`${payment.webhookDuplicateSessions} duplicate Stripe checkout session webhook rows were observed.`);
   if (!stripe.available) notes.push(`Stripe webhook DB summary unavailable: ${stripe.note}`);
   if (stripe.failures.length > 0) notes.push(`${stripe.failures.length} Stripe webhook failure rows found.`);
@@ -841,8 +883,16 @@ async function main() {
     note: analyticsInput.note,
     ...analyticsInput.source,
   };
+  const analyticsFreshness = analyticsExportFreshness(
+    analyticsSource,
+    config.date,
+    config.analyticsExportMaxAgeHours,
+  );
+  analyticsSource.fresh = analyticsFreshness.fresh;
+  analyticsSource.freshness = analyticsFreshness;
+  analyticsSource.usableForFunnel = analyticsSource.rawReportDateEvents > 0;
   const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
-  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date });
+  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date, analyticsFreshness });
   const questions = analystQuestions({ analytics, analyticsInput, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
@@ -923,8 +973,9 @@ async function main() {
 
 - Health: ${health.ok === null ? "skipped" : health.ok ? "ok" : "failed"}
 - Core routes: ${routeStatus.ok === null ? "skipped" : routeStatus.ok ? "ok" : "failed"}
-- Analytics events: ${analytics.acceptedEvents}${analyticsInput.note ? ` (${analyticsInput.note})` : ""}
-- Analytics source: ${analyticsSource.available ? `available (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${analyticsInput.note})`}
+- Analytics events: ${analytics.acceptedEvents}
+- Analytics source: ${analyticsSource.available ? `available/${analyticsSource.fresh ? "fresh" : "stale"} (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${compactText(analyticsInput.note)})`}
+- Analytics source note: ${analyticsInput.note ? compactText(analyticsInput.note) : "none"}
 - Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : meta.sourceKind === "production_file" ? `${path.basename(meta.sourceFile)} rows=${meta.rawLineCount} events=${meta.eventCount}` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
@@ -965,6 +1016,8 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     healthOk: health.ok,
     routeStatusOk: routeStatus.ok,
     analyticsSourceAvailable: analyticsSource.available,
+    analyticsSourceFresh: analyticsSource.fresh,
+    analyticsSourceUsableForFunnel: analyticsSource.usableForFunnel,
     analyticsExportMeta: analyticsSource.exportMeta,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,

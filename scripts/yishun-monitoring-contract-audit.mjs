@@ -145,6 +145,21 @@ for (const runnerWatchdogNeedle of [
   assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);
 }
 
+for (const hostedDailyOpsFallbackNeedle of [
+  "Public Daily Ops Fallback",
+  "group: yishun-daily-ops-export-${{ github.ref }}",
+  "cancel-in-progress: true",
+  "runs-on: ubuntu-latest",
+  "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
+  "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
+  "YISHUN_HEALTH_URL: https://11263.com/api/health",
+  "GitHub-hosted public fallback",
+  "node scripts/yishun-daily-ops-loop.mjs --date \"$REPORT_DATE\" --skip-gcp-export --skip-production-file-export",
+  "yishun-public-daily-ops-${{ env.REPORT_DATE }}",
+]) {
+  assertContains(".github/workflows/yishun_daily_ops.yml", hostedDailyOpsFallbackNeedle);
+}
+
 assertContains("ecosystem.config.js", "YISHUN_ANALYTICS_FILE: '/home/yishun/logs/yishun-analytics.jsonl'");
 
 for (const webhookNeedle of [

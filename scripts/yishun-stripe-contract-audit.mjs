@@ -60,6 +60,8 @@ for (const required of [
   "webhookFulfilled",
   "webhookDuplicateSessions",
   "webhookHasCheckoutWithoutFulfillment",
+  "webhookEvidenceMissingAfterCheckout",
+  "paid fulfillment cannot be confirmed",
   "Payment reconciliation",
 ]) {
   assert(dailyReport.includes(required), "Daily report must reconcile checkout analytics against Stripe webhook fulfillment", { required });
