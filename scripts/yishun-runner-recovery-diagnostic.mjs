@@ -1,10 +1,7 @@
 #!/usr/bin/env node
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
 
 const DEFAULT_REPO = "jinweijun999-lang/yishun";
 const DEFAULT_PROJECT = "bazifortune";
@@ -16,6 +13,11 @@ const DEFAULT_FALLBACK = "/Users/xiajarvan/Documents/流量矩阵/ops/reports";
 const DEFAULT_EVIDENCE_DIR = "reports/evidence";
 const TIME_ZONE = "Asia/Shanghai";
 const WAITING_RUN_STATUSES = ["queued", "pending", "waiting", "requested"];
+const DEFAULT_GITHUB_TIMEOUT_MS = 12000;
+const DEFAULT_GCP_METADATA_TIMEOUT_MS = 10000;
+const DEFAULT_GCP_SERIAL_TIMEOUT_MS = 12000;
+const DEFAULT_GCP_SSH_TIMEOUT_MS = 15000;
+const DEFAULT_GCP_TROUBLESHOOT_TIMEOUT_MS = 20000;
 
 function cstStamp(value = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -59,6 +61,11 @@ function parseArgs() {
       .map((item) => item.trim())
       .filter(Boolean),
     maxQueuedMinutes: Number(valueFor("--max-queued-minutes", process.env.YISHUN_MAX_QUEUED_MINUTES || "10")),
+    githubTimeoutMs: Number(valueFor("--github-timeout-ms", process.env.YISHUN_RUNNER_DIAGNOSTIC_GITHUB_TIMEOUT_MS || String(DEFAULT_GITHUB_TIMEOUT_MS))),
+    gcpMetadataTimeoutMs: Number(valueFor("--gcp-metadata-timeout-ms", process.env.YISHUN_RUNNER_DIAGNOSTIC_GCP_METADATA_TIMEOUT_MS || String(DEFAULT_GCP_METADATA_TIMEOUT_MS))),
+    gcpSerialTimeoutMs: Number(valueFor("--gcp-serial-timeout-ms", process.env.YISHUN_RUNNER_DIAGNOSTIC_GCP_SERIAL_TIMEOUT_MS || String(DEFAULT_GCP_SERIAL_TIMEOUT_MS))),
+    gcpSshTimeoutMs: Number(valueFor("--gcp-ssh-timeout-ms", process.env.YISHUN_RUNNER_DIAGNOSTIC_GCP_SSH_TIMEOUT_MS || String(DEFAULT_GCP_SSH_TIMEOUT_MS))),
+    gcpTroubleshootTimeoutMs: Number(valueFor("--gcp-troubleshoot-timeout-ms", process.env.YISHUN_RUNNER_DIAGNOSTIC_GCP_TROUBLESHOOT_TIMEOUT_MS || String(DEFAULT_GCP_TROUBLESHOOT_TIMEOUT_MS))),
     troubleshoot: args.has("--troubleshoot") || process.env.YISHUN_RUNNER_DIAGNOSTIC_TROUBLESHOOT === "1",
     failOnBlocker: args.has("--fail-on-blocker"),
     help: args.has("--help") || args.has("-h"),
@@ -70,6 +77,7 @@ function usage() {
   npm run ops:runner-diagnostic
   npm run ops:runner-diagnostic -- --troubleshoot
   npm run ops:runner-diagnostic -- --max-queued-minutes=10
+  npm run ops:runner-diagnostic -- --gcp-ssh-timeout-ms=15000
 
 Collects non-destructive YiShun self-hosted runner recovery evidence:
 - GitHub runner inventory and queued workflows
@@ -97,31 +105,77 @@ function trim(text, max = 2 * 1024 * 1024) {
 
 async function runCommand(command, args, { timeoutMs = 20000 } = {}) {
   const started = Date.now();
-  try {
-    const { stdout, stderr } = await execFileAsync(command, args, {
-      timeout: timeoutMs,
-      maxBuffer: 1024 * 1024 * 2,
+  return await new Promise((resolve) => {
+    const child = spawn(command, args, {
+      detached: true,
       env: { ...process.env, CLOUDSDK_CORE_DISABLE_PROMPTS: "1" },
     });
-    return {
-      ok: true,
-      code: 0,
-      durationMs: Date.now() - started,
-      command: [command, ...args],
-      stdout: trim(stdout),
-      stderr: trim(stderr),
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let timedOut = false;
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    const maxBuffer = 1024 * 1024 * 2;
+
+    const collect = (chunks, chunk, bytesKey) => {
+      const remaining = Math.max(0, maxBuffer - (bytesKey === "stdout" ? stdoutBytes : stderrBytes));
+      if (remaining > 0) {
+        chunks.push(chunk.subarray(0, remaining));
+      }
+      if (bytesKey === "stdout") stdoutBytes += chunk.length;
+      else stderrBytes += chunk.length;
     };
-  } catch (error) {
-    return {
-      ok: false,
-      code: typeof error?.code === "number" ? error.code : null,
-      signal: error?.signal || null,
-      durationMs: Date.now() - started,
-      command: [command, ...args],
-      stdout: trim(error?.stdout || ""),
-      stderr: trim(error?.stderr || error?.message || ""),
-    };
-  }
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (child.pid) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          child.kill("SIGTERM");
+        }
+        setTimeout(() => {
+          if (!child.killed && child.pid) {
+            try {
+              process.kill(-child.pid, "SIGKILL");
+            } catch {
+              child.kill("SIGKILL");
+            }
+          }
+        }, 2000).unref();
+      }
+    }, timeoutMs);
+
+    child.stdout?.on("data", (chunk) => collect(stdoutChunks, chunk, "stdout"));
+    child.stderr?.on("data", (chunk) => collect(stderrChunks, chunk, "stderr"));
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolve({
+        ok: false,
+        code: null,
+        signal: null,
+        durationMs: Date.now() - started,
+        command: [command, ...args],
+        stdout: trim(Buffer.concat(stdoutChunks).toString("utf8")),
+        stderr: trim(error instanceof Error ? error.message : String(error)),
+      });
+    });
+    child.on("close", (code, signal) => {
+      clearTimeout(timer);
+      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf8");
+      resolve({
+        ok: code === 0 && !timedOut,
+        code,
+        signal,
+        timedOut,
+        durationMs: Date.now() - started,
+        command: [command, ...args],
+        stdout: trim(stdout),
+        stderr: trim(timedOut ? `${stderr}\nTimed out after ${timeoutMs}ms` : stderr),
+      });
+    });
+  });
 }
 
 async function fetchJson(url, timeoutMs = 10000) {
@@ -631,15 +685,24 @@ async function main() {
     return;
   }
 
-  const runnerInventory = await runCommand("gh", ["api", `repos/${config.repo}/actions/runners`]);
+  const runnerInventory = await runCommand("gh", ["api", `repos/${config.repo}/actions/runners`], { timeoutMs: config.githubTimeoutMs });
   if (!Number.isFinite(config.maxQueuedMinutes) || config.maxQueuedMinutes < 0) {
     throw new Error("--max-queued-minutes must be a non-negative number");
+  }
+  for (const [name, value] of [
+    ["--github-timeout-ms", config.githubTimeoutMs],
+    ["--gcp-metadata-timeout-ms", config.gcpMetadataTimeoutMs],
+    ["--gcp-serial-timeout-ms", config.gcpSerialTimeoutMs],
+    ["--gcp-ssh-timeout-ms", config.gcpSshTimeoutMs],
+    ["--gcp-troubleshoot-timeout-ms", config.gcpTroubleshootTimeoutMs],
+  ]) {
+    if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be a positive number`);
   }
 
   const waitingRunApiResults = await Promise.all(WAITING_RUN_STATUSES.map((status) => runCommand("gh", [
     "api",
     `repos/${config.repo}/actions/runs?status=${status}&per_page=100`,
-  ])));
+  ], { timeoutMs: config.githubTimeoutMs })));
   const runsListResult = await runCommand("gh", [
     "run",
     "list",
@@ -649,7 +712,7 @@ async function main() {
     "30",
     "--json",
     "databaseId,displayTitle,name,status,conclusion,workflowName,headBranch,headSha,createdAt,updatedAt,url",
-  ]);
+  ], { timeoutMs: config.githubTimeoutMs });
   const instanceResult = await runCommand("gcloud", [
     "compute",
     "instances",
@@ -660,7 +723,7 @@ async function main() {
     "--zone",
     config.zone,
     "--format=json(name,status,zone,lastStartTimestamp,networkInterfaces[].accessConfigs[].natIP,tags.items,disks[].boot,disks[].source,disks[].deviceName,disks[].diskSizeGb,metadata.items)",
-  ]);
+  ], { timeoutMs: config.gcpMetadataTimeoutMs });
   const projectInfoResult = await runCommand("gcloud", [
     "compute",
     "project-info",
@@ -668,7 +731,7 @@ async function main() {
     "--project",
     config.project,
     "--format=json(commonInstanceMetadata.items)",
-  ]);
+  ], { timeoutMs: config.gcpMetadataTimeoutMs });
   const osConfigServicesResult = await runCommand("gcloud", [
     "services",
     "list",
@@ -677,7 +740,7 @@ async function main() {
     config.project,
     "--filter=config.name=osconfig.googleapis.com",
     "--format=json(config.name,state)",
-  ]);
+  ], { timeoutMs: config.gcpMetadataTimeoutMs });
   const diskResult = await runCommand("gcloud", [
     "compute",
     "disks",
@@ -688,7 +751,7 @@ async function main() {
     "--zone",
     config.zone,
     "--format=json(name,sizeGb,type,users)",
-  ]);
+  ], { timeoutMs: config.gcpMetadataTimeoutMs });
   const serialResult = await runCommand("gcloud", [
     "compute",
     "instances",
@@ -699,7 +762,7 @@ async function main() {
     "--zone",
     config.zone,
     "--port=1",
-  ], { timeoutMs: 30000 });
+  ], { timeoutMs: config.gcpSerialTimeoutMs });
   const sshDirect = await runCommand("gcloud", [
     "compute",
     "ssh",
@@ -713,7 +776,7 @@ async function main() {
     "--ssh-flag=-o BatchMode=yes",
     "--ssh-flag=-o ConnectTimeout=10",
     "--quiet",
-  ], { timeoutMs: 30000 });
+  ], { timeoutMs: config.gcpSshTimeoutMs });
   const sshIap = await runCommand("gcloud", [
     "compute",
     "ssh",
@@ -728,7 +791,7 @@ async function main() {
     "--ssh-flag=-o BatchMode=yes",
     "--ssh-flag=-o ConnectTimeout=10",
     "--quiet",
-  ], { timeoutMs: 30000 });
+  ], { timeoutMs: config.gcpSshTimeoutMs });
 
   const troubleshooting = [];
   if (config.troubleshoot) {
@@ -746,7 +809,7 @@ async function main() {
         "--quiet",
       ];
       if (mode === "iap") args.splice(args.indexOf("--troubleshoot"), 0, "--tunnel-through-iap");
-      const result = await runCommand("gcloud", args, { timeoutMs: 45000 });
+      const result = await runCommand("gcloud", args, { timeoutMs: config.gcpTroubleshootTimeoutMs });
       troubleshooting.push({ mode, ok: result.ok, code: result.code, stdout: result.stdout, stderr: result.stderr });
     }
   }
@@ -784,6 +847,13 @@ async function main() {
       baseUrl: config.baseUrl,
       watchedWorkflows: config.watchedWorkflows,
       maxQueuedMinutes: config.maxQueuedMinutes,
+      timeoutsMs: {
+        github: config.githubTimeoutMs,
+        gcpMetadata: config.gcpMetadataTimeoutMs,
+        gcpSerial: config.gcpSerialTimeoutMs,
+        gcpSsh: config.gcpSshTimeoutMs,
+        gcpTroubleshoot: config.gcpTroubleshootTimeoutMs,
+      },
     },
     runner,
     queuedRuns,
