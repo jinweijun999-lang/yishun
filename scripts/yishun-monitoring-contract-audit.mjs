@@ -150,6 +150,8 @@ for (const hostedDailyOpsFallbackNeedle of [
   "group: yishun-daily-ops-export-${{ github.ref }}",
   "cancel-in-progress: true",
   "runs-on: ubuntu-latest",
+  "GITHUB_EVENT_PATH",
+  "event.inputs?.report_date",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
   "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
   "YISHUN_HEALTH_URL: https://11263.com/api/health",
