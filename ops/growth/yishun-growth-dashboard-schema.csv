@@ -20,3 +20,12 @@ webhook_failures,webhook_failed,Stripe webhook failures from analytics or DB sum
 primary_kpi,reading_preview_generated / anonymous_id,Visitor to first-value completion rate,product,daily
 retention_kpi,saved_report / reading_preview_generated,Saved-report rate after preview,product,daily
 revenue_kpi,entitlement_granted / checkout_started,Checkout fulfillment rate,revenue,daily
+growth_scorecard,growth_scorecard.json,Daily launch-readiness conversion threshold status for activation retention sharing and checkout fulfillment,data,daily
+visitor_to_start,reading_start_clicked / anonymous_id,Visitor-to-start conversion target 20%; watch if below target,product,daily
+start_to_birth_submit,birth_info_submitted / reading_start_clicked,Start-to-form-submit conversion target 60%; watch if below target,product,daily
+birth_submit_to_preview,reading_preview_generated / birth_info_submitted,Form-submit-to-preview conversion target 75%; watch if below target,product,daily
+visitor_to_preview,reading_preview_generated / anonymous_id,Visitor-to-first-value conversion target 25%; watch if below target,product,daily
+preview_to_saved_report,saved_report / reading_preview_generated,Saved-report retention conversion target 15%; watch if below target,retention,daily
+preview_to_share_click,share_clicked / reading_preview_generated,Share conversion target 8%; watch if below target,growth,daily
+pricing_to_checkout_start,checkout_started / pricing_viewed,Paid-value-to-checkout conversion target 15%; watch if below target,revenue,daily
+checkout_to_entitlement,entitlement_granted / checkout_started,Checkout fulfillment target 95%; action_required if checkout starts lack entitlement grants,revenue,daily
