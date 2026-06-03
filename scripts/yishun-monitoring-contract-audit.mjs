@@ -135,14 +135,32 @@ for (const runnerWatchdogNeedle of [
   "MAX_QUEUED_MINUTES: \"10\"",
   "WAITING_RUN_STATUSES: queued,pending,waiting,requested",
   "WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export",
-  "actions/github-script@v8.0.0",
-  "listWorkflowRunsForRepo",
-  "waitingStatuses",
-  "GITHUB_TOKEN does not grant runner administration read",
-  "no watched workflow has waited past the threshold",
-  "waiting longer than",
+  "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
+  "actions/checkout",
+  "GH_TOKEN: ${{ github.token }}",
+  "node scripts/yishun-release-lag-watch.mjs --fail-on-blocker",
+  "Upload release lag evidence",
+  "yishun-release-lag-watch",
+  "YISHUN_RELEASE_LAG_EVIDENCE_DIR",
 ]) {
   assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);
+}
+
+for (const releaseLagWatchNeedle of [
+  "yishun-release-lag-watch/1.0",
+  "WAITING_RUN_STATUSES",
+  "actions/runners",
+  "actions/runs?status=${status}",
+  "gh\", [\n    \"run\"",
+  "fetchJson(`${config.baseUrl}/api/health`",
+  "summarizeRunner",
+  "releaseLag",
+  "production release ${productionVersion} is behind queued main release",
+  "CODEX_BRIDGE_OUTBOX",
+  "writeResult",
+  "No PM2 restart, production deploy, real Stripe charge/refund, destructive database operation, force push, or user-data deletion was performed.",
+]) {
+  assertContains("scripts/yishun-release-lag-watch.mjs", releaseLagWatchNeedle);
 }
 
 for (const hostedDailyOpsFallbackNeedle of [
@@ -232,6 +250,8 @@ for (const packageNeedle of [
   "yishun-analytics-pipeline-probe.mjs",
   "\"ops:runner-diagnostic\"",
   "yishun-runner-recovery-diagnostic.mjs",
+  "\"ops:release-lag\"",
+  "yishun-release-lag-watch.mjs",
 ]) {
   assertContains("package.json", packageNeedle);
 }
