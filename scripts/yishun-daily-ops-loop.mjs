@@ -147,13 +147,23 @@ async function main() {
       ...dateArgs,
       ...(config.allowEmptyExport ? ["--allow-empty"] : []),
     ];
-    const exportResult = await runStep("export GCP analytics", exportArgs, { env });
-    const exportJson = parseJsonObject(exportResult.stdout);
-    if (exportJson?.outputPath && existsSync(exportJson.outputPath)) {
-      exportOutputPath = exportJson.outputPath;
-      env.YISHUN_ANALYTICS_FILE = exportOutputPath;
+    console.log("\n[daily-ops-loop] export GCP analytics");
+    const exportResult = await runNode(exportArgs, { env });
+    if (exportResult.code === 0) {
+      const exportJson = parseJsonObject(exportResult.stdout);
+      if (exportJson?.outputPath && existsSync(exportJson.outputPath)) {
+        exportOutputPath = exportJson.outputPath;
+        env.YISHUN_ANALYTICS_FILE = exportOutputPath;
+      } else {
+        console.warn("[daily-ops-loop] GCP export did not produce a readable outputPath; daily report will use existing analytics inputs only.");
+      }
     } else {
-      console.warn("[daily-ops-loop] GCP export did not produce a readable outputPath; daily report will use existing analytics inputs only.");
+      const gcpExportError = childFailureSummary("GCP analytics export", exportResult);
+      env.YISHUN_ANALYTICS_SOURCE_NOTE = [
+        env.YISHUN_ANALYTICS_SOURCE_NOTE,
+        gcpExportError,
+      ].filter(Boolean).join("; ");
+      console.warn(`[daily-ops-loop] ${gcpExportError}; continuing daily report without a fresh analytics export.`);
     }
   }
 
