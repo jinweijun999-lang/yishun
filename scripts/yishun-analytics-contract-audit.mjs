@@ -106,6 +106,8 @@ for (const dailyOpsWorkflowNeedle of [
   "cancel-in-progress: true",
   "Public Daily Ops Fallback",
   "runs-on: ubuntu-latest",
+  "GITHUB_EVENT_PATH",
+  "event.inputs?.report_date",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
   "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
   "YISHUN_HEALTH_URL: https://11263.com/api/health",
