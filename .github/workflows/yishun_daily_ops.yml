@@ -21,10 +21,10 @@ jobs:
     timeout-minutes: 15
     env:
       REPORT_DATE_INPUT: ${{ github.event.inputs.report_date || '' }}
-      YISHUN_DAILY_OPS_ROOT: ${{ runner.temp }}/yishun-public-daily-ops
-      YISHUN_DAILY_REPORT_DIR: ${{ runner.temp }}/yishun-public-daily-ops/reports
-      CODEX_BRIDGE_OUTBOX: ${{ runner.temp }}/yishun-public-daily-ops/outbox
-      YISHUN_OPS_REPORT_FALLBACK_DIR: ${{ runner.temp }}/yishun-public-daily-ops/fallback
+      YISHUN_DAILY_OPS_ROOT: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}
+      YISHUN_DAILY_REPORT_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/reports
+      CODEX_BRIDGE_OUTBOX: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/outbox
+      YISHUN_OPS_REPORT_FALLBACK_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/fallback
       YISHUN_DAILY_SKIP_GCP_EXPORT: "1"
       YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: "1"
       YISHUN_PRODUCTION_BASE_URL: https://11263.com
