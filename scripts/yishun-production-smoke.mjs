@@ -106,9 +106,18 @@ function assert(condition, message, details = {}) {
 
 function oauthHealthDetails(health) {
   return {
+    version: health?.version || null,
     checks: health?.checks || null,
     integrations: health?.integrations || null,
   };
+}
+
+function hasGoogleOAuthHealthFields(health) {
+  return Boolean(
+    health?.checks &&
+      Object.hasOwn(health.checks, "googleOAuth") &&
+      health?.integrations?.googleOAuth,
+  );
 }
 
 async function checkHealth(config) {
@@ -125,6 +134,12 @@ async function checkHealth(config) {
   assert(health.checks?.analytics === "configured", "Production analytics health must be configured", { analytics: health.checks?.analytics });
 
   if (config.requireGoogleOAuth) {
+    assert(hasGoogleOAuthHealthFields(health), "Production health payload is missing Google OAuth readiness fields", {
+      reason: "Production is likely serving an older release or the health contract was not deployed.",
+      expectedFields: ["checks.googleOAuth", "integrations.googleOAuth"],
+      ...oauthHealthDetails(health),
+    });
+
     const googleOAuth = health.integrations?.googleOAuth;
     assert(health.checks?.googleOAuth === "configured", "Production Google OAuth health must be configured", {
       googleOAuth: health.checks?.googleOAuth,
