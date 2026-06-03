@@ -42,6 +42,10 @@ for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_re
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 assertContains("scripts/yishun-daily-data-report.mjs", "YISHUN_ANALYTICS_SOURCE_NOTE");
+assertContains("scripts/yishun-daily-data-report.mjs", "YISHUN_ANALYTICS_EXPORT_MAX_AGE_HOURS");
+assertContains("scripts/yishun-daily-data-report.mjs", "analyticsExportFreshness");
+assertContains("scripts/yishun-daily-data-report.mjs", "usableForFunnel");
+assertContains("scripts/yishun-daily-data-report.mjs", "Analytics source note");
 
 for (const exportMetaNeedle of [
   "readAnalyticsExportMetadata",
@@ -98,6 +102,16 @@ for (const productionFileExportNeedle of [
 for (const dailyOpsWorkflowNeedle of [
   "YiShun Daily Ops Export",
   "30 1 * * *",
+  "group: yishun-daily-ops-export-${{ github.ref }}",
+  "cancel-in-progress: true",
+  "Public Daily Ops Fallback",
+  "runs-on: ubuntu-latest",
+  "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
+  "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
+  "YISHUN_HEALTH_URL: https://11263.com/api/health",
+  "GitHub-hosted public fallback",
+  "node scripts/yishun-daily-ops-loop.mjs --date \"$REPORT_DATE\" --skip-gcp-export --skip-production-file-export",
+  "yishun-public-daily-ops-${{ env.REPORT_DATE }}",
   "runs-on: [self-hosted, Linux, X64, yishun-prod]",
   "YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun",
   "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}",
@@ -131,6 +145,8 @@ for (const opsReviewNeedle of [
   "analytics_source.json",
   "Analytics raw/product/ops-probe events",
   "Analytics export sources",
+  "analytics export source is stale",
+  "Analytics source note",
   "Cloud Logging analytics export returned zero entries",
   "Daily operations risk",
   "writeResult",

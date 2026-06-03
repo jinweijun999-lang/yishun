@@ -11,10 +11,82 @@ on:
         type: string
 
 concurrency:
-  group: yishun-daily-ops-export
-  cancel-in-progress: false
+  group: yishun-daily-ops-export-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  public-daily-ops-fallback:
+    name: Public Daily Ops Fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPORT_DATE_INPUT: ${{ inputs.report_date }}
+      YISHUN_DAILY_OPS_ROOT: ${{ runner.temp }}/yishun-public-daily-ops
+      YISHUN_DAILY_REPORT_DIR: ${{ runner.temp }}/yishun-public-daily-ops/reports
+      CODEX_BRIDGE_OUTBOX: ${{ runner.temp }}/yishun-public-daily-ops/outbox
+      YISHUN_OPS_REPORT_FALLBACK_DIR: ${{ runner.temp }}/yishun-public-daily-ops/fallback
+      YISHUN_DAILY_SKIP_GCP_EXPORT: "1"
+      YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: "1"
+      YISHUN_PRODUCTION_BASE_URL: https://11263.com
+      YISHUN_HEALTH_URL: https://11263.com/api/health
+      YISHUN_ANALYTICS_SOURCE_NOTE: "GitHub-hosted public fallback: self-hosted production analytics file export unavailable or still queued"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve report date
+        run: |
+          set -euo pipefail
+          if [ -n "${REPORT_DATE_INPUT:-}" ]; then
+            report_date="$REPORT_DATE_INPUT"
+          else
+            report_date="$(TZ=Asia/Shanghai date +%F)"
+          fi
+          if ! printf "%s" "$report_date" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "Invalid report_date: $report_date"
+            exit 1
+          fi
+          echo "REPORT_DATE=$report_date" >> "$GITHUB_ENV"
+          echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
+
+      - name: Build public daily operations fallback package
+        run: node scripts/yishun-daily-ops-loop.mjs --date "$REPORT_DATE" --skip-gcp-export --skip-production-file-export
+
+      - name: Summarize public daily operations fallback
+        run: |
+          set -euo pipefail
+          report_dir="${YISHUN_DAILY_REPORT_DIR}/yishun-daily-${REPORT_DATE}"
+          {
+            echo "## YiShun Public Daily Ops Fallback"
+            echo
+            echo "- Report date: ${REPORT_DATE}"
+            echo "- Source: public health, route patrol, and degraded analytics/payment reconciliation"
+            echo "- Report directory: ${report_dir}"
+            echo "- Bridge-style review artifacts: ${CODEX_BRIDGE_OUTBOX}"
+            echo
+            if [ -f "${report_dir}/summary.md" ]; then
+              sed -n '1,80p' "${report_dir}/summary.md"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload public daily operations fallback artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: yishun-public-daily-ops-${{ env.REPORT_DATE }}
+          path: ${{ env.YISHUN_DAILY_OPS_ROOT }}
+          if-no-files-found: error
+          retention-days: 14
+
   daily-ops-export:
     name: Export Daily Ops Package
     runs-on: [self-hosted, Linux, X64, yishun-prod]
