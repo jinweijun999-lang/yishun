@@ -34,6 +34,11 @@ for (const trackingNeedle of ["utm_source", "utm_medium", "utm_campaign", "readi
 }
 
 assertContains("scripts/yishun-daily-data-report.mjs", "traffic_campaigns.csv");
+assertContains("scripts/yishun-daily-data-report.mjs", "growth_scorecard.json");
+assertContains("scripts/yishun-daily-data-report.mjs", "visitor_to_preview");
+assertContains("scripts/yishun-daily-data-report.mjs", "checkout_to_entitlement");
+assertContains("ops/growth/yishun-growth-dashboard-schema.csv", "growth_scorecard");
+assertContains("ops/growth/yishun-growth-dashboard-schema.csv", "preview_to_saved_report");
 assertContains("reports/yishun-daily-data-loop-20260528.md", "traffic_campaigns.csv");
 
 for (const copyNeedle of ["self-reflection", "not financial", "not medical", "not legal", "checkout", "save your report", "share"]) {
@@ -52,6 +57,7 @@ console.log(
         "growth_calendar_covers_priority_channels",
         "content_seed_pack_preserves_compliance_and_paid_flow",
         "dashboard_schema_maps_growth_to_daily_analytics",
+        "daily_growth_scorecard_maps_launch_thresholds",
         "p1_growth_smoke_covers_share_and_saved_report_surfaces",
       ],
     },

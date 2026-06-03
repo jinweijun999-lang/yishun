@@ -641,6 +641,105 @@ function canonicalCount(analytics, eventName) {
   return analytics.canonical.find((item) => item.event === eventName)?.count || 0;
 }
 
+function ratePercent(numerator, denominator) {
+  if (!denominator || denominator <= 0) return null;
+  return Number(((numerator / denominator) * 100).toFixed(2));
+}
+
+function scorecardStatus({ numerator, denominator, targetPercent, critical = false }) {
+  if (!denominator || denominator <= 0) return "no_data";
+  const rate = ratePercent(numerator, denominator);
+  if (critical && numerator < denominator) return "action_required";
+  return rate >= targetPercent ? "clear" : "watch";
+}
+
+function growthScorecard({ analytics, payment }) {
+  const counts = {
+    anonymous_visitors: analytics.anonymousVisitors,
+    reading_start_clicked: canonicalCount(analytics, "reading_start_clicked"),
+    birth_info_submitted: canonicalCount(analytics, "birth_info_submitted"),
+    reading_preview_generated: canonicalCount(analytics, "reading_preview_generated"),
+    saved_report: canonicalCount(analytics, "saved_report"),
+    share_clicked: canonicalCount(analytics, "share_clicked"),
+    pricing_viewed: canonicalCount(analytics, "pricing_viewed"),
+    checkout_started: payment.checkoutStarted,
+    entitlement_granted: payment.entitlementGranted,
+  };
+  const rows = [
+    {
+      metric: "visitor_to_start",
+      numerator: counts.reading_start_clicked,
+      denominator: counts.anonymous_visitors,
+      targetPercent: 20,
+      owner: "product",
+      nextAction: "Improve first-screen CTA clarity before adding more acquisition volume.",
+    },
+    {
+      metric: "start_to_birth_submit",
+      numerator: counts.birth_info_submitted,
+      denominator: counts.reading_start_clicked,
+      targetPercent: 60,
+      owner: "product",
+      nextAction: "Reduce onboarding friction or clarify unknown-time fallback.",
+    },
+    {
+      metric: "birth_submit_to_preview",
+      numerator: counts.reading_preview_generated,
+      denominator: counts.birth_info_submitted,
+      targetPercent: 75,
+      owner: "product",
+      nextAction: "Investigate preview generation failures or slow result loading.",
+    },
+    {
+      metric: "visitor_to_preview",
+      numerator: counts.reading_preview_generated,
+      denominator: counts.anonymous_visitors,
+      targetPercent: 25,
+      owner: "product",
+      nextAction: "Fix onboarding copy or form friction before scaling traffic.",
+    },
+    {
+      metric: "preview_to_saved_report",
+      numerator: counts.saved_report,
+      denominator: counts.reading_preview_generated,
+      targetPercent: 15,
+      owner: "retention",
+      nextAction: "Improve save CTA placement and report-library value.",
+    },
+    {
+      metric: "preview_to_share_click",
+      numerator: counts.share_clicked,
+      denominator: counts.reading_preview_generated,
+      targetPercent: 8,
+      owner: "growth",
+      nextAction: "Improve share-card preview and share landing CTA.",
+    },
+    {
+      metric: "pricing_to_checkout_start",
+      numerator: counts.checkout_started,
+      denominator: counts.pricing_viewed,
+      targetPercent: 15,
+      owner: "revenue",
+      nextAction: "Clarify paid report value and checkout recovery copy.",
+    },
+    {
+      metric: "checkout_to_entitlement",
+      numerator: counts.entitlement_granted,
+      denominator: counts.checkout_started,
+      targetPercent: 95,
+      owner: "revenue",
+      critical: true,
+      nextAction: "Stop paid growth and verify Stripe webhook fulfillment.",
+    },
+  ];
+
+  return rows.map((row) => ({
+    ...row,
+    ratePercent: ratePercent(row.numerator, row.denominator),
+    status: scorecardStatus(row),
+  }));
+}
+
 function stripeWebhookSummaryFromEvents(events, source) {
   const rows = [...countBy(events.map((event) => `${event.product || "unknown"}|${event.status}`)).entries()]
     .map(([key, count]) => {
@@ -876,6 +975,7 @@ async function main() {
   const routeStatus = await fetchRouteStatus(config);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
+  const scorecard = growthScorecard({ analytics, payment });
   const enrichedFunnelRows = funnelRows(analytics, payment);
   const analyticsSource = {
     date: config.date,
@@ -930,6 +1030,24 @@ async function main() {
     ["utm_source", "utm_medium", "utm_campaign", "events"],
     ...analytics.trafficCampaigns,
   ]));
+  await writeFile(path.join(reportDir, "growth_scorecard.json"), JSON.stringify({
+    date: config.date,
+    thresholds: "YiShun launch-readiness conversion thresholds. no_data means the denominator was zero, not that the metric is healthy.",
+    metrics: scorecard,
+  }, null, 2));
+  await writeFile(path.join(reportDir, "growth_scorecard.csv"), csv([
+    ["metric", "numerator", "denominator", "rate_percent", "target_percent", "status", "owner", "next_action"],
+    ...scorecard.map((row) => [
+      row.metric,
+      row.numerator,
+      row.denominator,
+      row.ratePercent ?? "",
+      row.targetPercent,
+      row.status,
+      row.owner,
+      row.nextAction,
+    ]),
+  ]));
   await writeFile(path.join(reportDir, "top_pages.csv"), csv([
     ["page", "events"],
     ...analytics.topPages,
@@ -983,6 +1101,7 @@ async function main() {
 - Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
 - Stripe webhook summary: ${stripe.available ? `available (${payment.stripeSummarySource})` : "unavailable"}
 - Payment reconciliation: ${payment.risk}
+- Growth scorecard: ${scorecard.filter((row) => row.status === "action_required").length} action_required / ${scorecard.filter((row) => row.status === "watch").length} watch / ${scorecard.filter((row) => row.status === "no_data").length} no_data
 
 ## Today Actions
 
@@ -1003,6 +1122,8 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - retention.csv
 - traffic_sources.csv
 - traffic_campaigns.csv
+- growth_scorecard.json
+- growth_scorecard.csv
 - top_pages.csv
 - anomaly_notes.md
 - analyst_questions.md
@@ -1019,6 +1140,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     analyticsSourceFresh: analyticsSource.fresh,
     analyticsSourceUsableForFunnel: analyticsSource.usableForFunnel,
     analyticsExportMeta: analyticsSource.exportMeta,
+    growthScorecard: scorecard,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,
     paymentRisk: payment.risk,
