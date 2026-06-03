@@ -38,7 +38,7 @@ for (const privateNeedle of ["birth", "email", "phone", "location", "latitude", 
   assertContains("app/api/events/route.ts", privateNeedle);
 }
 
-for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "payment_reconciliation.json", "analytics_source.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "stripeWebhookEventsFromAnalytics", "analytics_export", "eventValue", "isOperationalAnalyticsEvent", "operationalProbeEvents", "rawReportDateEvents", "yishun_analytics_event", "yishun_server_analytics_event", "jsonPayload", "textPayload", "rawArgs.indexOf(\"--date\")"]) {
+for (const reportNeedle of ["checkout_started", "entitlement_granted", "saved_report", "save_result", "save_click", "traffic_sources.csv", "traffic_campaigns.csv", "retention.csv", "growth_scorecard.json", "growth_scorecard.csv", "payment_reconciliation.json", "analytics_source.json", "deployment_status.json", "route_status.json", "Core routes:", "Core route check failed", "Production health reports analytics configured", "YISHUN_ANALYTICS_FILES", "YISHUN_ANALYTICS_DIR", "YISHUN_DEPLOYMENT_STATUS_FILE", "discoverAnalyticsFiles", "parseAnalyticsExportRecords", "readDeploymentStatus", "YISHUN_STRIPE_WEBHOOK_EVENTS_FILE", "stripe_webhook_fulfilled", "webhookFulfilled", "browserAnalyticsEntitlementGranted", "serverWebhookEntitlementGranted", "stripeWebhookEventsFromAnalytics", "analytics_export", "eventValue", "isOperationalAnalyticsEvent", "operationalProbeEvents", "rawReportDateEvents", "growthScorecard", "visitor_to_preview", "checkout_to_entitlement", "rawArgs.indexOf(\"--date\")"]) {
   assertContains("scripts/yishun-daily-data-report.mjs", reportNeedle);
 }
 assertContains("scripts/yishun-daily-data-report.mjs", "YISHUN_ANALYTICS_SOURCE_NOTE");
@@ -108,6 +108,8 @@ for (const dailyOpsWorkflowNeedle of [
   "cancel-in-progress: true",
   "Public Daily Ops Fallback",
   "runs-on: ubuntu-latest",
+  "scripts/yishun-export-deployment-status.mjs",
+  "GH_TOKEN: ${{ github.token }}",
   "GITHUB_EVENT_PATH",
   "event.inputs?.report_date",
   "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}",
@@ -146,6 +148,13 @@ for (const opsReviewNeedle of [
   "CODEX_BRIDGE_OUTBOX",
   "YISHUN_OPS_REPORT_FALLBACK_DIR",
   "payment_reconciliation.json",
+  "deployment_status.json",
+  "Deployment status",
+  "growth_scorecard.json",
+  "Growth scorecard",
+  "Deployment status",
+  "deployment_status.json",
+  "deployment status is action_required",
   "route_status.json",
   "core route patrol failed",
   "analytics_source.json",
@@ -155,6 +164,8 @@ for (const opsReviewNeedle of [
   "Analytics source note",
   "Cloud Logging analytics export returned zero entries",
   "Daily operations risk",
+  "deployment status is watch",
+  "growth scorecard has watch metrics",
   "writeResult",
   "rawArgs.indexOf(\"--date\")",
 ]) {
@@ -163,6 +174,7 @@ for (const opsReviewNeedle of [
 
 assertContains("package.json", "\"ops:daily-review\"");
 assertContains("package.json", "\"ops:daily-loop\"");
+assertContains("package.json", "\"export:deployment-status\"");
 assertContains("package.json", "\"export:gcp-analytics\"");
 assertContains("package.json", "\"export:production-analytics-file\"");
 assertContains("package.json", "\"ops:analytics-probe\"");
@@ -170,16 +182,21 @@ assertContains("package.json", "\"ops:analytics-probe\"");
 for (const opsLoopNeedle of [
   "scripts/yishun-export-production-analytics-file.mjs",
   "scripts/yishun-export-gcp-analytics.mjs",
+  "scripts/yishun-export-deployment-status.mjs",
   "scripts/yishun-daily-data-report.mjs",
   "scripts/yishun-daily-ops-review.mjs",
   "YISHUN_ANALYTICS_FILE",
+  "YISHUN_DEPLOYMENT_STATUS_FILE",
+  "YISHUN_DAILY_SKIP_DEPLOYMENT_STATUS",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT",
   "falling back to Cloud Logging export",
   "Cloud Logging fallback was skipped",
   "YISHUN_ANALYTICS_SOURCE_NOTE",
+  "deployment status export",
   "attemptSummary",
   "--allow-empty",
   "Keep scanning",
+  "deploymentStatusPath",
   "analyticsSourceAvailable",
   "routeStatusOk",
   "reviewOutputPath",
@@ -223,6 +240,23 @@ for (const analyticsMetaNeedle of [
   "Production analytics file export failed",
 ]) {
   assertContains("scripts/yishun-daily-data-report.mjs", analyticsMetaNeedle);
+}
+
+for (const deploymentStatusNeedle of [
+  "yishun-deployment-status/1.0",
+  "Next.js CI/CD",
+  "Deploy to Production",
+  "gh",
+  "run",
+  "list",
+  "view",
+  "releaseLag",
+  "staleQueue",
+  "productionVersion",
+  "expectedMainSha",
+  "YISHUN_DEPLOYMENT_STATUS_DIR",
+]) {
+  assertContains("scripts/yishun-export-deployment-status.mjs", deploymentStatusNeedle);
 }
 
 for (const analyticsProbeNeedle of [
@@ -289,6 +323,8 @@ console.log(
         "browser_events_include_required_yishun_context",
         "analytics_ingest_redacts_private_birth_contact_location_fields",
         "daily_report_consumes_funnel_traffic_campaign_retention_saved_report_payment_metrics",
+        "daily_report_outputs_growth_scorecard_conversion_thresholds",
+        "daily_report_surfaces_deployment_release_lag",
         "daily_report_surfaces_analytics_source_freshness",
         "daily_report_reads_single_multi_file_and_directory_analytics_exports",
         "daily_report_and_ops_review_honor_date_cli_argument",

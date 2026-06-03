@@ -14,6 +14,7 @@ function parseArgs() {
     date: process.env.REPORT_DATE || (DATE_PATTERN.test(dateArg || "") ? dateArg : null),
     skipGcpExport: args.has("--skip-gcp-export") || process.env.YISHUN_DAILY_SKIP_GCP_EXPORT === "1",
     skipProductionFileExport: args.has("--skip-production-file-export") || process.env.YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT === "1",
+    skipDeploymentStatus: args.has("--skip-deployment-status") || process.env.YISHUN_DAILY_SKIP_DEPLOYMENT_STATUS === "1",
     allowEmptyExport: !args.has("--no-allow-empty") && process.env.YISHUN_GCP_ANALYTICS_ALLOW_EMPTY !== "0",
   };
 }
@@ -110,6 +111,27 @@ async function main() {
   const env = { ...process.env };
   const dateArgs = config.date ? ["--date", config.date] : [];
 
+  let deploymentStatusPath = null;
+  let deploymentStatusError = null;
+  if (!config.skipDeploymentStatus && !env.YISHUN_DEPLOYMENT_STATUS_FILE) {
+    console.log("\n[daily-ops-loop] export deployment status");
+    const deploymentStatusResult = await runNode(["scripts/yishun-export-deployment-status.mjs"], { env });
+    if (deploymentStatusResult.code === 0) {
+      const deploymentStatusJson = parseJsonObject(deploymentStatusResult.stdout);
+      if (deploymentStatusJson?.outputPath && existsSync(deploymentStatusJson.outputPath)) {
+        deploymentStatusPath = deploymentStatusJson.outputPath;
+        env.YISHUN_DEPLOYMENT_STATUS_FILE = deploymentStatusPath;
+      } else {
+        deploymentStatusError = "deployment status export did not produce a readable outputPath";
+        env.YISHUN_DEPLOYMENT_STATUS_NOTE = deploymentStatusError;
+      }
+    } else {
+      deploymentStatusError = childFailureSummary("deployment status export", deploymentStatusResult);
+      env.YISHUN_DEPLOYMENT_STATUS_NOTE = deploymentStatusError;
+      console.warn(`[daily-ops-loop] ${deploymentStatusError}; continuing daily report without deployment status input.`);
+    }
+  }
+
   let exportOutputPath = null;
   let productionFileExportError = null;
   if (!config.skipProductionFileExport && !hasAnalyticsInput(env)) {
@@ -182,6 +204,8 @@ async function main() {
     paymentRisk: reportJson?.paymentRisk || null,
     reviewRisk: reviewJson?.risk || null,
     reviewOutputPath: reviewJson?.outputPath || null,
+    deploymentStatusPath,
+    deploymentStatusError,
     productionFileExportError,
   }, null, 2));
 }

@@ -135,14 +135,25 @@ for (const runnerWatchdogNeedle of [
   "MAX_QUEUED_MINUTES: \"10\"",
   "WAITING_RUN_STATUSES: queued,pending,waiting,requested",
   "WATCHED_WORKFLOWS: Next.js CI/CD,YiShun Daily Ops Export",
-  "actions/github-script@v8.0.0",
-  "listWorkflowRunsForRepo",
-  "waitingStatuses",
-  "GITHUB_TOKEN does not grant runner administration read",
-  "no watched workflow has waited past the threshold",
-  "waiting longer than",
+  "Checkout repository",
+  "node scripts/yishun-release-lag-watch.mjs --fail-on-blocker",
+  "YISHUN_RELEASE_LAG_EVIDENCE_DIR",
+  "CODEX_BRIDGE_OUTBOX",
+  "actions/upload-artifact@v7.0.1",
+  "yishun-release-lag-watch",
 ]) {
   assertContains(".github/workflows/yishun_runner_watchdog.yml", runnerWatchdogNeedle);
+}
+
+for (const releaseLagWatchNeedle of [
+  "GitHub reports yishun-prod-runner offline",
+  "release lag",
+  "stale-waiting",
+  "writeResult",
+  "No PM2 restart, production deploy, real Stripe charge/refund, destructive database operation, force push, or user-data deletion was performed.",
+  "process.exitCode = 1",
+]) {
+  assertContains("scripts/yishun-release-lag-watch.mjs", releaseLagWatchNeedle);
 }
 
 for (const hostedDailyOpsFallbackNeedle of [
@@ -232,8 +243,23 @@ for (const packageNeedle of [
   "yishun-analytics-pipeline-probe.mjs",
   "\"ops:runner-diagnostic\"",
   "yishun-runner-recovery-diagnostic.mjs",
+  "\"export:deployment-status\"",
+  "yishun-export-deployment-status.mjs",
 ]) {
   assertContains("package.json", packageNeedle);
+}
+
+for (const deploymentStatusNeedle of [
+  "yishun-deployment-status/1.0",
+  "Next.js CI/CD",
+  "Deploy to Production",
+  "releaseLag",
+  "staleQueue",
+  "productionVersion",
+  "expectedMainSha",
+  "YISHUN_DEPLOYMENT_STATUS_DIR",
+]) {
+  assertContains("scripts/yishun-export-deployment-status.mjs", deploymentStatusNeedle);
 }
 
 for (const runnerDiagnosticNeedle of [
@@ -350,6 +376,7 @@ console.log(
         "runner_watchdog_surfaces_offline_self_hosted_runner_and_stale_queues",
         "runner_recovery_diagnostic_writes_bridge_evidence_for_offline_runner",
         "runner_recovery_diagnostic_surfaces_release_lag",
+        "daily_deployment_status_surfaces_release_lag",
         "ci_and_launch_readiness_dry_run_daily_report",
         "safe_error_adapter_redacts_sensitive_user_and_secret_fields",
       ],

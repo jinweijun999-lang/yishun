@@ -37,6 +37,7 @@ reports/daily/yishun-daily-YYYY-MM-DD/
   summary.md
   uptime.json
   performance.json
+  deployment_status.json
   errors.jsonl
   stripe_payments.csv
   stripe_webhook_failures.csv
@@ -46,6 +47,8 @@ reports/daily/yishun-daily-YYYY-MM-DD/
   retention.csv
   traffic_sources.csv
   traffic_campaigns.csv
+  growth_scorecard.json
+  growth_scorecard.csv
   top_pages.csv
   anomaly_notes.md
   analyst_questions.md
@@ -54,10 +57,12 @@ reports/daily/yishun-daily-YYYY-MM-DD/
 ## Coverage
 
 - `/api/health` uptime status and latency.
+- Deployment status from GitHub Actions and public health, including release lag and stale deploy queue risk when available.
 - Analytics funnel counts using the canonical 14-day plan event names with aliases for current YiShun events.
 - Google Cloud Logging exports containing `yishun_analytics_event` or `yishun_server_analytics_event` can be converted into the daily report input JSONL.
 - Retention proxy counts from daily-card and return-visit events.
 - Traffic source, UTM campaign, and top-page aggregates from nested `properties` or top-level event exports without exposing raw visitor IDs.
+- Growth scorecard thresholds for activation, retention, sharing, paid conversion, and Stripe entitlement fulfillment.
 - Read-only Stripe webhook fulfillment counts when `DATABASE_URL` is configured.
 - File-export fallback for Stripe webhook rows when `DATABASE_URL` is unavailable, so `entitlement_granted` and `webhook_failed` still appear in the daily funnel.
 - Payment reconciliation risk from checkout analytics versus fulfilled, duplicate, and failed Stripe webhook rows.

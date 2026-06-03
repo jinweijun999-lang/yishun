@@ -69,6 +69,8 @@ function parseArgs() {
     analyticsFiles: process.env.YISHUN_ANALYTICS_FILES || "",
     analyticsDir: process.env.YISHUN_ANALYTICS_DIR || "",
     analyticsSourceNote: process.env.YISHUN_ANALYTICS_SOURCE_NOTE || "",
+    deploymentStatusFile: process.env.YISHUN_DEPLOYMENT_STATUS_FILE || "",
+    deploymentStatusNote: process.env.YISHUN_DEPLOYMENT_STATUS_NOTE || "",
     stripeWebhookEventsFile: process.env.YISHUN_STRIPE_WEBHOOK_EVENTS_FILE || "",
     healthUrl,
     routeBaseUrl: (process.env.YISHUN_PRODUCTION_BASE_URL || new URL(healthUrl).origin).replace(/\/+$/, ""),
@@ -641,6 +643,105 @@ function canonicalCount(analytics, eventName) {
   return analytics.canonical.find((item) => item.event === eventName)?.count || 0;
 }
 
+function ratePercent(numerator, denominator) {
+  if (!denominator || denominator <= 0) return null;
+  return Number(((numerator / denominator) * 100).toFixed(2));
+}
+
+function scorecardStatus({ numerator, denominator, targetPercent, critical = false }) {
+  if (!denominator || denominator <= 0) return "no_data";
+  const rate = ratePercent(numerator, denominator);
+  if (critical && numerator < denominator) return "action_required";
+  return rate >= targetPercent ? "clear" : "watch";
+}
+
+function growthScorecard({ analytics, payment }) {
+  const counts = {
+    anonymous_visitors: analytics.anonymousVisitors,
+    reading_start_clicked: canonicalCount(analytics, "reading_start_clicked"),
+    birth_info_submitted: canonicalCount(analytics, "birth_info_submitted"),
+    reading_preview_generated: canonicalCount(analytics, "reading_preview_generated"),
+    saved_report: canonicalCount(analytics, "saved_report"),
+    share_clicked: canonicalCount(analytics, "share_clicked"),
+    pricing_viewed: canonicalCount(analytics, "pricing_viewed"),
+    checkout_started: payment.checkoutStarted,
+    entitlement_granted: payment.entitlementGranted,
+  };
+  const rows = [
+    {
+      metric: "visitor_to_start",
+      numerator: counts.reading_start_clicked,
+      denominator: counts.anonymous_visitors,
+      targetPercent: 20,
+      owner: "product",
+      nextAction: "Improve first-screen CTA clarity before adding more acquisition volume.",
+    },
+    {
+      metric: "start_to_birth_submit",
+      numerator: counts.birth_info_submitted,
+      denominator: counts.reading_start_clicked,
+      targetPercent: 60,
+      owner: "product",
+      nextAction: "Reduce onboarding friction or clarify unknown-time fallback.",
+    },
+    {
+      metric: "birth_submit_to_preview",
+      numerator: counts.reading_preview_generated,
+      denominator: counts.birth_info_submitted,
+      targetPercent: 75,
+      owner: "product",
+      nextAction: "Investigate preview generation failures or slow result loading.",
+    },
+    {
+      metric: "visitor_to_preview",
+      numerator: counts.reading_preview_generated,
+      denominator: counts.anonymous_visitors,
+      targetPercent: 25,
+      owner: "product",
+      nextAction: "Fix onboarding copy or form friction before scaling traffic.",
+    },
+    {
+      metric: "preview_to_saved_report",
+      numerator: counts.saved_report,
+      denominator: counts.reading_preview_generated,
+      targetPercent: 15,
+      owner: "retention",
+      nextAction: "Improve save CTA placement and report-library value.",
+    },
+    {
+      metric: "preview_to_share_click",
+      numerator: counts.share_clicked,
+      denominator: counts.reading_preview_generated,
+      targetPercent: 8,
+      owner: "growth",
+      nextAction: "Improve share-card preview and share landing CTA.",
+    },
+    {
+      metric: "pricing_to_checkout_start",
+      numerator: counts.checkout_started,
+      denominator: counts.pricing_viewed,
+      targetPercent: 15,
+      owner: "revenue",
+      nextAction: "Clarify paid report value and checkout recovery copy.",
+    },
+    {
+      metric: "checkout_to_entitlement",
+      numerator: counts.entitlement_granted,
+      denominator: counts.checkout_started,
+      targetPercent: 95,
+      owner: "revenue",
+      critical: true,
+      nextAction: "Stop paid growth and verify Stripe webhook fulfillment.",
+    },
+  ];
+
+  return rows.map((row) => ({
+    ...row,
+    ratePercent: ratePercent(row.numerator, row.denominator),
+    status: scorecardStatus(row),
+  }));
+}
+
 function stripeWebhookSummaryFromEvents(events, source) {
   const rows = [...countBy(events.map((event) => `${event.product || "unknown"}|${event.status}`)).entries()]
     .map(([key, count]) => {
@@ -702,6 +803,37 @@ async function readStripeWebhookSummary(reportDate, eventsFilePath, analyticsEve
     );
   } catch (error) {
     return fileFallback(error instanceof Error ? error.message : "Stripe webhook summary failed");
+  }
+}
+
+async function readDeploymentStatus(config) {
+  const unavailable = (note) => ({
+    available: false,
+    note,
+    summary: {
+      risk: "unknown",
+      releaseLag: null,
+      staleQueue: null,
+    },
+  });
+
+  if (!config.deploymentStatusFile) {
+    return unavailable(config.deploymentStatusNote || "YISHUN_DEPLOYMENT_STATUS_FILE not configured");
+  }
+
+  if (!existsSync(config.deploymentStatusFile)) {
+    return unavailable(`deployment status file not found: ${config.deploymentStatusFile}`);
+  }
+
+  try {
+    const parsed = JSON.parse(await readFile(config.deploymentStatusFile, "utf8"));
+    return {
+      available: true,
+      note: config.deploymentStatusNote || parsed.github?.note || "",
+      ...parsed,
+    };
+  } catch {
+    return unavailable(`deployment status file was not valid JSON: ${config.deploymentStatusFile}`);
   }
 }
 
@@ -782,7 +914,7 @@ function analyticsConfiguredInHealth(health) {
   return health.response?.checks?.analytics === "configured";
 }
 
-function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate, analyticsFreshness }) {
+function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, deploymentStatus, reportDate, analyticsFreshness }) {
   const notes = [];
   if (health.ok === false) notes.push(`Health check failed: ${health.error || health.status}`);
   if (health.ok === null) notes.push("Health check skipped for this local report run.");
@@ -845,6 +977,14 @@ function anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, 
   if (payment.checks.duplicateSessionsObserved) notes.push(`${payment.webhookDuplicateSessions} duplicate Stripe checkout session webhook rows were observed.`);
   if (!stripe.available) notes.push(`Stripe webhook DB summary unavailable: ${stripe.note}`);
   if (stripe.failures.length > 0) notes.push(`${stripe.failures.length} Stripe webhook failure rows found.`);
+  if (!deploymentStatus.available) {
+    notes.push(`Deployment status unavailable: ${deploymentStatus.note}`);
+  } else if (deploymentStatus.summary?.releaseLag) {
+    notes.push(`Production release ${deploymentStatus.summary.productionVersion || "unknown"} is behind main ${deploymentStatus.summary.expectedMainSha || "unknown"}.`);
+  }
+  if (deploymentStatus.summary?.staleQueue) {
+    notes.push(`Deployment queue is stale beyond ${deploymentStatus.summary.maxQueuedMinutes || "unknown"} minutes.`);
+  }
   return notes;
 }
 
@@ -873,9 +1013,11 @@ async function main() {
     fetchHealth(config),
   ]);
   const stripe = await readStripeWebhookSummary(config.date, config.stripeWebhookEventsFile, analyticsInput.events);
+  const deploymentStatus = await readDeploymentStatus(config);
   const routeStatus = await fetchRouteStatus(config);
   const analytics = analyticsSummary(analyticsInput.events);
   const payment = paymentReconciliation({ analytics, stripe });
+  const scorecard = growthScorecard({ analytics, payment });
   const enrichedFunnelRows = funnelRows(analytics, payment);
   const analyticsSource = {
     date: config.date,
@@ -892,12 +1034,13 @@ async function main() {
   analyticsSource.freshness = analyticsFreshness;
   analyticsSource.usableForFunnel = analyticsSource.rawReportDateEvents > 0;
   const reportDateExportMeta = (analyticsSource.exportMeta || []).filter((meta) => !meta.date || meta.date === config.date);
-  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, reportDate: config.date, analyticsFreshness });
+  const notes = anomalyNotes({ health, routeStatus, analyticsInput, analytics, stripe, payment, deploymentStatus, reportDate: config.date, analyticsFreshness });
   const questions = analystQuestions({ analytics, analyticsInput, notes });
 
   await writeFile(path.join(reportDir, "uptime.json"), JSON.stringify(health, null, 2));
   await writeFile(path.join(reportDir, "route_status.json"), JSON.stringify(routeStatus, null, 2));
   await writeFile(path.join(reportDir, "analytics_source.json"), JSON.stringify(analyticsSource, null, 2));
+  await writeFile(path.join(reportDir, "deployment_status.json"), JSON.stringify(deploymentStatus, null, 2));
   await writeFile(path.join(reportDir, "performance.json"), JSON.stringify({
     date: config.date,
     healthLatencyMs: health.latencyMs,
@@ -929,6 +1072,24 @@ async function main() {
   await writeFile(path.join(reportDir, "traffic_campaigns.csv"), csv([
     ["utm_source", "utm_medium", "utm_campaign", "events"],
     ...analytics.trafficCampaigns,
+  ]));
+  await writeFile(path.join(reportDir, "growth_scorecard.json"), JSON.stringify({
+    date: config.date,
+    thresholds: "YiShun launch-readiness conversion thresholds. no_data means the denominator was zero, not that the metric is healthy.",
+    metrics: scorecard,
+  }, null, 2));
+  await writeFile(path.join(reportDir, "growth_scorecard.csv"), csv([
+    ["metric", "numerator", "denominator", "rate_percent", "target_percent", "status", "owner", "next_action"],
+    ...scorecard.map((row) => [
+      row.metric,
+      row.numerator,
+      row.denominator,
+      row.ratePercent ?? "",
+      row.targetPercent,
+      row.status,
+      row.owner,
+      row.nextAction,
+    ]),
   ]));
   await writeFile(path.join(reportDir, "top_pages.csv"), csv([
     ["page", "events"],
@@ -977,12 +1138,14 @@ async function main() {
 - Analytics source: ${analyticsSource.available ? `available/${analyticsSource.fresh ? "fresh" : "stale"} (${analyticsSource.reportDateEvents} report-date events, ${analyticsSource.parsedRows} parsed rows)` : `unavailable (${compactText(analyticsInput.note)})`}
 - Analytics source note: ${analyticsInput.note ? compactText(analyticsInput.note) : "none"}
 - Analytics export meta: ${reportDateExportMeta.length ? reportDateExportMeta.map((meta) => meta.error ? `${path.basename(meta.sourceFile)} metadata error` : meta.sourceKind === "production_file" ? `${path.basename(meta.sourceFile)} rows=${meta.rawLineCount} events=${meta.eventCount}` : `${path.basename(meta.sourceFile)} entries=${meta.entryCount} events=${meta.eventCount}`).join("; ") : "none"}
+- Deployment status: ${deploymentStatus.available ? `${deploymentStatus.summary?.risk || "unknown"} release_lag=${deploymentStatus.summary?.releaseLag ? "yes" : "no"} deploy_queue=${deploymentStatus.summary?.deployJobStatus || "unknown"}` : `unavailable (${compactText(deploymentStatus.note)})`}
 - Anonymous visitors observed: ${analytics.anonymousVisitors}
 - Checkout starts: ${analytics.canonical.find((item) => item.event === "checkout_started")?.count || 0}
 - Entitlements granted: ${payment.entitlementGranted}
 - Saved reports: ${analytics.canonical.find((item) => item.event === "saved_report")?.count || 0}
 - Stripe webhook summary: ${stripe.available ? `available (${payment.stripeSummarySource})` : "unavailable"}
 - Payment reconciliation: ${payment.risk}
+- Growth scorecard: ${scorecard.filter((row) => row.status === "action_required").length} action_required / ${scorecard.filter((row) => row.status === "watch").length} watch / ${scorecard.filter((row) => row.status === "no_data").length} no_data
 
 ## Today Actions
 
@@ -993,6 +1156,7 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - uptime.json
 - route_status.json
 - analytics_source.json
+- deployment_status.json
 - performance.json
 - errors.jsonl
 - stripe_payments.csv
@@ -1003,6 +1167,8 @@ ${questions.map((question) => `- ${question}`).join("\n")}
 - retention.csv
 - traffic_sources.csv
 - traffic_campaigns.csv
+- growth_scorecard.json
+- growth_scorecard.csv
 - top_pages.csv
 - anomaly_notes.md
 - analyst_questions.md
@@ -1018,7 +1184,11 @@ ${questions.map((question) => `- ${question}`).join("\n")}
     analyticsSourceAvailable: analyticsSource.available,
     analyticsSourceFresh: analyticsSource.fresh,
     analyticsSourceUsableForFunnel: analyticsSource.usableForFunnel,
+    deploymentStatusAvailable: deploymentStatus.available,
+    deploymentRisk: deploymentStatus.summary?.risk || "unknown",
+    deploymentReleaseLag: deploymentStatus.summary?.releaseLag ?? null,
     analyticsExportMeta: analyticsSource.exportMeta,
+    growthScorecard: scorecard,
     stripeSummaryAvailable: stripe.available,
     stripeSummarySource: payment.stripeSummarySource,
     paymentRisk: payment.risk,

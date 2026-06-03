@@ -131,7 +131,36 @@ function analyticsSourceStatus(analyticsSource) {
   return `available/${freshness} (${value(analyticsSource.reportDateEvents, "0")} report-date events, ${value(analyticsSource.parsedRows, "0")} parsed rows, ${usability})`;
 }
 
-function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }) {
+function growthScorecardSummary(scorecard) {
+  const metrics = Array.isArray(scorecard?.metrics) ? scorecard.metrics : [];
+  if (!metrics.length) return "unavailable";
+  const actionRequired = metrics.filter((metric) => metric.status === "action_required").length;
+  const watch = metrics.filter((metric) => metric.status === "watch").length;
+  const noData = metrics.filter((metric) => metric.status === "no_data").length;
+  return `${actionRequired} action_required / ${watch} watch / ${noData} no_data`;
+}
+
+function growthScorecardWatchItems(scorecard) {
+  const metrics = Array.isArray(scorecard?.metrics) ? scorecard.metrics : [];
+  return metrics
+    .filter((metric) => ["action_required", "watch"].includes(metric.status))
+    .map((metric) => `${metric.metric}=${metric.ratePercent ?? "n/a"}% target=${metric.targetPercent}% status=${metric.status}`);
+}
+
+function deploymentStatusSummary(deploymentStatus) {
+  if (!deploymentStatus?.available) return `unavailable (${compactText(deploymentStatus?.note || "no deployment status input")})`;
+  const summary = deploymentStatus.summary || {};
+  return [
+    value(summary.risk),
+    `release_lag=${summary.releaseLag ? "yes" : "no"}`,
+    `production=${value(summary.productionVersion)}`,
+    `main=${value(summary.expectedMainSha)}`,
+    `deploy=${value(summary.deployJobStatus)}`,
+    `queued_min=${value(summary.deployQueuedMinutes, "0")}`,
+  ].join(" ");
+}
+
+function assessRisk({ uptime, routeStatus, analyticsSource, deploymentStatus, payment, growthScorecard, anomalies }) {
   const actionRequired = [];
   const watch = [];
   const rawReportDateEvents = Number(analyticsSource?.rawReportDateEvents || 0);
@@ -145,10 +174,18 @@ function assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies }
   if (payment?.risk === "action_required") actionRequired.push("payment reconciliation is action_required");
   if (Number(payment?.webhookFailures || 0) > 0) actionRequired.push(`${payment.webhookFailures} Stripe webhook failures found`);
   if (payment?.checks?.webhookHasCheckoutWithoutFulfillment) actionRequired.push("checkout starts have no fulfilled webhook rows");
+  if (deploymentStatus?.summary?.risk === "action_required") actionRequired.push("deployment status is action_required");
+  const growthItems = growthScorecardWatchItems(growthScorecard);
+  const criticalGrowthItems = growthItems.filter((item) => item.includes("status=action_required"));
+  if (criticalGrowthItems.length) actionRequired.push(`growth scorecard has action_required metrics: ${criticalGrowthItems.join("; ")}`);
 
   if (uptime?.ok === null || uptime?.skipped) watch.push("health check was skipped");
   if (routeStatus?.ok === null || routeStatus?.skipped) watch.push("core route patrol was skipped");
   if (payment?.risk === "watch") watch.push("payment reconciliation is watch");
+  if (deploymentStatus?.summary?.risk === "watch") watch.push("deployment status is watch");
+  if (deploymentStatus?.available === false) watch.push(`deployment status unavailable: ${compactText(deploymentStatus.note)}`);
+  const watchGrowthItems = growthItems.filter((item) => item.includes("status=watch"));
+  if (watchGrowthItems.length) watch.push(`growth scorecard has watch metrics: ${watchGrowthItems.join("; ")}`);
   if (analyticsSource?.healthAnalyticsStatus === "configured" && analyticsSource?.available === false) {
     watch.push("production analytics is configured, but no export source was available to the report");
   }
@@ -217,19 +254,21 @@ async function main() {
     throw new Error(`Daily report summary not found: ${summaryPath}. Run npm run report:yishun-daily first.`);
   }
 
-  const [summary, anomalyText, questionText, uptime, routeStatus, analyticsSource, payment] = await Promise.all([
+  const [summary, anomalyText, questionText, uptime, routeStatus, analyticsSource, deploymentStatus, payment, growthScorecard] = await Promise.all([
     readText(summaryPath),
     readText(path.join(reportDir, "anomaly_notes.md")),
     readText(path.join(reportDir, "analyst_questions.md")),
     readJson(path.join(reportDir, "uptime.json"), {}),
     readJson(path.join(reportDir, "route_status.json"), {}),
     readJson(path.join(reportDir, "analytics_source.json"), {}),
+    readJson(path.join(reportDir, "deployment_status.json"), {}),
     readJson(path.join(reportDir, "payment_reconciliation.json"), {}),
+    readJson(path.join(reportDir, "growth_scorecard.json"), {}),
   ]);
 
   const anomalies = bullets(anomalyText);
   const questions = bullets(questionText);
-  const risk = assessRisk({ uptime, routeStatus, analyticsSource, payment, anomalies });
+  const risk = assessRisk({ uptime, routeStatus, analyticsSource, deploymentStatus, payment, growthScorecard, anomalies });
   const stamp = cstStamp();
   const fileName = `${stamp}-yishun-daily-ops-review.result.md`;
   const content = `# YiShun Daily Operations Review - ${config.date}
@@ -251,6 +290,8 @@ ${firstItems(risk.items, 6)}
 - Analytics raw/product/ops-probe events: ${value(analyticsSource?.rawReportDateEvents, "0")} / ${value(analyticsSource?.reportDateEvents, "0")} / ${value(analyticsSource?.operationalProbeEvents, "0")}
 - Analytics source note: ${analyticsSource?.note ? compactText(analyticsSource.note) : "none"}
 - Analytics export sources: ${exportSourceSummary(analyticsSource)}
+- Deployment status: ${deploymentStatusSummary(deploymentStatus)}
+- Growth scorecard: ${growthScorecardSummary(growthScorecard)}
 - Payment reconciliation: ${value(payment?.risk)}
 - Checkout starts: ${value(payment?.checkoutStarted, "0")}
 - Entitlements granted: ${value(payment?.entitlementGranted, "0")}
@@ -269,6 +310,8 @@ ${firstItems(questions, 6)}
 
 - Read daily report package: \`${reportDir}\`
 - Parsed \`uptime.json\`, \`route_status.json\`, \`analytics_source.json\`, and \`payment_reconciliation.json\`
+- Parsed \`deployment_status.json\` when available
+- Parsed \`growth_scorecard.json\` for launch-readiness conversion thresholds
 - No Stripe live API calls, real charges/refunds, destructive database operations, force push, or production restarts were performed.
 
 ## Next Action
