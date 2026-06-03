@@ -104,6 +104,13 @@ function assert(condition, message, details = {}) {
   }
 }
 
+function oauthHealthDetails(health) {
+  return {
+    checks: health?.checks || null,
+    integrations: health?.integrations || null,
+  };
+}
+
 async function checkHealth(config) {
   const result = await fetchWithTimeout(`${config.baseUrl}/api/health`, config.timeoutMs);
   assert(result.ok, "Production health endpoint must return 2xx", { status: result.status, url: result.url });
@@ -121,6 +128,7 @@ async function checkHealth(config) {
     const googleOAuth = health.integrations?.googleOAuth;
     assert(health.checks?.googleOAuth === "configured", "Production Google OAuth health must be configured", {
       googleOAuth: health.checks?.googleOAuth,
+      ...oauthHealthDetails(health),
     });
     assert(googleOAuth?.required === true, "Production Google OAuth must be marked required", { googleOAuth });
     assert(googleOAuth?.redirectMatches === true, "Production Google OAuth redirect URI must match the public base URL", {

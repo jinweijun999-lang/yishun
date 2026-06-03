@@ -36,6 +36,18 @@ function configStatus(...values: Array<string | undefined>): YiShunCheckStatus {
   return process.env.NODE_ENV === "production" ? "missing" : "not_configured";
 }
 
+function stripeRuntimeStatus(): YiShunCheckStatus {
+  return configStatus(
+    process.env.STRIPE_SECRET_KEY,
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    process.env.STRIPE_PRICE_REPORT_SINGLE,
+    process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+    process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
+    process.env.STRIPE_PRICE_CONSULTATION_SINGLE,
+  );
+}
+
 function releaseMarkerVersion() {
   try {
     const version = readFileSync(path.join(process.cwd(), ".yishun-release-sha"), "utf8").trim();
@@ -70,10 +82,7 @@ async function databaseStatus(): Promise<YiShunCheckStatus> {
 export async function getYiShunHealthSnapshot(): Promise<YiShunHealthSnapshot> {
   const database = await databaseStatus();
   const googleOAuth = getGoogleOAuthReadiness();
-  const stripe = configStatus(
-    process.env.STRIPE_SECRET_KEY,
-    process.env.STRIPE_PRICE_REPORT_SINGLE,
-  );
+  const stripe = stripeRuntimeStatus();
   const analytics = configured(process.env.NEXT_PUBLIC_YISHUN_ANALYTICS_ENDPOINT) ||
     configured(process.env.YISHUN_ANALYTICS_FILE) ||
     configured(process.env.YISHUN_ANALYTICS_FILES) ||
