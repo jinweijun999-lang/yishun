@@ -1,6 +1,20 @@
 name: YiShun Daily Ops Export
 
 on:
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/yishun_daily_ops.yml"
+      - "scripts/yishun-daily-data-report.mjs"
+      - "scripts/yishun-daily-ops-loop.mjs"
+      - "scripts/yishun-daily-ops-review.mjs"
+  pull_request:
+    paths:
+      - ".github/workflows/yishun_daily_ops.yml"
+      - "scripts/yishun-daily-data-report.mjs"
+      - "scripts/yishun-daily-ops-loop.mjs"
+      - "scripts/yishun-daily-ops-review.mjs"
   schedule:
     - cron: "30 1 * * *"
   workflow_dispatch:
@@ -20,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REPORT_DATE_INPUT: ${{ inputs.report_date }}
+      REPORT_DATE_INPUT: ${{ github.event.inputs.report_date }}
       YISHUN_DAILY_OPS_ROOT: ${{ runner.temp }}/yishun-public-daily-ops
       YISHUN_DAILY_REPORT_DIR: ${{ runner.temp }}/yishun-public-daily-ops/reports
       CODEX_BRIDGE_OUTBOX: ${{ runner.temp }}/yishun-public-daily-ops/outbox
@@ -89,10 +103,11 @@ jobs:
 
   daily-ops-export:
     name: Export Daily Ops Package
+    if: github.event_name != 'push' && github.event_name != 'pull_request'
     runs-on: [self-hosted, Linux, X64, yishun-prod]
     timeout-minutes: 15
     env:
-      REPORT_DATE_INPUT: ${{ inputs.report_date }}
+      REPORT_DATE_INPUT: ${{ github.event.inputs.report_date }}
       YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun
       YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}
       YISHUN_ANALYTICS_EXPORT_DIR: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/analytics
