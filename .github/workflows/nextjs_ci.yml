@@ -123,7 +123,7 @@ jobs:
     if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch'
     env:
       GEMINI_API_KEY_YISHUN: ${{ secrets.GEMINI_API_KEY_YISHUN }}
-      YISHUN_RELEASE_SHA: 368695579083a58325f020c6e37a8d9261307360
+      YISHUN_RELEASE_SHA: ${{ github.sha }}
       YISHUN_GEMINI_SERVER_ENABLED: "1"
       YISHUN_GEMINI_DAILY_LIMIT: "100"
       YISHUN_GEMINI_SAMPLE_RATE: "0.25"
@@ -138,6 +138,15 @@ jobs:
           if [ -z "${GEMINI_API_KEY_YISHUN:-}" ]; then
             echo "GEMINI_API_KEY_YISHUN secret is missing"
             exit 1
+          fi
+          if [ "${GITHUB_REF:-}" != "refs/heads/main" ]; then
+            target_release_sha="$(git ls-remote https://github.com/jinweijun999-lang/yishun.git refs/heads/main | awk '{print $1}')"
+            if [ -z "$target_release_sha" ]; then
+              echo "Unable to resolve origin/main release SHA"
+              exit 1
+            fi
+            echo "YISHUN_RELEASE_SHA=$target_release_sha" >> "$GITHUB_ENV"
+            export YISHUN_RELEASE_SHA="$target_release_sha"
           fi
           sudo -n -u yishun env \
             GEMINI_API_KEY_YISHUN="$GEMINI_API_KEY_YISHUN" \
