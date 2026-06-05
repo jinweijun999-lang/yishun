@@ -120,10 +120,10 @@ jobs:
     runs-on: [self-hosted, Linux, X64, yishun-prod]
     timeout-minutes: 20
     needs: build
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch'
     env:
       GEMINI_API_KEY_YISHUN: ${{ secrets.GEMINI_API_KEY_YISHUN }}
-      YISHUN_RELEASE_SHA: ${{ github.sha }}
+      YISHUN_RELEASE_SHA: 368695579083a58325f020c6e37a8d9261307360
       YISHUN_GEMINI_SERVER_ENABLED: "1"
       YISHUN_GEMINI_DAILY_LIMIT: "100"
       YISHUN_GEMINI_SAMPLE_RATE: "0.25"
@@ -155,6 +155,23 @@ jobs:
             echo ">>> [1/7] Syncing latest main..."
             git fetch origin main
             git reset --hard origin/main
+            for env_file in .env .env.production .env.local; do
+              if [ -f "$env_file" ]; then
+                echo "Loading runtime environment from $env_file"
+                set -a
+                . "$env_file"
+                set +a
+              fi
+            done
+            export GEMINI_API_KEY_YISHUN="$GEMINI_API_KEY_YISHUN"
+            export YISHUN_RELEASE_SHA="$YISHUN_RELEASE_SHA"
+            export YISHUN_GEMINI_SERVER_ENABLED="$YISHUN_GEMINI_SERVER_ENABLED"
+            export YISHUN_GEMINI_DAILY_LIMIT="$YISHUN_GEMINI_DAILY_LIMIT"
+            export YISHUN_GEMINI_SAMPLE_RATE="$YISHUN_GEMINI_SAMPLE_RATE"
+            export YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS"
+            export YISHUN_GEMINI_TIMEOUT_MS="$YISHUN_GEMINI_TIMEOUT_MS"
+            export YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS"
+            export YISHUN_ANALYTICS_FILE="$YISHUN_ANALYTICS_FILE"
             printf "%s\n" "$YISHUN_RELEASE_SHA" > .yishun-release-sha
             echo ">>> [2/7] Installing dependencies..."
             npm ci
