@@ -1,0 +1,147 @@
+name: YiShun Production Env Recovery
+
+on:
+  push:
+    branches:
+      - codex/yishun-prod-env-restore-20260606
+    paths:
+      - ".github/workflows/yishun_prod_env_recovery.yml"
+  workflow_dispatch:
+
+jobs:
+  recover-production-env:
+    name: Recover production runtime env
+    runs-on: [self-hosted, Linux, X64, yishun-prod]
+    timeout-minutes: 8
+    env:
+      GEMINI_API_KEY_YISHUN: ${{ secrets.GEMINI_API_KEY_YISHUN }}
+      YISHUN_ANALYTICS_FILE: "/home/yishun/logs/yishun-analytics.jsonl"
+      YISHUN_GEMINI_SERVER_ENABLED: "1"
+      YISHUN_GEMINI_DAILY_LIMIT: "100"
+      YISHUN_GEMINI_SAMPLE_RATE: "0.25"
+      YISHUN_GEMINI_MAX_OUTPUT_TOKENS: "900"
+      YISHUN_GEMINI_TIMEOUT_MS: "12000"
+      YISHUN_GEMINI_CACHE_TTL_MS: "86400000"
+
+    steps:
+      - name: Restore PM2 env from server-local env files
+        run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_API_KEY_YISHUN:-}" ]; then
+            echo "GEMINI_API_KEY_YISHUN secret is missing"
+            exit 1
+          fi
+
+          sudo -n -u yishun env \
+            GEMINI_API_KEY_YISHUN="$GEMINI_API_KEY_YISHUN" \
+            YISHUN_ANALYTICS_FILE="$YISHUN_ANALYTICS_FILE" \
+            YISHUN_GEMINI_SERVER_ENABLED="$YISHUN_GEMINI_SERVER_ENABLED" \
+            YISHUN_GEMINI_DAILY_LIMIT="$YISHUN_GEMINI_DAILY_LIMIT" \
+            YISHUN_GEMINI_SAMPLE_RATE="$YISHUN_GEMINI_SAMPLE_RATE" \
+            YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS" \
+            YISHUN_GEMINI_TIMEOUT_MS="$YISHUN_GEMINI_TIMEOUT_MS" \
+            YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS" \
+            bash -lc '
+              set -euo pipefail
+              cd /home/yishun/yishun
+              git fetch origin main
+              git reset --hard origin/main
+              target_release_sha="$(git rev-parse origin/main)"
+
+              candidates=(
+                ".env"
+                ".env.production"
+                ".env.local"
+                "/home/yishun/.env"
+                "/home/yishun/.env.production"
+                "/home/yishun/.env.local"
+                "/home/yishun/yishun.env"
+              )
+              loaded=0
+              for env_file in "${candidates[@]}"; do
+                if [ -f "$env_file" ]; then
+                  echo "Loading runtime environment from $env_file"
+                  set -a
+                  . "$env_file"
+                  set +a
+                  loaded=$((loaded + 1))
+                fi
+              done
+              echo "runtime_env_files_loaded=$loaded"
+
+              required=(
+                DATABASE_URL
+                AUTH_SECRET
+                NEXT_PUBLIC_APP_URL
+                NEXT_PUBLIC_SITE_URL
+                NEXTAUTH_URL
+                STRIPE_SECRET_KEY
+                NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+                STRIPE_PRICE_REPORT_SINGLE
+                STRIPE_PRICE_PREMIUM_MONTHLY
+                STRIPE_PRICE_PREMIUM_ANNUAL
+                STRIPE_PRICE_CONSULTATION_SINGLE
+                STRIPE_WEBHOOK_SECRET
+              )
+              missing=()
+              for name in "${required[@]}"; do
+                if [ -z "${!name:-}" ]; then
+                  missing+=("$name")
+                fi
+              done
+              if [ "${#missing[@]}" -gt 0 ]; then
+                printf "missing_runtime_env_names=%s\n" "${missing[*]}"
+                exit 2
+              fi
+
+              export GEMINI_API_KEY_YISHUN="$GEMINI_API_KEY_YISHUN"
+              export YISHUN_RELEASE_SHA="$target_release_sha"
+              export YISHUN_ANALYTICS_FILE="$YISHUN_ANALYTICS_FILE"
+              export YISHUN_GEMINI_SERVER_ENABLED="$YISHUN_GEMINI_SERVER_ENABLED"
+              export YISHUN_GEMINI_DAILY_LIMIT="$YISHUN_GEMINI_DAILY_LIMIT"
+              export YISHUN_GEMINI_SAMPLE_RATE="$YISHUN_GEMINI_SAMPLE_RATE"
+              export YISHUN_GEMINI_MAX_OUTPUT_TOKENS="$YISHUN_GEMINI_MAX_OUTPUT_TOKENS"
+              export YISHUN_GEMINI_TIMEOUT_MS="$YISHUN_GEMINI_TIMEOUT_MS"
+              export YISHUN_GEMINI_CACHE_TTL_MS="$YISHUN_GEMINI_CACHE_TTL_MS"
+              printf "%s\n" "$target_release_sha" > .yishun-release-sha
+              mkdir -p "$(dirname "$YISHUN_ANALYTICS_FILE")"
+              pm2 restart yishun-nextjs --update-env
+              pm2 save
+            '
+
+      - name: Verify local production health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            payload="$(curl -fsS --max-time 10 http://127.0.0.1:3001/api/health || true)"
+            if [ -n "$payload" ] && node -e '
+              const r = JSON.parse(process.argv[1]);
+              if (r.ok !== true) process.exit(1);
+              if (r.version !== "368695579083a58325f020c6e37a8d9261307360") process.exit(1);
+            ' "$payload"; then
+              echo "$payload" | node -e '
+                let s = "";
+                process.stdin.on("data", d => s += d);
+                process.stdin.on("end", () => {
+                  const r = JSON.parse(s);
+                  console.log(JSON.stringify({ ok: r.ok, version: r.version, checks: r.checks }));
+                });
+              '
+              exit 0
+            fi
+            echo "waiting for local health attempt=$i"
+            sleep 2
+          done
+          curl -sS --max-time 10 http://127.0.0.1:3001/api/health || true
+          exit 1
+
+      - name: Verify public production health
+        run: |
+          set -euo pipefail
+          payload="$(curl -fsS --max-time 15 https://11263.com/api/health)"
+          node -e '
+            const r = JSON.parse(process.argv[1]);
+            if (r.ok !== true) throw new Error("public health ok was not true");
+            if (r.version !== "368695579083a58325f020c6e37a8d9261307360") throw new Error(`public health version ${r.version} did not match main`);
+            console.log(JSON.stringify({ ok: r.ok, version: r.version, checks: r.checks }));
+          ' "$payload"
