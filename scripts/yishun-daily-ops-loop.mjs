@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import path from "node:path";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -114,6 +115,9 @@ async function main() {
   let deploymentStatusPath = null;
   let deploymentStatusError = null;
   if (!config.skipDeploymentStatus && !env.YISHUN_DEPLOYMENT_STATUS_FILE) {
+    if (!env.YISHUN_DEPLOYMENT_STATUS_DIR && env.YISHUN_DAILY_OPS_ROOT) {
+      env.YISHUN_DEPLOYMENT_STATUS_DIR = path.join(env.YISHUN_DAILY_OPS_ROOT, "deployment-status");
+    }
     console.log("\n[daily-ops-loop] export deployment status");
     const deploymentStatusResult = await runNode(["scripts/yishun-export-deployment-status.mjs"], { env });
     if (deploymentStatusResult.code === 0) {
