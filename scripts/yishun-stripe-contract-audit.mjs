@@ -86,7 +86,6 @@ for (const required of [
   "stripeRuntimeStatus",
   "process.env.STRIPE_SECRET_KEY",
   "process.env.STRIPE_WEBHOOK_SECRET",
-  "process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "process.env.STRIPE_PRICE_REPORT_SINGLE",
   "process.env.STRIPE_PRICE_PREMIUM_MONTHLY",
   "process.env.STRIPE_PRICE_CONSULTATION_SINGLE",
