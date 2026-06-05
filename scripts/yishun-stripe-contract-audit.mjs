@@ -89,11 +89,15 @@ for (const required of [
   "process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
   "process.env.STRIPE_PRICE_REPORT_SINGLE",
   "process.env.STRIPE_PRICE_PREMIUM_MONTHLY",
-  "process.env.STRIPE_PRICE_PREMIUM_ANNUAL",
   "process.env.STRIPE_PRICE_CONSULTATION_SINGLE",
 ]) {
   assert(health.includes(required), "Health must report Stripe configured only when visible paid-flow runtime config is present", { required });
 }
+
+assert(
+  health.includes("Annual membership is intentionally allowed to remain disabled"),
+  "Health must document why annual membership price is not a global uptime dependency",
+);
 
 for (const required of [
   "stripeSandboxCheckoutAdapter.createCheckout",

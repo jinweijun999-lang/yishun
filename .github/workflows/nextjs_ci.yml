@@ -164,7 +164,27 @@ jobs:
             npx prisma migrate deploy
             echo ">>> [5/7] Building application..."
             npm run build
-            echo ">>> [6/7] Restarting PM2 with Gemini cost guard env..."
+            echo ">>> [6/7] Loading server-local runtime env and restarting PM2..."
+            runtime_env_files_loaded=0
+            for env_file in .env .env.production .env.local /home/yishun/.env /home/yishun/.env.production /home/yishun/.env.local /home/yishun/yishun.env; do
+              if [ -f "$env_file" ]; then
+                set -a
+                . "$env_file"
+                set +a
+                runtime_env_files_loaded=$((runtime_env_files_loaded + 1))
+              fi
+            done
+            echo "runtime_env_files_loaded=${runtime_env_files_loaded}"
+            missing=()
+            for name in DATABASE_URL AUTH_SECRET NEXT_PUBLIC_APP_URL NEXT_PUBLIC_SITE_URL NEXTAUTH_URL STRIPE_SECRET_KEY NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_PRICE_REPORT_SINGLE STRIPE_PRICE_PREMIUM_MONTHLY STRIPE_PRICE_CONSULTATION_SINGLE STRIPE_WEBHOOK_SECRET; do
+              if [ -z "${!name:-}" ]; then
+                missing+=("$name")
+              fi
+            done
+            if [ "${#missing[@]}" -gt 0 ]; then
+              printf "missing_runtime_env_names=%s\n" "${missing[*]}"
+              exit 1
+            fi
             mkdir -p "$(dirname "$YISHUN_ANALYTICS_FILE")"
             pm2 restart yishun-nextjs --update-env
             echo ">>> [7/7] Saving PM2 state..."
