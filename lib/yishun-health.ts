@@ -37,13 +37,14 @@ function configStatus(...values: Array<string | undefined>): YiShunCheckStatus {
 }
 
 function stripeRuntimeStatus(): YiShunCheckStatus {
+  // Annual membership is intentionally allowed to remain disabled until its
+  // Stripe Price is configured; checkout handles that product-level gap.
   return configStatus(
     process.env.STRIPE_SECRET_KEY,
     process.env.STRIPE_WEBHOOK_SECRET,
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     process.env.STRIPE_PRICE_REPORT_SINGLE,
     process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-    process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
     process.env.STRIPE_PRICE_CONSULTATION_SINGLE,
   );
 }
