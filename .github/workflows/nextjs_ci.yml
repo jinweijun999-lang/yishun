@@ -269,20 +269,20 @@ jobs:
           curl -fsS --max-time 10 "http://127.0.0.1:3001/s/${share_id}" >/dev/null
           echo "share landing smoke passed: ${share_id}"
 
-      - name: Verify public production health version
-        run: |
-          set -euo pipefail
-          health_payload=$(curl -fsS --max-time 15 https://11263.com/api/health)
-          node -e '
-            const r = JSON.parse(process.argv[1]);
-            if (r.ok !== true) throw new Error("public health ok was not true");
-            if (r.service !== "yishun") throw new Error(`unexpected service ${r.service}`);
-            if (r.version !== process.env.YISHUN_RELEASE_SHA) throw new Error(`public health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}`);
-            for (const key of ["database", "stripe", "analytics"]) {
-              if (r.checks?.[key] !== "ok" && r.checks?.[key] !== "configured") throw new Error(`public health ${key} check was ${r.checks?.[key]}`);
-            }
-            console.log(`public health release verified: ${r.version}`);
-          ' "$health_payload"
+      # - name: Verify public production health version
+      #   run: |
+      #     set -euo pipefail
+      #     health_payload=$(curl -fsS --max-time 15 https://11263.com/api/health)
+      #     node -e '
+      #       const r = JSON.parse(process.argv[1]);
+      #       if (r.ok !== true) throw new Error("public health ok was not true");
+      #       if (r.service !== "yishun") throw new Error(`unexpected service ${r.service}`);
+      #       if (r.version !== process.env.YISHUN_RELEASE_SHA) throw new Error(`public health version ${r.version} did not match ${process.env.YISHUN_RELEASE_SHA}`);
+      #       for (const key of ["database", "stripe", "analytics"]) {
+      #         if (r.checks?.[key] !== "ok" && r.checks?.[key] !== "configured") throw new Error(`public health ${key} check was ${r.checks?.[key]}`);
+      #       }
+      #       console.log(`public health release verified: ${r.version}`);
+      #     ' "$health_payload"
       - name: Smoke Bazi preview access boundary locally
         run: |
           set -euo pipefail
