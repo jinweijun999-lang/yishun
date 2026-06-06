@@ -96,7 +96,7 @@ function extractRawEvents(body: unknown): unknown[] {
   return [body];
 }
 
-function persistBestEffort(events: AnalyticsEvent[]) {
+async function persistBestEffort(events: AnalyticsEvent[]) {
   const payload = events.map((event) => JSON.stringify(event)).join("\n") + "\n";
 
   // Serverless-safe default: structured logs. Optional file sink can be enabled on a stateful host.
@@ -110,9 +110,12 @@ function persistBestEffort(events: AnalyticsEvent[]) {
 
   const filePath = process.env.YISHUN_ANALYTICS_FILE;
   if (filePath) {
-    void mkdir(path.dirname(filePath), { recursive: true })
-      .then(() => appendFile(filePath, payload, "utf8"))
-      .catch((error) => console.warn("analytics_file_sink_failed", error));
+    try {
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await appendFile(filePath, payload, "utf8");
+    } catch (error) {
+      console.warn("analytics_file_sink_failed", error);
+    }
   }
 }
 
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
   const normalized = extractRawEvents(body).map(normalizeEvent);
   const events = normalized.filter((event): event is AnalyticsEvent => Boolean(event)).slice(0, 100);
 
-  if (events.length > 0) persistBestEffort(events);
+  if (events.length > 0) await persistBestEffort(events);
 
   return NextResponse.json({
     ok: true,
