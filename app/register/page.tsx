@@ -9,6 +9,12 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import AppBackLink from "../components/AppBackLink";
 import { useI18n } from "../components/LocaleProvider";
 
+type FieldErrors = Partial<Record<"email" | "password" | "birthDate" | "birthTime", string>>;
+
+function isValidEmail(value: string) {
+  return /.+@.+\..+/.test(value);
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { t } = useI18n();
@@ -24,18 +30,49 @@ export default function RegisterPage() {
   const [birthTime, setBirthTime] = useState("");
   const [gender, setGender] = useState("other");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  function validateForm() {
+    const nextErrors: FieldErrors = {};
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+      nextErrors.email = t("errors.invalidEmail");
+    }
+
+    if (password.length < 8) {
+      nextErrors.password = t("errors.passwordTooShort");
+    }
+
+    if (!birthDate) {
+      nextErrors.birthDate = t("errors.birthDateRequired");
+    }
+
+    if (!birthTime) {
+      nextErrors.birthTime = t("errors.birthTimeRequired");
+    }
+
+    return nextErrors;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const nextErrors = validateForm();
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, birthDate, birthTime, gender }),
+        body: JSON.stringify({ email: email.trim(), password, birthDate, birthTime, gender }),
       });
 
       if (!response.ok) {
@@ -83,32 +120,64 @@ export default function RegisterPage() {
               <LanguageSwitcher />
             </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFieldErrors((current) => ({ ...current, email: undefined }));
+              }}
               placeholder={t("register.email")}
               required
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "register-email-error" : undefined}
               className="input-field"
             />
+            {fieldErrors.email && (
+              <p id="register-email-error" className="text-sm text-red-400">
+                {fieldErrors.email}
+              </p>
+            )}
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setFieldErrors((current) => ({ ...current, password: undefined }));
+              }}
               placeholder={t("register.password")}
               required
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? "register-password-error" : undefined}
               className="input-field"
             />
+            {fieldErrors.password && (
+              <p id="register-password-error" className="text-sm text-red-400">
+                {fieldErrors.password}
+              </p>
+            )}
             <BirthDateTimePicker
               birthDate={birthDate}
               birthTime={birthTime}
-              onBirthDateChange={setBirthDate}
-              onBirthTimeChange={setBirthTime}
+              onBirthDateChange={(value) => {
+                setBirthDate(value);
+                setFieldErrors((current) => ({ ...current, birthDate: undefined }));
+              }}
+              onBirthTimeChange={(value) => {
+                setBirthTime(value);
+                setFieldErrors((current) => ({ ...current, birthTime: undefined }));
+              }}
               birthDateLabel={t("register.birthDate") || "出生日期"}
               birthTimeLabel={t("register.birthTime") || "出生时辰"}
               required
             />
+            {fieldErrors.birthDate && (
+              <p className="text-sm text-red-400">{fieldErrors.birthDate}</p>
+            )}
+            {fieldErrors.birthTime && (
+              <p className="text-sm text-red-400">{fieldErrors.birthTime}</p>
+            )}
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}
