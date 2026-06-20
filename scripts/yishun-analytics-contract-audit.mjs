@@ -215,6 +215,8 @@ for (const deployAnalyticsSinkNeedle of [
   "Verify production analytics file sink locally",
   "ops_analytics_file_sink_probe",
   "analytics file sink verified",
+  "x-yishun-ops-probe: analytics-file-sink",
+  "diagnostics?.fileSink",
 ]) {
   assertContains(".github/workflows/nextjs_ci.yml", deployAnalyticsSinkNeedle);
 }
@@ -303,6 +305,9 @@ for (const ingestNeedle of [
   "redactPrivateFields",
   "JSON.stringify({ type:",
   "mkdir(path.dirname(filePath), { recursive: true })",
+  "x-yishun-ops-probe",
+  "diagnostics",
+  "fileSink",
 ]) {
   assertContains("app/api/events/route.ts", ingestNeedle);
 }

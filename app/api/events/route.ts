@@ -13,6 +13,10 @@ type AnalyticsEvent = {
   source?: string;
 };
 
+type PersistResult = {
+  fileSink: "not_configured" | "written" | "failed";
+};
+
 const PRIVATE_KEYS = new Set([
   "name",
   "real_name",
@@ -96,7 +100,7 @@ function extractRawEvents(body: unknown): unknown[] {
   return [body];
 }
 
-async function persistBestEffort(events: AnalyticsEvent[]) {
+async function persistBestEffort(events: AnalyticsEvent[]): Promise<PersistResult> {
   const payload = events.map((event) => JSON.stringify(event)).join("\n") + "\n";
 
   // Serverless-safe default: structured logs. Optional file sink can be enabled on a stateful host.
@@ -113,10 +117,14 @@ async function persistBestEffort(events: AnalyticsEvent[]) {
     try {
       await mkdir(path.dirname(filePath), { recursive: true });
       await appendFile(filePath, payload, "utf8");
+      return { fileSink: "written" };
     } catch (error) {
       console.warn("analytics_file_sink_failed", error);
+      return { fileSink: "failed" };
     }
   }
+
+  return { fileSink: "not_configured" };
 }
 
 export async function POST(request: NextRequest) {
@@ -131,12 +139,14 @@ export async function POST(request: NextRequest) {
   const normalized = extractRawEvents(body).map(normalizeEvent);
   const events = normalized.filter((event): event is AnalyticsEvent => Boolean(event)).slice(0, 100);
 
-  if (events.length > 0) await persistBestEffort(events);
+  const persistResult: PersistResult = events.length > 0 ? await persistBestEffort(events) : { fileSink: "not_configured" };
+  const includeOpsDiagnostics = request.headers.get("x-yishun-ops-probe") === "analytics-file-sink";
 
   return NextResponse.json({
     ok: true,
     accepted: events.length,
     dropped: normalized.length - events.length,
+    ...(includeOpsDiagnostics ? { diagnostics: persistResult } : {}),
   });
 }
 
