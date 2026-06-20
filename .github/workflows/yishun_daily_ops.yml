@@ -28,7 +28,10 @@ on:
 
 concurrency:
   group: yishun-daily-ops-export-${{ github.ref }}
-  cancel-in-progress: true
+  # Do NOT cancel in-progress runs: scheduled daily ops must be allowed to
+  # complete (via public-fallback on ubuntu-latest if self-hosted runner is offline).
+  # cancel-in-progress was causing daily runs to be cancelled when the
+  # self-hosted runner is offline and daily-ops-export is queued.
 
 jobs:
   public-daily-ops-fallback:
