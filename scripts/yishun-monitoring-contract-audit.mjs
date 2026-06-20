@@ -118,6 +118,8 @@ for (const deployNeedle of [
   "Verify production analytics file sink locally",
   "ops_analytics_file_sink_probe",
   "analytics file sink verified",
+  "x-yishun-ops-probe: analytics-file-sink",
+  "diagnostics?.fileSink",
   "Daily data report dry run",
   "YISHUN_REPORT_NO_NETWORK=1",
   "yishun-daily-data-report.mjs",

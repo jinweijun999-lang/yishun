@@ -215,6 +215,8 @@ for (const deployAnalyticsSinkNeedle of [
   "Verify production analytics file sink locally",
   "ops_analytics_file_sink_probe",
   "analytics file sink verified",
+  "x-yishun-ops-probe: analytics-file-sink",
+  "diagnostics?.fileSink",
 ]) {
   assertContains(".github/workflows/nextjs_ci.yml", deployAnalyticsSinkNeedle);
 }
@@ -305,6 +307,9 @@ for (const ingestNeedle of [
   "JSON.stringify({ type:",
   "async function persistBestEffort",
   "mkdir(path.dirname(filePath), { recursive: true })",
+  "x-yishun-ops-probe",
+  "diagnostics",
+  "fileSink",
   "await appendFile(filePath, payload, \"utf8\")",
   "await persistBestEffort(events)",
 ]) {

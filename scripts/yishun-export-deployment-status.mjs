@@ -195,7 +195,7 @@ function buildSummary({ latestMainRun, jobs, health, config, ghAvailable }) {
     (deployQueuedMinutes !== null && deployQueuedMinutes > maxQueue),
   );
   const deployCompleted = deployJob?.status === "completed";
-  const deployCompletedWithoutRelease = Boolean(releaseLag && deployCompleted);
+  const deployCompletedWithoutRelease = Boolean(releaseLag && deployCompleted && !deployFailed);
   const risk = !health.ok
     ? "action_required"
     : !ghAvailable
@@ -315,9 +315,12 @@ async function main() {
     evidencePath,
     risk: payload.summary.risk,
     releaseLag: payload.summary.releaseLag,
+    deployFailed: payload.summary.deployFailed,
+    deployCompletedWithoutRelease: payload.summary.deployCompletedWithoutRelease,
     productionVersion: payload.summary.productionVersion,
     expectedMainSha: payload.summary.expectedMainSha,
     deployJobStatus: payload.summary.deployJobStatus,
+    deployJobConclusion: payload.summary.deployJobConclusion,
     deployQueuedMinutes: payload.summary.deployQueuedMinutes,
   }, null, 2));
 }
