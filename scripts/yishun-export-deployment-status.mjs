@@ -185,12 +185,16 @@ function buildSummary({ latestMainRun, jobs, health, config, ghAvailable }) {
     : null;
   const maxQueue = Number.isFinite(config.maxQueuedMinutes) ? config.maxQueuedMinutes : DEFAULT_MAX_QUEUED_MINUTES;
   const releaseLag = Boolean(expectedMainSha && productionVersion && expectedMainSha !== productionVersion);
+  const deployFailed = Boolean(
+    deployJob?.status === "completed" &&
+    deployJob?.conclusion &&
+    deployJob.conclusion !== "success",
+  );
   const staleQueue = Boolean(
     (runQueuedMinutes !== null && runQueuedMinutes > maxQueue) ||
     (deployQueuedMinutes !== null && deployQueuedMinutes > maxQueue),
   );
   const deployCompleted = deployJob?.status === "completed";
-  const deployFailed = Boolean(deployCompleted && deployJob?.conclusion && deployJob.conclusion !== "success");
   const deployCompletedWithoutRelease = Boolean(releaseLag && deployCompleted && !deployFailed);
   const risk = !health.ok
     ? "action_required"
@@ -211,8 +215,8 @@ function buildSummary({ latestMainRun, jobs, health, config, ghAvailable }) {
     productionVersion,
     expectedMainSha,
     releaseLag,
-    staleQueue,
     deployFailed,
+    staleQueue,
     deployCompletedWithoutRelease,
     maxQueuedMinutes: maxQueue,
     runQueuedMinutes,
@@ -266,8 +270,9 @@ async function main() {
     throw new Error(redacted(runListResult.stderr || runViewResult?.stderr || "GitHub deployment status query failed"));
   }
 
+  const summary = buildSummary({ latestMainRun, jobs, health, config, ghAvailable });
   const payload = {
-    ok: health.ok && (ghAvailable || config.allowGhFailure),
+    ok: health.ok && (ghAvailable || config.allowGhFailure) && summary.risk !== "action_required",
     generatedAt: new Date().toISOString(),
     source: "github_actions_and_public_health",
     config: {
@@ -295,7 +300,7 @@ async function main() {
       checks: health.body?.checks || null,
       error: health.error || null,
     },
-    summary: buildSummary({ latestMainRun, jobs, health, config, ghAvailable }),
+    summary,
   };
 
   await mkdir(config.outDir, { recursive: true });

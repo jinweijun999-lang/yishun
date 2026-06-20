@@ -261,6 +261,7 @@ for (const deploymentStatusNeedle of [
   "staleQueue",
   "deployFailed",
   "deployCompletedWithoutRelease",
+  "deployJobConclusion",
   "productionVersion",
   "expectedMainSha",
   "YISHUN_DEPLOYMENT_STATUS_DIR",
@@ -304,10 +305,13 @@ for (const ingestNeedle of [
   "yishun_analytics_event",
   "redactPrivateFields",
   "JSON.stringify({ type:",
+  "async function persistBestEffort",
   "mkdir(path.dirname(filePath), { recursive: true })",
   "x-yishun-ops-probe",
   "diagnostics",
   "fileSink",
+  "await appendFile(filePath, payload, \"utf8\")",
+  "await persistBestEffort(events)",
 ]) {
   assertContains("app/api/events/route.ts", ingestNeedle);
 }
@@ -350,6 +354,7 @@ console.log(
         "production_analytics_file_export_reads_vm_sink_for_daily_report_input",
         "gcp_analytics_export_times_out_for_unattended_runs",
         "analytics_file_sink_creates_parent_directory_before_append",
+        "analytics_file_sink_write_completes_before_ingest_ack",
         "deploy_workflow_enables_and_verifies_production_analytics_file_sink",
         "checkout_button_emits_checkout_failed_for_config_and_client_failures",
         "stripe_webhook_fulfillment_emits_privacy_safe_server_funnel_events",
