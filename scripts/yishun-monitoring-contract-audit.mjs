@@ -178,6 +178,7 @@ for (const hostedDailyOpsFallbackNeedle of [
   "GITHUB_EVENT_PATH",
   "event.inputs?.report_date",
   "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}",
+  "YISHUN_DEPLOYMENT_STATUS_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/deployment-status",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
   "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
   "YISHUN_HEALTH_URL: https://11263.com/api/health",
@@ -252,6 +253,14 @@ for (const productionSmokeNeedle of [
   assertContains("scripts/yishun-production-smoke.mjs", productionSmokeNeedle);
 }
 
+for (const analyticsIngestNeedle of [
+  "async function persistBestEffort",
+  "await appendFile(filePath, payload, \"utf8\")",
+  "await persistBestEffort(events)",
+]) {
+  assertContains("app/api/events/route.ts", analyticsIngestNeedle);
+}
+
 for (const packageNeedle of [
   "\"ops:analytics-probe\"",
   "yishun-analytics-pipeline-probe.mjs",
@@ -271,9 +280,15 @@ for (const deploymentStatusNeedle of [
   "Deploy to Production",
   "releaseLag",
   "staleQueue",
+  "deployFailed",
+  "deployCompletedWithoutRelease",
+  "deployJobConclusion",
   "productionVersion",
   "expectedMainSha",
   "YISHUN_DEPLOYMENT_STATUS_DIR",
+  "REPORT_DATE",
+  "reportDate",
+  "Asia/Shanghai",
 ]) {
   assertContains("scripts/yishun-export-deployment-status.mjs", deploymentStatusNeedle);
 }
@@ -388,6 +403,7 @@ console.log(
         "stripe_webhook_success_and_failure_emit_server_analytics_events",
         "production_smoke_writes_durable_json_evidence",
         "production_smoke_can_probe_analytics_ingest",
+        "analytics_ingest_awaits_file_sink_before_ack",
         "analytics_pipeline_probe_checks_cloud_logging_visibility",
         "runner_watchdog_surfaces_offline_self_hosted_runner_and_stale_queues",
         "runner_recovery_diagnostic_writes_bridge_evidence_for_offline_runner",
