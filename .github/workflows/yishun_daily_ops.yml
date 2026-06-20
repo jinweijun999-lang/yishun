@@ -109,7 +109,7 @@ jobs:
     name: Export Daily Ops Package
     if: github.event_name != 'push' && github.event_name != 'pull_request'
     runs-on: [self-hosted, Linux, X64, yishun-prod]
-    timeout-minutes: 15
+    timeout-minutes: 5
     env:
       YISHUN_PRODUCTION_APP_DIR: /home/yishun/yishun
       YISHUN_DAILY_OPS_ROOT: /tmp/yishun-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}
