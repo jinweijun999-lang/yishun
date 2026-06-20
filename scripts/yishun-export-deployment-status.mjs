@@ -10,6 +10,7 @@ const TARGET_WORKFLOW = "Next.js CI/CD";
 const DEPLOY_JOB_NAME = "Deploy to Production";
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEFAULT_MAX_QUEUED_MINUTES = 10;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function parseArgs() {
   const rawArgs = process.argv.slice(2);
@@ -19,8 +20,10 @@ function parseArgs() {
     const index = rawArgs.indexOf(name);
     return index >= 0 ? rawArgs[index + 1] || fallback : fallback;
   };
+  const dateValue = valueFor("--date", process.env.REPORT_DATE || "");
 
   return {
+    date: DATE_PATTERN.test(dateValue) ? dateValue : dayStamp(),
     repo: valueFor("--repo", process.env.YISHUN_GITHUB_REPO || DEFAULT_REPO),
     baseUrl: valueFor("--base-url", process.env.YISHUN_PRODUCTION_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ""),
     outDir: valueFor("--out-dir", process.env.YISHUN_DEPLOYMENT_STATUS_DIR || DEFAULT_OUT_DIR),
@@ -36,7 +39,14 @@ function isoStamp(value = new Date()) {
 }
 
 function dayStamp(value = new Date()) {
-  return value.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function redacted(text) {
@@ -179,10 +189,17 @@ function buildSummary({ latestMainRun, jobs, health, config, ghAvailable }) {
     (runQueuedMinutes !== null && runQueuedMinutes > maxQueue) ||
     (deployQueuedMinutes !== null && deployQueuedMinutes > maxQueue),
   );
+  const deployCompleted = deployJob?.status === "completed";
+  const deployFailed = Boolean(deployCompleted && deployJob?.conclusion && deployJob.conclusion !== "success");
+  const deployCompletedWithoutRelease = Boolean(releaseLag && deployCompleted && !deployFailed);
   const risk = !health.ok
     ? "action_required"
     : !ghAvailable
       ? "watch"
+    : deployFailed
+      ? "action_required"
+    : deployCompletedWithoutRelease
+      ? "action_required"
     : releaseLag && staleQueue
       ? "action_required"
       : releaseLag || staleQueue
@@ -195,6 +212,8 @@ function buildSummary({ latestMainRun, jobs, health, config, ghAvailable }) {
     expectedMainSha,
     releaseLag,
     staleQueue,
+    deployFailed,
+    deployCompletedWithoutRelease,
     maxQueuedMinutes: maxQueue,
     runQueuedMinutes,
     deployQueuedMinutes,
@@ -258,6 +277,7 @@ async function main() {
       workflowName: TARGET_WORKFLOW,
       deployJobName: DEPLOY_JOB_NAME,
       maxQueuedMinutes: config.maxQueuedMinutes,
+      reportDate: config.date,
     },
     github: {
       available: ghAvailable,
@@ -279,7 +299,7 @@ async function main() {
   };
 
   await mkdir(config.outDir, { recursive: true });
-  const outputPath = path.join(config.outDir, `yishun-deployment-status-${dayStamp()}.json`);
+  const outputPath = path.join(config.outDir, `yishun-deployment-status-${config.date}.json`);
   const evidencePath = path.join(config.outDir, `yishun-deployment-status-${isoStamp()}.json`);
   await writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   await writeFile(evidencePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
@@ -290,9 +310,12 @@ async function main() {
     evidencePath,
     risk: payload.summary.risk,
     releaseLag: payload.summary.releaseLag,
+    deployFailed: payload.summary.deployFailed,
+    deployCompletedWithoutRelease: payload.summary.deployCompletedWithoutRelease,
     productionVersion: payload.summary.productionVersion,
     expectedMainSha: payload.summary.expectedMainSha,
     deployJobStatus: payload.summary.deployJobStatus,
+    deployJobConclusion: payload.summary.deployJobConclusion,
     deployQueuedMinutes: payload.summary.deployQueuedMinutes,
   }, null, 2));
 }

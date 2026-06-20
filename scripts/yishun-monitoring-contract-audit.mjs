@@ -178,6 +178,7 @@ for (const hostedDailyOpsFallbackNeedle of [
   "GITHUB_EVENT_PATH",
   "event.inputs?.report_date",
   "YISHUN_DAILY_OPS_ROOT: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}",
+  "YISHUN_DEPLOYMENT_STATUS_DIR: /tmp/yishun-public-daily-ops-${{ github.run_id }}-${{ github.run_attempt }}/deployment-status",
   "YISHUN_DAILY_SKIP_PRODUCTION_FILE_EXPORT: \"1\"",
   "YISHUN_PRODUCTION_BASE_URL: https://11263.com",
   "YISHUN_HEALTH_URL: https://11263.com/api/health",
@@ -271,9 +272,14 @@ for (const deploymentStatusNeedle of [
   "Deploy to Production",
   "releaseLag",
   "staleQueue",
+  "deployFailed",
+  "deployCompletedWithoutRelease",
   "productionVersion",
   "expectedMainSha",
   "YISHUN_DEPLOYMENT_STATUS_DIR",
+  "REPORT_DATE",
+  "reportDate",
+  "Asia/Shanghai",
 ]) {
   assertContains("scripts/yishun-export-deployment-status.mjs", deploymentStatusNeedle);
 }
